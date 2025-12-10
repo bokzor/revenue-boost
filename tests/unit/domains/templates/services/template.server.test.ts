@@ -222,6 +222,8 @@ describe("TemplateService.createTemplate", () => {
     const result = await TemplateService.createTemplate({
       templateType: "NEWSLETTER",
       name: "My Template",
+      description: "Test template",
+      category: "popup",
       goals: ["NEWSLETTER_SIGNUP"],
     });
 
@@ -240,6 +242,8 @@ describe("TemplateService.createTemplate", () => {
     await TemplateService.createTemplate({
       templateType: "NEWSLETTER",
       name: "New Template",
+      description: "Another template",
+      category: "popup",
       goals: ["NEWSLETTER_SIGNUP"],
     });
 
@@ -275,4 +279,3 @@ describe("clearTemplateCache", () => {
     expect(prisma.template.findMany).toHaveBeenCalledTimes(2);
   });
 });
-

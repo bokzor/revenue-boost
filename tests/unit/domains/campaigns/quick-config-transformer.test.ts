@@ -22,36 +22,65 @@ import {
   extractIds,
   valuesAreEqual,
   type ApplyQuickConfigParams,
+  type QuickConfigApplyResult,
 } from "~/domains/campaigns/utils/quick-config-transformer";
 import type { StyledRecipe, QuickInput } from "~/domains/campaigns/recipes/styled-recipe-types";
 import { DEFAULT_DISCOUNT_CONFIG } from "~/domains/campaigns/components/unified/defaults";
 
+// Type alias for accessing content config properties in tests
+type ContentRecord = Record<string, unknown>;
+
+// Helper to get content config as a record for property access
+function getContent(result: QuickConfigApplyResult): ContentRecord {
+  return result.contentConfig as ContentRecord;
+}
+
 // Helper to create a minimal recipe with specific inputs
+// Uses 'as unknown as StyledRecipe' to bypass strict type checking for test mocks
 function createMockRecipe(
-  inputs: QuickInput[],
+  inputs: Partial<QuickInput>[],
   contentDefaults: Record<string, unknown> = {},
   discountDefaults: Record<string, unknown> = {}
 ): StyledRecipe {
+  // Add required defaults to inputs based on type
+  const normalizedInputs = inputs.map((input) => {
+    if (input.type === "discount_percentage" || input.type === "discount_amount" || input.type === "currency_amount" || input.type === "duration_hours") {
+      return { defaultValue: 10, ...input };
+    }
+    if (input.type === "select") {
+      return { defaultValue: "", options: [], ...input };
+    }
+    return input;
+  }) as QuickInput[];
+
   return {
     id: "test-recipe",
     name: "Test Recipe",
+    tagline: "Test tagline",
     description: "Test recipe for unit tests",
+    icon: "🧪",
     category: "newsletter",
+    goal: "NEWSLETTER_SIGNUP",
     templateType: "NEWSLETTER",
+    component: "NewsletterCentered",
+    layout: "centered",
     tags: [],
-    thumbnail: "/test.png",
-    inputs,
+    inputs: normalizedInputs,
+    editableFields: [],
     defaults: {
       contentConfig: contentDefaults,
       designConfig: {},
       discountConfig: discountDefaults,
     },
-  } as StyledRecipe;
+  } as unknown as StyledRecipe;
 }
 
 // Helper to create default params
+// Uses loose typing for contentConfig to allow partial mock objects in tests
 function createDefaultParams(
-  overrides: Partial<ApplyQuickConfigParams> = {}
+  overrides: Partial<Omit<ApplyQuickConfigParams, "contentConfig">> & {
+    contentConfig?: Record<string, unknown>;
+  } = {}
 ): ApplyQuickConfigParams {
   return {
     recipe: undefined,
@@ -65,7 +94,7 @@ function createDefaultParams(
     },
     discountConfig: { ...DEFAULT_DISCOUNT_CONFIG },
     ...overrides,
-  };
+  } as ApplyQuickConfigParams;
 }
 
 describe("extractIds", () => {
@@ -143,7 +172,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.subheadline).toBe("Get 25% off your order");
+      expect(getContent(result).subheadline).toBe("Get 25% off your order");
       expect(result.changed.content).toBe(true);
     });
 
@@ -154,7 +183,7 @@ describe("applyQuickConfigToState", () => {
       );
       const params = createDefaultParams({
         recipe,
-        contextData: { discountValue: "30" },
+        contextData: { discountValue: "30" as unknown as number }, // Test string handling
         contentConfig: { subheadline: "Get 10% off" },
       });
 
@@ -178,7 +207,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.bundleDiscount).toBe(20);
+      expect(getContent(result).bundleDiscount).toBe(20);
       expect(result.discountConfig.value).toBe(20);
       expect(result.changed.content).toBe(true);
       expect(result.changed.discount).toBe(true);
@@ -199,7 +228,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.productSelectionMethod).toBe("manual");
+      expect(getContent(result).productSelectionMethod).toBe("manual");
     });
 
     it("clears selectedProducts and selectedCollection when set to ai", () => {
@@ -219,9 +248,9 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.productSelectionMethod).toBe("ai");
-      expect(result.contentConfig.selectedProducts).toBeUndefined();
-      expect(result.contentConfig.selectedCollection).toBeUndefined();
+      expect(getContent(result).productSelectionMethod).toBe("ai");
+      expect(getContent(result).selectedProducts).toBeUndefined();
+      expect(getContent(result).selectedCollection).toBeUndefined();
     });
   });
 
@@ -330,7 +359,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.subheadline).toBe("Spend $100+ to unlock");
+      expect(getContent(result).subheadline).toBe("Spend $100+ to unlock");
     });
 
     it("sets discountConfig.minimumAmount", () => {
@@ -387,9 +416,9 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.headline).toBe("Free shipping on $75+");
-      expect(result.contentConfig.subheadline).toBe("Spend $75 for free shipping");
-      expect(result.contentConfig.threshold).toBe(75);
+      expect(getContent(result).headline).toBe("Free shipping on $75+");
+      expect(getContent(result).subheadline).toBe("Spend $75 for free shipping");
+      expect(getContent(result).threshold).toBe(75);
     });
   });
 
@@ -466,7 +495,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.emailBeforeScratching).toBe(true);
+      expect(getContent(result).emailBeforeScratching).toBe(true);
     });
 
     it("sets emailBeforeScratching to false when timing is after", () => {
@@ -482,7 +511,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.emailBeforeScratching).toBe(false);
+      expect(getContent(result).emailBeforeScratching).toBe(false);
     });
   });
 
@@ -504,9 +533,9 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.enablePurchaseNotifications).toBe(true);
-      expect(result.contentConfig.enableVisitorNotifications).toBe(false);
-      expect(result.contentConfig.enableReviewNotifications).toBe(false);
+      expect(getContent(result).enablePurchaseNotifications).toBe(true);
+      expect(getContent(result).enableVisitorNotifications).toBe(false);
+      expect(getContent(result).enableReviewNotifications).toBe(false);
     });
 
     it("enables all notifications when type is all", () => {
@@ -526,9 +555,9 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.enablePurchaseNotifications).toBe(true);
-      expect(result.contentConfig.enableVisitorNotifications).toBe(true);
-      expect(result.contentConfig.enableReviewNotifications).toBe(true);
+      expect(getContent(result).enablePurchaseNotifications).toBe(true);
+      expect(getContent(result).enableVisitorNotifications).toBe(true);
+      expect(getContent(result).enableReviewNotifications).toBe(true);
     });
 
     it("does not override existing notification settings", () => {
@@ -553,9 +582,9 @@ describe("applyQuickConfigToState", () => {
       const result = applyQuickConfigToState(params);
 
       // Should not change because enablePurchaseNotifications is already defined
-      expect(result.contentConfig.enablePurchaseNotifications).toBe(true);
-      expect(result.contentConfig.enableVisitorNotifications).toBe(false);
-      expect(result.contentConfig.enableReviewNotifications).toBe(false);
+      expect(getContent(result).enablePurchaseNotifications).toBe(true);
+      expect(getContent(result).enableVisitorNotifications).toBe(false);
+      expect(getContent(result).enableReviewNotifications).toBe(false);
     });
   });
 
@@ -573,7 +602,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.rotationInterval).toBe(10);
+      expect(getContent(result).rotationInterval).toBe(10);
     });
   });
 
@@ -591,7 +620,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.contentConfig.countdownDuration).toBe(7200); // 2 hours = 7200 seconds
+      expect(getContent(result).countdownDuration).toBe(7200); // 2 hours = 7200 seconds
     });
 
     it("updates timer.durationSeconds when timer exists", () => {
@@ -623,11 +652,11 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect((result.contentConfig as Record<string, unknown>).selectedProducts).toEqual([
+      expect(getContent(result).selectedProducts).toEqual([
         "prod1",
         "prod2",
       ]);
-      expect(result.contentConfig.productSelectionMethod).toBe("manual");
+      expect(getContent(result).productSelectionMethod).toBe("manual");
     });
 
     it("handles object array with id property", () => {
@@ -640,7 +669,7 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect((result.contentConfig as Record<string, unknown>).selectedProducts).toEqual([
+      expect(getContent(result).selectedProducts).toEqual([
         "prod1",
         "prod2",
       ]);
@@ -658,8 +687,8 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect((result.contentConfig as Record<string, unknown>).selectedCollection).toBe("col1");
-      expect(result.contentConfig.productSelectionMethod).toBe("collection");
+      expect(getContent(result).selectedCollection).toBe("col1");
+      expect(getContent(result).productSelectionMethod).toBe("collection");
     });
   });
 

@@ -666,6 +666,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
     const discountConfig: AdminDiscountConfig | undefined = dc
       ? {
           enabled: dc.enabled !== false,
+          showInPreview: dc.showInPreview !== false,
           strategy:
             dc.strategy ||
             (dc.tiers?.length
@@ -692,6 +693,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
         }
       : {
           enabled: true,
+          showInPreview: true,
           strategy: "bundle",
           valueType: "PERCENTAGE",
           value: bundleValue,
@@ -895,6 +897,7 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CLASSIC_UPSELL] = {
     showCompareAtPrice: (mergedConfig.showCompareAtPrice as boolean) ?? true,
     showImages: (mergedConfig.showImages as boolean) ?? true,
     showRatings: (mergedConfig.showRatings as boolean) ?? true,
+    showReviewCount: (mergedConfig.showReviewCount as boolean) ?? true,
     bundleDiscount: (mergedConfig.bundleDiscount as number) ?? 15,
     bundleDiscountText: (mergedConfig.bundleDiscountText as string) || undefined,
     currency: (mergedConfig.currency as string) || "USD",

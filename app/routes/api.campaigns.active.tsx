@@ -175,7 +175,7 @@ export async function loader(args: LoaderFunctionArgs) {
           parseSuccess: parsedSettings.success,
           parseError: !parsedSettings.success ? parsedSettings.error?.message : undefined,
           presetsCount: customPresets.length,
-          presetNames: customPresets.map(p => ({ name: p.name, isDefault: p.isDefault, primary: p.primary })),
+          presetNames: customPresets.map(p => ({ name: p.name, isDefault: p.isDefault, brandColor: p.brandColor })),
         });
         const defaultPreset = getDefaultPreset(customPresets);
 
@@ -323,8 +323,7 @@ export async function loader(args: LoaderFunctionArgs) {
             // This ensures "Preview on Store" shows the same colors as the admin preview
             mergedDesignConfig = mergeTokensIntoDesignConfig(
               parsedDesignConfig,
-              resolvedTokens,
-              themeMode
+              resolvedTokens
             );
           } catch (tokenError) {
             console.warn(`[Active Campaigns API] Failed to resolve tokens for preview:`, tokenError);

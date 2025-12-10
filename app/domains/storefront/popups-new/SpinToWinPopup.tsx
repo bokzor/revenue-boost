@@ -1191,7 +1191,7 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           .spin-form-cell {
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: center;
             align-items: center;
             padding: var(--stw-gap-md) var(--stw-padding-x);
             z-index: 20;

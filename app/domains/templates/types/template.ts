@@ -213,6 +213,7 @@ export const NewsletterTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     valueType: "PERCENTAGE",
     value: 10,
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
@@ -230,6 +231,7 @@ export const FlashSaleTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: true,
     showInPreview: true,
+    strategy: "simple",
     valueType: "PERCENTAGE",
     value: 20,
     behavior: "SHOW_CODE_ONLY",
@@ -260,6 +262,7 @@ export const SpinToWinTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
   }),
 });
@@ -283,6 +286,7 @@ export const FreeShippingTemplateSchema = BaseTemplateSchema.extend({
   discountConfig: DiscountConfigSchema.default({
     enabled: true,
     showInPreview: true,
+    strategy: "simple",
     valueType: "FREE_SHIPPING",
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
     expiryDays: 30,

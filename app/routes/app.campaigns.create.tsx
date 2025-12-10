@@ -388,7 +388,7 @@ export default function UnifiedCampaignCreate() {
   const handleSaveCampaign = useCallback(async (campaignData: CampaignData) => {
     const formData = new FormData();
     formData.append("intent", "create_campaign");
-    formData.append("campaignData", JSON.stringify(campaignData));
+    formData.append("campaignData", JSON.stringify({ ...campaignData, status: "ACTIVE" }));
     submit(formData, { method: "post" });
   }, [submit]);
 
@@ -463,6 +463,7 @@ export default function UnifiedCampaignCreate() {
           shopDomain={loaderData.shopDomain}
           advancedTargetingEnabled={loaderData.advancedTargetingEnabled}
           customThemePresets={loaderData.customThemePresets}
+          defaultThemeTokens={loaderData.defaultThemeTokens}
         />
       </CampaignErrorBoundary>
       {toastMessage && (

@@ -43,14 +43,30 @@ import { isWithinSchedule } from "~/domains/campaigns/utils/schedule-helpers";
 // TEST HELPERS
 // ==========================================================================
 
-function createMockCampaign(overrides: Partial<any> = {}) {
+function createMockCampaign(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: "campaign-123",
     name: "Test Campaign",
+    description: null,
     storeId: "store-123",
+    templateId: "template-123",
     templateType: "NEWSLETTER",
+    goal: "NEWSLETTER_SIGNUP",
     status: "ACTIVE",
     priority: 1,
+    contentConfig: {},
+    designConfig: {},
+    targetRules: {},
+    discountConfig: {},
+    experimentId: null,
+    variantKey: null,
+    isControl: false,
+    startDate: null,
+    endDate: null,
+    marketingEventId: null,
+    utmCampaign: null,
+    utmSource: null,
+    utmMedium: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

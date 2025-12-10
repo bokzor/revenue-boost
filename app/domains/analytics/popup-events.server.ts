@@ -1,6 +1,5 @@
 import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
-import { logger } from "~/lib/logger.server";
 import { ServiceError } from "~/lib/errors.server";
 import type { PopupEventType, VariantKey, Prisma } from "@prisma/client";
 

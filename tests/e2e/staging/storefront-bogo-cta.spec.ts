@@ -24,6 +24,7 @@ import {
     verifyFlashSaleContent,
     waitForDiscountSuccessState,
     clickContinueShoppingButton,
+    getTestStoreId,
 } from './helpers/test-helpers';
 
 // Extend FlashSaleBuilder with CTA methods
@@ -77,9 +78,8 @@ let factory: CampaignFactory;
 
 test.describe('BOGO & CTA Button Tests', () => {
     test.beforeAll(async () => {
-        const store = await prisma.store.findFirst({ select: { id: true } });
-        if (!store) throw new Error('No store found');
-        storeId = store.id;
+        // Get store ID for the E2E testing store (revenue-boost-staging.myshopify.com)
+        storeId = await getTestStoreId(prisma);
         factory = new CampaignFactory(prisma, storeId, TEST_PREFIX);
     });
 

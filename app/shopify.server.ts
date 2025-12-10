@@ -1,6 +1,5 @@
 import { logger } from "~/lib/logger.server";
 import "@shopify/shopify-app-react-router/adapters/node";
-import { logger } from "~/lib/logger.server";
 import {
   ApiVersion,
   AppDistribution,

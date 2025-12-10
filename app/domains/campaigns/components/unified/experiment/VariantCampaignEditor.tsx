@@ -3,16 +3,21 @@
  *
  * Two-step flow for configuring a single A/B test variant:
  * 1. Recipe Selection: Goal-first recipe picker with configuration
- * 2. Campaign Editor: 2-column layout with preview and form sections
+ * 2. Campaign Editor: Uses shared CampaignEditorForm component
+ *
+ * The only variant-specific logic is:
+ * - Auto-save with debounce
+ * - "Back to Variants" footer button
+ * - Different sections for control vs non-control variants
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Layout, Card, BlockStack, Text, Box, Banner, Page, InlineStack, Button } from "@shopify/polaris";
-import { FormSections, type TargetingConfig, type ScheduleConfig } from "../FormSections";
+import { Card, BlockStack, Text, Box, Banner, Page, InlineStack, Button } from "@shopify/polaris";
+import { type TargetingConfig, type ScheduleConfig } from "../FormSections";
 import { RecipeSelectionStep, type RecipeSelectionResult } from "../RecipeSelectionStep";
-import { LivePreviewPanel, type PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
-import { Affix } from "~/shared/components/ui/Affix";
-import type { StyledRecipe } from "../../../recipes/styled-recipe-types";
+import { CampaignEditorForm } from "../CampaignEditorForm";
+import type { PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
+import type { StyledRecipe, RecipeContext } from "../../../recipes/styled-recipe-types";
 import type { ContentConfig, DesignConfig, DiscountConfig, CampaignGoal } from "../../../types/campaign";
 import type { TemplateType } from "~/shared/hooks/useWizardState";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components/FrequencyCappingPanel";
@@ -28,7 +33,6 @@ import {
   DEFAULT_DISCOUNT_CONFIG,
   EDITOR_SECTIONS,
   VARIANT_SECTIONS,
-  toTargetRulesRecord,
   type SectionId,
 } from "../defaults";
 
@@ -86,6 +90,16 @@ export function VariantCampaignEditor({
   const [selectedRecipe, setSelectedRecipe] = useState<StyledRecipe | undefined>(
     initialData?.recipe || variant.recipe
   );
+  // Campaign basics - for variants, default name is the variant name
+  const [campaignName, setCampaignName] = useState<string>(
+    initialData?.name || variant.name || ""
+  );
+  const [campaignDescription, setCampaignDescription] = useState<string>(
+    initialData?.description || ""
+  );
+  // Quick configuration context data (populated from recipe inputs)
+  const [contextData, setContextData] = useState<RecipeContext>({});
+
   const [contentConfig, setContentConfig] = useState<Partial<ContentConfig>>(
     initialData?.contentConfig || {}
   );
@@ -105,8 +119,8 @@ export function VariantCampaignEditor({
     initialData?.scheduleConfig || DEFAULT_SCHEDULE_CONFIG
   );
 
-  // Section state (starts with content expanded since recipe selection is done)
-  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["content"]);
+  // Section state (starts with basics expanded)
+  const [expandedSections, setExpandedSections] = useState<SectionId[]>(["basics"]);
   const [completedSections, setCompletedSections] = useState<SectionId[]>([]);
   const [previewDevice, setPreviewDevice] = useState<PreviewDevice>("tablet");
 
@@ -135,7 +149,8 @@ export function VariantCampaignEditor({
 
   // Use ref to always have latest state for debounced saves (avoids stale closures)
   const latestStateRef = useRef({
-    variant,
+    campaignName,
+    campaignDescription,
     selectedRecipe,
     contentConfig,
     designConfig,
@@ -148,7 +163,8 @@ export function VariantCampaignEditor({
   // Keep ref in sync with state
   useEffect(() => {
     latestStateRef.current = {
-      variant,
+      campaignName,
+      campaignDescription,
       selectedRecipe,
       contentConfig,
       designConfig,
@@ -157,13 +173,14 @@ export function VariantCampaignEditor({
       frequencyConfig,
       scheduleConfig,
     };
-  }, [variant, selectedRecipe, contentConfig, designConfig, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
+  }, [campaignName, campaignDescription, selectedRecipe, contentConfig, designConfig, discountConfig, targetingConfig, frequencyConfig, scheduleConfig]);
 
   // Build campaign data (uses ref for debounced saves to avoid stale closures)
   const buildCampaignData = useCallback((): CampaignData => {
     const state = latestStateRef.current;
     return {
-      name: state.variant.name,
+      name: state.campaignName,
+      description: state.campaignDescription,
       recipe: state.selectedRecipe,
       templateType: state.selectedRecipe?.templateType as TemplateType,
       contentConfig: state.contentConfig,
@@ -258,6 +275,61 @@ export function VariantCampaignEditor({
   const templateType = selectedRecipe?.templateType as TemplateType | undefined;
   const sectionsToShow = isControlVariant ? EDITOR_SECTIONS : VARIANT_SECTIONS;
 
+  // Check if recipe has quick config inputs
+  const hasQuickInputs = selectedRecipe?.inputs && selectedRecipe.inputs.length > 0;
+
+  // Filter sections: remove quickConfig if no inputs
+  const visibleSections = hasQuickInputs
+    ? sectionsToShow
+    : sectionsToShow.filter((s) => s.id !== "quickConfig");
+
+  // Wrap change handlers to trigger auto-save
+  // NOTE: These hooks MUST be defined before any early returns to satisfy React's rules of hooks
+  const handleNameChange = useCallback((name: string) => {
+    setCampaignName(name);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleDescriptionChange = useCallback((desc: string) => {
+    setCampaignDescription(desc);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleContextDataChange = useCallback((key: string, value: unknown) => {
+    setContextData((prev) => ({ ...prev, [key]: value }));
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleContentChange = useCallback((cfg: Partial<ContentConfig>) => {
+    setContentConfig(cfg);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleDesignChange = useCallback((cfg: Partial<DesignConfig>) => {
+    setDesignConfig(cfg);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleDiscountChange = useCallback((cfg: DiscountConfig) => {
+    setDiscountConfig(cfg);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleTargetingChange = useCallback((cfg: TargetingConfig) => {
+    setTargetingConfig(cfg);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleFrequencyChange = useCallback((cfg: FrequencyCappingConfig) => {
+    setFrequencyConfig(cfg);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
+  const handleScheduleChange = useCallback((cfg: ScheduleConfig) => {
+    setScheduleConfig(cfg);
+    saveCurrentState();
+  }, [saveCurrentState]);
+
   // =============================================================================
   // STEP 1: RECIPE SELECTION
   // =============================================================================
@@ -284,8 +356,27 @@ export function VariantCampaignEditor({
   }
 
   // =============================================================================
-  // STEP 2: CAMPAIGN EDITOR
+  // STEP 2: CAMPAIGN EDITOR (using shared component)
   // =============================================================================
+
+  // Footer content: "Back to Variants" button
+  const footerContent = onBackToVariants ? (
+    <Box paddingBlockStart="600">
+      <Card>
+        <BlockStack gap="400">
+          <Text as="p" variant="bodyMd" tone="subdued">
+            Done configuring this variant? Go back to see all variants or configure another one.
+          </Text>
+          <InlineStack align="end">
+            <Button onClick={onBackToVariants} variant="primary">
+              ← Back to Variants
+            </Button>
+          </InlineStack>
+        </BlockStack>
+      </Card>
+    </Box>
+  ) : undefined;
+
   return (
     <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px" }}>
       {/* Info banner for non-control variants */}
@@ -298,118 +389,60 @@ export function VariantCampaignEditor({
         </Box>
       )}
 
-      <Layout>
-        {/* Left Column - Live Preview */}
-        <Layout.Section variant="oneHalf">
-          <div data-affix-boundary style={{ position: "relative", alignSelf: "flex-start" }}>
-            <Affix disableBelowWidth={768}>
-              {templateType ? (
-                <LivePreviewPanel
-                  templateType={templateType}
-                  config={{
-                    ...contentConfig,
-                    // Pass discount config so preview can render discount badges/text correctly
-                    discountConfig,
-                  }}
-                  designConfig={designConfig}
-                  targetRules={toTargetRulesRecord(targetingConfig)}
-                  shopDomain={shopDomain}
-                  device={previewDevice}
-                  onDeviceChange={setPreviewDevice}
-                />
-              ) : (
-                <Card>
-                  <Box padding="800">
-                    <BlockStack gap="400" align="center">
-                      <div style={{ fontSize: "48px" }}>📱</div>
-                      <Text as="h3" variant="headingMd" alignment="center">
-                        Live Preview
-                      </Text>
-                      <Text as="p" tone="subdued" alignment="center">
-                        Select a recipe to see a live preview
-                      </Text>
-                    </BlockStack>
-                  </Box>
-                </Card>
-              )}
-            </Affix>
-          </div>
-        </Layout.Section>
-
-        {/* Right Column - Form Sections */}
-        <Layout.Section variant="oneHalf">
-          <FormSections
-            sections={sectionsToShow}
-            expandedSections={expandedSections}
-            completedSections={completedSections}
-            onToggle={toggleSection}
-            recipes={recipes}
-            selectedRecipe={selectedRecipe}
-            onRecipeSelect={handleRecipeSelect}
-            contentConfig={contentConfig}
-            designConfig={designConfig}
-            discountConfig={discountConfig}
-            targetingConfig={targetingConfig}
-            frequencyConfig={frequencyConfig}
-            scheduleConfig={scheduleConfig}
-            onContentChange={(cfg) => {
-              setContentConfig(cfg);
-              saveCurrentState();
-            }}
-            onDesignChange={(cfg) => {
-              setDesignConfig(cfg);
-              saveCurrentState();
-            }}
-            onDiscountChange={(cfg) => {
-              setDiscountConfig(cfg);
-              saveCurrentState();
-            }}
-            onTargetingChange={(cfg) => {
-              setTargetingConfig(cfg);
-              saveCurrentState();
-            }}
-            onFrequencyChange={(cfg) => {
-              setFrequencyConfig(cfg);
-              saveCurrentState();
-            }}
-            onScheduleChange={(cfg) => {
-              setScheduleConfig(cfg);
-              saveCurrentState();
-            }}
-            onMarkComplete={markComplete}
-            storeId={storeId}
-            advancedTargetingEnabled={advancedTargetingEnabled}
-            templateType={templateType}
-            campaignGoal={selectedRecipe?.goal}
-            restrictRecipesToGoal={!isControlVariant && controlGoal ? controlGoal as CampaignGoal : undefined}
-            variantLabel={!isControlVariant ? `Variant ${variant.name}` : undefined}
-            // New props for feature parity
-            customThemePresets={customThemePresets}
-            backgroundsByLayout={backgroundsByLayout}
-            globalCustomCSS={globalCustomCSS}
-            globalFrequencyCapping={globalFrequencyCapping}
-            onMobileLayoutChange={() => setPreviewDevice("mobile")}
-          />
-
-          {/* Back to Variants button at the bottom */}
-          {onBackToVariants && (
-            <Box paddingBlockStart="600">
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Done configuring this variant? Go back to see all variants or configure another one.
-                  </Text>
-                  <InlineStack align="end">
-                    <Button onClick={onBackToVariants} variant="primary">
-                      ← Back to Variants
-                    </Button>
-                  </InlineStack>
-                </BlockStack>
-              </Card>
-            </Box>
-          )}
-        </Layout.Section>
-      </Layout>
+      <CampaignEditorForm
+        // Section management
+        sections={visibleSections}
+        expandedSections={expandedSections}
+        completedSections={completedSections}
+        onToggle={toggleSection}
+        onMarkComplete={markComplete}
+        // Campaign basics (name & description)
+        campaignName={campaignName}
+        campaignDescription={campaignDescription}
+        onNameChange={handleNameChange}
+        onDescriptionChange={handleDescriptionChange}
+        // Quick configuration (recipe inputs)
+        contextData={contextData}
+        onContextDataChange={handleContextDataChange}
+        // Recipe
+        recipes={recipes}
+        selectedRecipe={selectedRecipe}
+        onRecipeSelect={handleRecipeSelect}
+        // Configs (with auto-save wrappers)
+        contentConfig={contentConfig}
+        designConfig={designConfig}
+        discountConfig={discountConfig}
+        targetingConfig={targetingConfig}
+        frequencyConfig={frequencyConfig}
+        scheduleConfig={scheduleConfig}
+        onContentChange={handleContentChange}
+        onDesignChange={handleDesignChange}
+        onDiscountChange={handleDiscountChange}
+        onTargetingChange={handleTargetingChange}
+        onFrequencyChange={handleFrequencyChange}
+        onScheduleChange={handleScheduleChange}
+        // Store/Shop
+        storeId={storeId}
+        shopDomain={shopDomain}
+        advancedTargetingEnabled={advancedTargetingEnabled}
+        // Template
+        templateType={templateType}
+        campaignGoal={selectedRecipe?.goal}
+        // Features
+        customThemePresets={customThemePresets}
+        backgroundsByLayout={backgroundsByLayout}
+        globalCustomCSS={globalCustomCSS}
+        globalFrequencyCapping={globalFrequencyCapping}
+        defaultThemeTokens={defaultThemeTokens}
+        // Preview
+        previewDevice={previewDevice}
+        onDeviceChange={setPreviewDevice}
+        // Variant-specific
+        restrictRecipesToGoal={!isControlVariant && controlGoal ? controlGoal as CampaignGoal : undefined}
+        variantLabel={!isControlVariant ? `Variant ${variant.name}` : undefined}
+        // Footer
+        footerContent={footerContent}
+      />
     </div>
   );
 }

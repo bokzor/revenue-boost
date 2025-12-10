@@ -87,16 +87,45 @@ const SPIN_TO_WIN_PAGE_TARGETING = {
 };
 
 // =============================================================================
-// DEFAULT WHEEL SEGMENTS (can be customized per recipe)
+// HELPER: Create discount config for wheel segments
 // =============================================================================
 
-const _DEFAULT_SEGMENTS = [
-  { id: "prize-1", label: "10% OFF", probability: 0.3 },
-  { id: "prize-2", label: "15% OFF", probability: 0.25 },
-  { id: "prize-3", label: "Free Shipping", probability: 0.2 },
-  { id: "prize-4", label: "Try Again", probability: 0.15 },
-  { id: "prize-5", label: "20% OFF", probability: 0.1 },
-];
+type SegmentDiscountConfig = {
+  enabled: boolean;
+  showInPreview: boolean;
+  strategy: "simple";
+  valueType: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
+  value: number;
+  behavior: "SHOW_CODE_AND_AUTO_APPLY";
+  expiryDays: number;
+  type: "single_use";
+};
+
+const createSegmentDiscount = (
+  valueType: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
+  value: number
+): SegmentDiscountConfig => ({
+  enabled: true,
+  showInPreview: true,
+  strategy: "simple",
+  valueType,
+  value,
+  behavior: "SHOW_CODE_AND_AUTO_APPLY",
+  expiryDays: 30,
+  type: "single_use",
+});
+
+// No discount for "Try Again" segments
+const NO_DISCOUNT: SegmentDiscountConfig = {
+  enabled: false,
+  showInPreview: false,
+  strategy: "simple",
+  valueType: "PERCENTAGE",
+  value: 0,
+  behavior: "SHOW_CODE_AND_AUTO_APPLY",
+  expiryDays: 30,
+  type: "single_use",
+};
 
 // =============================================================================
 // 1. LUCKY FORTUNE (Casino Theme)
@@ -128,12 +157,12 @@ const luckyFortune: SpinToWinRecipe = {
       emailPlaceholder: "Enter your email",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.25, color: "#D4AF37" },
-        { id: "prize-2", label: "15% OFF", probability: 0.2, color: "#1A1814" },
-        { id: "prize-3", label: "Free Gift", probability: 0.15, color: "#D4AF37" },
-        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#1A1814" },
-        { id: "prize-5", label: "25% OFF", probability: 0.15, color: "#D4AF37" },
-        { id: "prize-6", label: "5% OFF", probability: 0.1, color: "#1A1814" },
+        { id: "prize-1", label: "10% OFF", probability: 0.25, color: "#D4AF37", discountConfig: createSegmentDiscount("PERCENTAGE", 10) },
+        { id: "prize-2", label: "15% OFF", probability: 0.2, color: "#1A1814", discountConfig: createSegmentDiscount("PERCENTAGE", 15) },
+        { id: "prize-3", label: "Free Gift", probability: 0.15, color: "#D4AF37", discountConfig: createSegmentDiscount("FIXED_AMOUNT", 0) },
+        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#1A1814", discountConfig: NO_DISCOUNT },
+        { id: "prize-5", label: "25% OFF", probability: 0.15, color: "#D4AF37", discountConfig: createSegmentDiscount("PERCENTAGE", 25) },
+        { id: "prize-6", label: "5% OFF", probability: 0.1, color: "#1A1814", discountConfig: createSegmentDiscount("PERCENTAGE", 5) },
       ],
       nameFieldEnabled: false,
       consentFieldEnabled: true,
@@ -180,12 +209,6 @@ const luckyFortune: SpinToWinRecipe = {
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 10,
-    },
   },
 };
 
@@ -219,11 +242,11 @@ const neonNights: SpinToWinRecipe = {
       emailPlaceholder: "Enter your email",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#EC4899" },
-        { id: "prize-2", label: "15% OFF", probability: 0.25, color: "#8B5CF6" },
-        { id: "prize-3", label: "Free Item", probability: 0.2, color: "#06B6D4" },
-        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#1F2937" },
-        { id: "prize-5", label: "20% OFF", probability: 0.1, color: "#10B981" },
+        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#EC4899", discountConfig: createSegmentDiscount("PERCENTAGE", 10) },
+        { id: "prize-2", label: "15% OFF", probability: 0.25, color: "#8B5CF6", discountConfig: createSegmentDiscount("PERCENTAGE", 15) },
+        { id: "prize-3", label: "Free Item", probability: 0.2, color: "#06B6D4", discountConfig: createSegmentDiscount("FIXED_AMOUNT", 0) },
+        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#1F2937", discountConfig: NO_DISCOUNT },
+        { id: "prize-5", label: "20% OFF", probability: 0.1, color: "#10B981", discountConfig: createSegmentDiscount("PERCENTAGE", 20) },
       ],
       nameFieldEnabled: false,
       consentFieldEnabled: false,
@@ -258,12 +281,6 @@ const neonNights: SpinToWinRecipe = {
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 10,
-    },
   },
 };
 
@@ -297,11 +314,11 @@ const pastelDream: SpinToWinRecipe = {
       emailPlaceholder: "Your email",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#F9A8D4" },
-        { id: "prize-2", label: "Free Sample", probability: 0.25, color: "#FDF2F8" },
-        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#FBCFE8" },
-        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#FCE7F3" },
-        { id: "prize-5", label: "20% OFF", probability: 0.1, color: "#F472B6" },
+        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#F9A8D4", discountConfig: createSegmentDiscount("PERCENTAGE", 10) },
+        { id: "prize-2", label: "Free Sample", probability: 0.25, color: "#FDF2F8", discountConfig: createSegmentDiscount("FIXED_AMOUNT", 0) },
+        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#FBCFE8", discountConfig: createSegmentDiscount("PERCENTAGE", 15) },
+        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#FCE7F3", discountConfig: NO_DISCOUNT },
+        { id: "prize-5", label: "20% OFF", probability: 0.1, color: "#F472B6", discountConfig: createSegmentDiscount("PERCENTAGE", 20) },
       ],
       nameFieldEnabled: true,
       nameFieldRequired: false,
@@ -338,12 +355,6 @@ const pastelDream: SpinToWinRecipe = {
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 10,
-    },
   },
 };
 
@@ -376,11 +387,11 @@ const oceanBreeze: SpinToWinRecipe = {
       emailPlaceholder: "Your email",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#0EA5E9" },
-        { id: "prize-2", label: "Free Ship", probability: 0.25, color: "#38BDF8" },
-        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#7DD3FC" },
-        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#BAE6FD" },
-        { id: "prize-5", label: "20% OFF", probability: 0.1, color: "#0284C7" },
+        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#0EA5E9", discountConfig: createSegmentDiscount("PERCENTAGE", 10) },
+        { id: "prize-2", label: "Free Ship", probability: 0.25, color: "#38BDF8", discountConfig: createSegmentDiscount("FREE_SHIPPING", 0) },
+        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#7DD3FC", discountConfig: createSegmentDiscount("PERCENTAGE", 15) },
+        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#BAE6FD", discountConfig: NO_DISCOUNT },
+        { id: "prize-5", label: "20% OFF", probability: 0.1, color: "#0284C7", discountConfig: createSegmentDiscount("PERCENTAGE", 20) },
       ],
       nameFieldEnabled: false,
       consentFieldEnabled: false,
@@ -411,12 +422,6 @@ const oceanBreeze: SpinToWinRecipe = {
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
-    },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 10,
     },
   },
 };
@@ -449,11 +454,11 @@ const minimalMono: SpinToWinRecipe = {
       emailPlaceholder: "you@company.com",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "5% OFF", probability: 0.35, color: "#F9FAFB" },
-        { id: "prize-2", label: "10% OFF", probability: 0.3, color: "#E5E7EB" },
-        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#D1D5DB" },
-        { id: "prize-4", label: "Try Again", probability: 0.1, color: "#9CA3AF" },
-        { id: "prize-5", label: "20% OFF", probability: 0.05, color: "#111827" },
+        { id: "prize-1", label: "5% OFF", probability: 0.35, color: "#F9FAFB", discountConfig: createSegmentDiscount("PERCENTAGE", 5) },
+        { id: "prize-2", label: "10% OFF", probability: 0.3, color: "#E5E7EB", discountConfig: createSegmentDiscount("PERCENTAGE", 10) },
+        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#D1D5DB", discountConfig: createSegmentDiscount("PERCENTAGE", 15) },
+        { id: "prize-4", label: "Try Again", probability: 0.1, color: "#9CA3AF", discountConfig: NO_DISCOUNT },
+        { id: "prize-5", label: "20% OFF", probability: 0.05, color: "#111827", discountConfig: createSegmentDiscount("PERCENTAGE", 20) },
       ],
       nameFieldEnabled: false,
       consentFieldEnabled: false,
@@ -475,12 +480,6 @@ const minimalMono: SpinToWinRecipe = {
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
-    },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 10,
     },
   },
 };
@@ -514,11 +513,11 @@ const retroArcade: SpinToWinRecipe = {
       emailPlaceholder: "player@email.com",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#F43F5E" },
-        { id: "prize-2", label: "BONUS", probability: 0.25, color: "#FACC15" },
-        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#22C55E" },
-        { id: "prize-4", label: "RETRY", probability: 0.15, color: "#3B82F6" },
-        { id: "prize-5", label: "JACKPOT", probability: 0.1, color: "#A855F7" },
+        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#F43F5E", discountConfig: createSegmentDiscount("PERCENTAGE", 10) },
+        { id: "prize-2", label: "5% OFF", probability: 0.25, color: "#FACC15", discountConfig: createSegmentDiscount("PERCENTAGE", 5) },
+        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#22C55E", discountConfig: createSegmentDiscount("PERCENTAGE", 15) },
+        { id: "prize-4", label: "RETRY", probability: 0.15, color: "#3B82F6", discountConfig: NO_DISCOUNT },
+        { id: "prize-5", label: "JACKPOT", probability: 0.1, color: "#A855F7", discountConfig: createSegmentDiscount("PERCENTAGE", 30) },
       ],
       nameFieldEnabled: false,
       consentFieldEnabled: false,
@@ -552,12 +551,6 @@ const retroArcade: SpinToWinRecipe = {
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
     },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 10,
-    },
   },
 };
 
@@ -590,11 +583,11 @@ const earthyOrganic: SpinToWinRecipe = {
       emailPlaceholder: "Your email",
       emailRequired: true,
       wheelSegments: [
-        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#A16207" },
-        { id: "prize-2", label: "Free Ship", probability: 0.25, color: "#FEF3C7" },
-        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#CA8A04" },
-        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#FDE68A" },
-        { id: "prize-5", label: "Free Gift", probability: 0.1, color: "#78350F" },
+        { id: "prize-1", label: "10% OFF", probability: 0.3, color: "#A16207", discountConfig: createSegmentDiscount("PERCENTAGE", 10) },
+        { id: "prize-2", label: "Free Ship", probability: 0.25, color: "#FEF3C7", discountConfig: createSegmentDiscount("FREE_SHIPPING", 0) },
+        { id: "prize-3", label: "15% OFF", probability: 0.2, color: "#CA8A04", discountConfig: createSegmentDiscount("PERCENTAGE", 15) },
+        { id: "prize-4", label: "Try Again", probability: 0.15, color: "#FDE68A", discountConfig: NO_DISCOUNT },
+        { id: "prize-5", label: "Free Gift", probability: 0.1, color: "#78350F", discountConfig: createSegmentDiscount("FIXED_AMOUNT", 0) },
       ],
       nameFieldEnabled: false,
       consentFieldEnabled: true,
@@ -628,12 +621,6 @@ const earthyOrganic: SpinToWinRecipe = {
         frequency_capping: SPIN_TO_WIN_FREQUENCY_CAPPING,
       },
       pageTargeting: SPIN_TO_WIN_PAGE_TARGETING,
-    },
-    discountConfig: {
-      enabled: true,
-      type: "single_use",
-      valueType: "PERCENTAGE",
-      value: 10,
     },
   },
 };

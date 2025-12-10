@@ -70,6 +70,7 @@ describe("expandThemePreset", () => {
     const preset = {
       id: "preset-1",
       name: "My Theme",
+      isDefault: false,
       backgroundColor: "#FFFFFF",
       textColor: "#111827",
       brandColor: "#3B82F6",
@@ -87,6 +88,7 @@ describe("expandThemePreset", () => {
     const preset = {
       id: "preset-1",
       name: "Dark Button",
+      isDefault: false,
       backgroundColor: "#FFFFFF",
       textColor: "#111827",
       brandColor: "#000000", // Dark button
@@ -101,6 +103,7 @@ describe("expandThemePreset", () => {
     const preset = {
       id: "preset-1",
       name: "Custom Button Text",
+      isDefault: false,
       backgroundColor: "#FFFFFF",
       textColor: "#111827",
       brandColor: "#3B82F6",
@@ -169,4 +172,3 @@ describe("parseThemePresets", () => {
     expect(result).toEqual([]);
   });
 });
-

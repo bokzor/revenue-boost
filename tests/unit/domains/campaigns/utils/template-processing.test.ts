@@ -9,6 +9,7 @@ import {
   processTemplate,
   processTemplates,
 } from "~/domains/campaigns/utils/template-processing";
+import { DesignConfigSchema } from "~/domains/campaigns/types/campaign";
 import type { TemplateWithConfigs } from "~/domains/templates/types/template";
 
 describe("safeParseJSON", () => {
@@ -42,23 +43,27 @@ describe("safeParseJSON", () => {
 describe("processTemplate", () => {
   const mockTemplate: TemplateWithConfigs = {
     id: "template-1",
+    storeId: null,
     name: "Test Template",
     templateType: "NEWSLETTER",
     category: "popup",
     description: "A test template",
+    isDefault: false,
+    isActive: true,
     preview: "/preview.png",
     priority: 15,
     conversionRate: 5.5,
     contentConfig: { headline: "Welcome!" },
-    designConfig: {
+    designConfig: DesignConfigSchema.parse({
       backgroundColor: "#FF0000",
       textColor: "#FFFFFF",
       buttonColor: "#00FF00",
-    },
+    }),
     fields: [],
     goals: ["NEWSLETTER_SIGNUP"],
     createdAt: new Date(),
     updatedAt: new Date(),
+    icon: null,
   };
 
   it("should process template with all fields", () => {
@@ -91,7 +96,7 @@ describe("processTemplate", () => {
     const minimalTemplate: TemplateWithConfigs = {
       ...mockTemplate,
       contentConfig: {},
-      designConfig: {},
+      designConfig: DesignConfigSchema.parse({}),
     };
 
     const result = processTemplate(minimalTemplate);
@@ -121,35 +126,43 @@ describe("processTemplates", () => {
   const mockTemplates: TemplateWithConfigs[] = [
     {
       id: "template-1",
+      storeId: null,
       name: "Template 1",
       templateType: "NEWSLETTER",
       category: "popup",
-      description: null,
+      description: "",
       preview: null,
+      isDefault: false,
+      isActive: true,
       priority: 5,
       conversionRate: null,
       contentConfig: {},
-      designConfig: {},
+      designConfig: DesignConfigSchema.parse({}),
       fields: [],
       goals: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      icon: null,
     },
     {
       id: "template-2",
+      storeId: null,
       name: "Template 2",
       templateType: "SPIN_TO_WIN",
       category: "gamification",
-      description: null,
+      description: "",
       preview: null,
+      isDefault: false,
+      isActive: true,
       priority: 20,
       conversionRate: null,
       contentConfig: {},
-      designConfig: {},
+      designConfig: DesignConfigSchema.parse({}),
       fields: [],
       goals: [],
       createdAt: new Date(),
       updatedAt: new Date(),
+      icon: null,
     },
   ];
 
@@ -167,4 +180,3 @@ describe("processTemplates", () => {
     expect(result[0].originalTemplate).toBe(mockTemplates[0]);
   });
 });
-

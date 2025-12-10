@@ -18,7 +18,11 @@ import {
   prepareEntityJsonFields,
 } from "~/domains/campaigns/utils/json-helpers";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
-import type { CampaignCreateData } from "~/domains/campaigns/types/campaign";
+import {
+  DesignConfigSchema,
+  DiscountConfigSchema,
+  type CampaignCreateData,
+} from "~/domains/campaigns/types/campaign";
 
 describe("Campaign Serialization", () => {
   describe("prepareJsonField", () => {
@@ -94,7 +98,7 @@ describe("Campaign Serialization", () => {
           submitButtonText: "Subscribe",
           successMessage: "Thanks for subscribing!",
         },
-        designConfig: {},
+        designConfig: DesignConfigSchema.parse({}),
         targetRules: {},
         discountConfig: {
           enabled: false,
@@ -135,7 +139,7 @@ describe("Campaign Serialization", () => {
             { id: "2", label: "5% OFF", probability: 0.5, color: "#00FF00" },
           ],
         },
-        designConfig: {},
+        designConfig: DesignConfigSchema.parse({}),
         targetRules: {},
         discountConfig: {
           enabled: true,
@@ -212,7 +216,7 @@ describe("Campaign Serialization", () => {
         goal: "NEWSLETTER_SIGNUP",
         templateType: newsletterRecipe.templateType,
         contentConfig: newsletterRecipe.defaults.contentConfig,
-        designConfig: newsletterRecipe.defaults.designConfig || {},
+        designConfig: DesignConfigSchema.parse(newsletterRecipe.defaults.designConfig || {}),
         targetRules: {},
         discountConfig: {
           enabled: false,
@@ -243,7 +247,7 @@ describe("Campaign Serialization", () => {
         goal: "NEWSLETTER_SIGNUP",
         templateType: spinRecipe.templateType,
         contentConfig: spinRecipe.defaults.contentConfig,
-        designConfig: spinRecipe.defaults.designConfig || {},
+        designConfig: DesignConfigSchema.parse(spinRecipe.defaults.designConfig || {}),
         targetRules: {},
         discountConfig: {
           enabled: true,
@@ -276,7 +280,7 @@ describe("Campaign Serialization", () => {
         goal: "NEWSLETTER_SIGNUP",
         templateType: scratchRecipe.templateType,
         contentConfig: scratchRecipe.defaults.contentConfig,
-        designConfig: scratchRecipe.defaults.designConfig || {},
+        designConfig: DesignConfigSchema.parse(scratchRecipe.defaults.designConfig || {}),
         targetRules: {},
         discountConfig: {
           enabled: true,
@@ -383,4 +387,3 @@ describe("Campaign Serialization", () => {
     });
   });
 });
-

@@ -3,14 +3,17 @@
  *
  * Two-step flow for creating a single campaign:
  * 1. Recipe Selection: Goal-first recipe picker with configuration
- * 2. Campaign Editor: 2-column layout with preview and form sections
+ * 2. Campaign Editor: Uses shared CampaignEditorForm component
+ *
+ * The only SingleCampaignFlow-specific logic is:
+ * - Sticky header with manual save/publish buttons
+ * - Validation before save
+ * - Validation error/warning banners
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import {
   Page,
-  Layout,
-  Card,
   Text,
   BlockStack,
   InlineStack,
@@ -21,13 +24,10 @@ import {
   ActionList,
 } from "@shopify/polaris";
 import { ArrowLeftIcon, SaveIcon, ViewIcon } from "@shopify/polaris-icons";
-import { FormSections, type TargetingConfig, type ScheduleConfig } from "./FormSections";
+import { type TargetingConfig, type ScheduleConfig } from "./FormSections";
 import { RecipeSelectionStep, type RecipeSelectionResult } from "./RecipeSelectionStep";
-import {
-  LivePreviewPanel,
-  type PreviewDevice,
-} from "~/domains/popups/components/preview/LivePreviewPanel";
-import { Affix } from "~/shared/components/ui/Affix";
+import { CampaignEditorForm } from "./CampaignEditorForm";
+import type { PreviewDevice } from "~/domains/popups/components/preview/LivePreviewPanel";
 import type { StyledRecipe, RecipeContext } from "../../recipes/styled-recipe-types";
 import type {
   ContentConfig,
@@ -311,6 +311,8 @@ export function SingleCampaignFlow({
     setValidationWarnings([]);
     // Move to editor step
     setStep("editor");
+    // Scroll to top of page
+    window.scrollTo({ top: 0, behavior: "smooth" });
     // If recipe has quick inputs, expand quickConfig first; otherwise basics
     const hasQuickInputs = recipe.inputs && recipe.inputs.length > 0;
     setExpandedSections([hasQuickInputs ? "quickConfig" : "basics"]);
@@ -558,77 +560,63 @@ export function SingleCampaignFlow({
         </div>
       )}
 
-      {/* Main Content - 2 Column Layout */}
+      {/* Main Content - Shared 2-Column Layout */}
       <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px" }}>
-        <Layout>
-          {/* Left Column - Live Preview */}
-          <Layout.Section variant="oneHalf">
-            <PreviewColumn
-              templateType={templateType}
-              contentConfig={contentConfig}
-              designConfig={designConfig}
-              discountConfig={discountConfig}
-              targetingConfig={targetingConfig}
-              shopDomain={shopDomain}
-              globalCustomCSS={globalCustomCSS}
-              previewDevice={previewDevice}
-              onDeviceChange={setPreviewDevice}
-              defaultThemeTokens={defaultThemeTokens}
-            />
-          </Layout.Section>
-
-          {/* Right Column - Form Sections (without recipe section) */}
-          <Layout.Section variant="oneHalf">
-            <FormSections
-              sections={visibleSections}
-              expandedSections={expandedSections}
-              completedSections={completedSections}
-              onToggle={toggleSection}
-              recipes={recipes}
-              selectedRecipe={selectedRecipe}
-              onRecipeSelect={handleRecipeSelect}
-              // Campaign basics
-              campaignName={campaignName}
-              campaignDescription={campaignDescription}
-              onNameChange={setCampaignName}
-              onDescriptionChange={setCampaignDescription}
-              // Quick configuration (recipe inputs)
-              contextData={contextData}
-              onContextDataChange={handleContextDataChange}
-              // Content & Design
-              contentConfig={contentConfig}
-              designConfig={designConfig}
-              discountConfig={discountConfig}
-              targetingConfig={targetingConfig}
-              frequencyConfig={frequencyConfig}
-              scheduleConfig={scheduleConfig}
-              onContentChange={handleContentChange}
-              onDesignChange={setDesignConfig}
-              onDiscountChange={handleDiscountChange}
-              onTargetingChange={setTargetingConfig}
-              onFrequencyChange={setFrequencyConfig}
-              onScheduleChange={setScheduleConfig}
-              onMarkComplete={markComplete}
-              storeId={storeId}
-              advancedTargetingEnabled={advancedTargetingEnabled}
-              templateType={templateType}
-              campaignGoal={selectedRecipe?.goal}
-              // New props for feature parity
-              customThemePresets={customThemePresets}
-              backgroundsByLayout={backgroundsByLayout}
-              globalCustomCSS={globalCustomCSS}
-              globalFrequencyCapping={globalFrequencyCapping}
-              onMobileLayoutChange={() => setPreviewDevice("mobile")}
-              // Save/Publish actions for last section
-              onSaveDraft={handleSaveDraft}
-              onPublish={handleSave}
-              isSaving={isSaving}
-              canPublish={(!!selectedRecipe || isEditMode) && !!campaignName}
-              isEditMode={isEditMode}
-
-            />
-          </Layout.Section>
-        </Layout>
+        <CampaignEditorForm
+          // Section management
+          sections={visibleSections}
+          expandedSections={expandedSections}
+          completedSections={completedSections}
+          onToggle={toggleSection}
+          onMarkComplete={markComplete}
+          // Recipe
+          recipes={recipes}
+          selectedRecipe={selectedRecipe}
+          onRecipeSelect={handleRecipeSelect}
+          // Campaign basics
+          campaignName={campaignName}
+          campaignDescription={campaignDescription}
+          onNameChange={setCampaignName}
+          onDescriptionChange={setCampaignDescription}
+          // Quick config
+          contextData={contextData}
+          onContextDataChange={handleContextDataChange}
+          // Configs
+          contentConfig={contentConfig}
+          designConfig={designConfig}
+          discountConfig={discountConfig}
+          targetingConfig={targetingConfig}
+          frequencyConfig={frequencyConfig}
+          scheduleConfig={scheduleConfig}
+          onContentChange={handleContentChange}
+          onDesignChange={setDesignConfig}
+          onDiscountChange={handleDiscountChange}
+          onTargetingChange={setTargetingConfig}
+          onFrequencyChange={setFrequencyConfig}
+          onScheduleChange={setScheduleConfig}
+          // Store/Shop
+          storeId={storeId}
+          shopDomain={shopDomain}
+          advancedTargetingEnabled={advancedTargetingEnabled}
+          // Template
+          templateType={templateType}
+          campaignGoal={selectedRecipe?.goal}
+          // Features
+          customThemePresets={customThemePresets}
+          backgroundsByLayout={backgroundsByLayout}
+          globalCustomCSS={globalCustomCSS}
+          globalFrequencyCapping={globalFrequencyCapping}
+          defaultThemeTokens={defaultThemeTokens}
+          // Preview
+          previewDevice={previewDevice}
+          onDeviceChange={setPreviewDevice}
+          // SingleCampaignFlow-specific: save/publish actions
+          onSaveDraft={handleSaveDraft}
+          onPublish={handleSave}
+          isSaving={isSaving}
+          canPublish={(!!selectedRecipe || isEditMode) && !!campaignName}
+          isEditMode={isEditMode}
+        />
       </div>
     </div>
   );
@@ -807,66 +795,4 @@ function StickyHeader({
   );
 }
 
-interface PreviewColumnProps {
-  templateType?: TemplateType;
-  contentConfig: Partial<ContentConfig>;
-  designConfig: Partial<DesignConfig>;
-  discountConfig?: DiscountConfig;
-  targetingConfig: TargetingConfig;
-  shopDomain?: string;
-  globalCustomCSS?: string;
-  previewDevice: PreviewDevice;
-  onDeviceChange: (device: PreviewDevice) => void;
-  defaultThemeTokens?: DefaultThemeTokens;
-}
 
-function PreviewColumn({
-  templateType,
-  contentConfig,
-  designConfig,
-  discountConfig,
-  targetingConfig,
-  shopDomain,
-  globalCustomCSS,
-  previewDevice,
-  onDeviceChange,
-  defaultThemeTokens,
-}: PreviewColumnProps) {
-  return (
-    <div data-affix-boundary style={{ position: "relative", alignSelf: "flex-start" }}>
-      <Affix disableBelowWidth={768}>
-        {templateType ? (
-          <LivePreviewPanel
-            templateType={templateType}
-            config={{
-              ...contentConfig,
-              // Pass discount config so preview can render discount badges/text correctly
-              discountConfig,
-            }}
-            designConfig={designConfig}
-            targetRules={toTargetRulesRecord(targetingConfig)}
-            shopDomain={shopDomain}
-            globalCustomCSS={globalCustomCSS}
-            device={previewDevice}
-            onDeviceChange={onDeviceChange}
-            defaultThemeTokens={defaultThemeTokens}
-          />
-        ) : (
-          <Card>
-            <Box padding="800">
-              <BlockStack gap="400" align="center">
-                <div style={{ fontSize: "48px" }}>📱</div>
-                <Text as="h3" variant="headingMd" alignment="center">
-                  Live Preview
-                </Text>
-                <Text as="p" tone="subdued" alignment="center">
-                  Select a recipe to see a live preview of your popup
-                </Text>
-              </BlockStack>
-            </Box>
-          </Card>
-        )}
-      </Affix>
-    </div>
-  );
-}

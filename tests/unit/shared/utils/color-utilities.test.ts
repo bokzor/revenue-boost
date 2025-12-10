@@ -130,8 +130,8 @@ describe("validateColors", () => {
       buttonTextColor: "#FFFFFF",
     });
 
-    expect(result.contrastRatios.textOnBackground).toBeGreaterThan(4.5);
-    expect(result.contrastRatios.buttonTextOnButton).toBeGreaterThan(4.5);
+    expect(result.contrastRatios).toBeDefined();
+    expect(result.contrastRatios!.textOnBackground).toBeGreaterThan(4.5);
+    expect(result.contrastRatios!.buttonTextOnButton).toBeGreaterThan(4.5);
   });
 });
-

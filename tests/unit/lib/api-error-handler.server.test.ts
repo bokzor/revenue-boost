@@ -109,7 +109,7 @@ describe("handleApiError", () => {
 
   it("should handle PlanLimitError", async () => {
     // PlanLimitError mock works with instanceof
-    const error = new PlanLimitError("Plan limit exceeded", "CAMPAIGN_LIMIT", { limit: 5 });
+    const error = new PlanLimitError("Plan limit exceeded", { limit: 5 });
 
     const response = handleApiError(error, "test") as any;
 
@@ -143,4 +143,3 @@ describe("handleApiError", () => {
     expect(response.status).toBe(500);
   });
 });
-

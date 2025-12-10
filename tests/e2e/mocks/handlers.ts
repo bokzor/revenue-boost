@@ -192,13 +192,19 @@ export const handlers = [
 
   // Create campaign
   http.post("*/api/campaigns", async ({ request }) => {
-    const body = await request.json() as Record<string, unknown>;
+    const body = (await request.json()) as Record<string, unknown>;
+    const name = typeof body.name === "string" ? body.name : "New Campaign";
+    const status = typeof body.status === "string" ? body.status : "DRAFT";
+    const templateType =
+      typeof body.templateType === "string" ? body.templateType : "NEWSLETTER";
+    const goal = typeof body.goal === "string" ? body.goal : "NEWSLETTER_SIGNUP";
+
     const newCampaign = {
       id: `campaign-${Date.now()}`,
-      name: body.name || "New Campaign",
-      status: body.status || "DRAFT",
-      templateType: body.templateType,
-      goal: body.goal,
+      name,
+      status,
+      templateType,
+      goal,
       impressions: 0,
       conversions: 0,
       conversionRate: 0,
@@ -233,4 +239,3 @@ export const handlers = [
     });
   }),
 ];
-

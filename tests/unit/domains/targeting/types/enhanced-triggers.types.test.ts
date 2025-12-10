@@ -22,18 +22,18 @@ describe("Enhanced Triggers Types", () => {
     it("should export EnhancedTriggersConfig type", () => {
       const config: EnhancedTriggersConfig = {
         enabled: true,
-        triggers: [],
+        page_load: { enabled: true, delay: 1000 },
       };
 
       expect(config.enabled).toBe(true);
-      expect(config.triggers).toEqual([]);
+      expect(config.page_load?.enabled).toBe(true);
     });
 
     it("should export EnhancedTriggerConfig as alias", () => {
       // EnhancedTriggerConfig is an alias for EnhancedTriggersConfig
       const config: EnhancedTriggerConfig = {
         enabled: false,
-        triggers: [],
+        exit_intent: { enabled: true, sensitivity: "medium" },
       };
 
       expect(config.enabled).toBe(false);
@@ -42,39 +42,45 @@ describe("Enhanced Triggers Types", () => {
     it("should export AudienceTargetingConfig type", () => {
       const config: AudienceTargetingConfig = {
         enabled: true,
-        segments: ["vip", "new-customers"],
+        shopifySegmentIds: ["segment-1", "segment-2"],
       };
 
       expect(config.enabled).toBe(true);
-      expect(config.segments).toHaveLength(2);
+      expect(config.shopifySegmentIds).toHaveLength(2);
     });
 
     it("should export PageTargetingConfig type", () => {
       const config: PageTargetingConfig = {
         enabled: true,
-        includePatterns: ["/products/*"],
-        excludePatterns: ["/cart"],
+        pages: ["/products/*"],
+        customPatterns: [],
+        excludePages: ["/cart"],
+        productTags: [],
+        collections: [],
       };
 
       expect(config.enabled).toBe(true);
-      expect(config.includePatterns).toContain("/products/*");
+      expect(config.pages).toContain("/products/*");
     });
 
     it("should export TargetRulesConfig type", () => {
       const config: TargetRulesConfig = {
-        audience: {
+        audienceTargeting: {
           enabled: true,
-          segments: [],
+          shopifySegmentIds: [],
         },
-        pages: {
+        pageTargeting: {
           enabled: false,
-          includePatterns: [],
-          excludePatterns: [],
+          pages: [],
+          customPatterns: [],
+          excludePages: [],
+          productTags: [],
+          collections: [],
         },
       };
 
-      expect(config.audience.enabled).toBe(true);
-      expect(config.pages.enabled).toBe(false);
+      expect(config.audienceTargeting?.enabled).toBe(true);
+      expect(config.pageTargeting?.enabled).toBe(false);
     });
 
     it("should export TriggerType type", () => {
@@ -85,27 +91,26 @@ describe("Enhanced Triggers Types", () => {
 
     it("should export TriggerRule type", () => {
       const rule: TriggerRule = {
-        type: "delay",
+        field: "delay",
+        operator: "equals",
         value: 5000,
       };
 
-      expect(rule.type).toBe("delay");
+      expect(rule.field).toBe("delay");
       expect(rule.value).toBe(5000);
     });
 
     it("should export EnhancedTrigger type", () => {
       const trigger: EnhancedTrigger = {
         id: "trigger-1",
-        type: "scroll_depth",
-        enabled: true,
-        config: {
-          percentage: 50,
-        },
+        name: "Scroll Depth Trigger",
+        rules: [{ field: "percentage", operator: "gte", value: 50 }],
+        condition: "and",
       };
 
       expect(trigger.id).toBe("trigger-1");
-      expect(trigger.type).toBe("scroll_depth");
-      expect(trigger.enabled).toBe(true);
+      expect(trigger.name).toBe("Scroll Depth Trigger");
+      expect(trigger.condition).toBe("and");
     });
   });
 });

@@ -71,6 +71,11 @@ export interface DesignConfigSectionProps {
   availableBackgrounds?: BackgroundPreset[];
   /** Optional callback to save a new theme preset to store settings */
   onSaveThemePreset?: (preset: ThemePresetInput) => void;
+  /**
+   * If true, renders content inline without Card wrapper and heading.
+   * Use when this component is rendered inside another container that already provides these.
+   */
+  inline?: boolean;
 }
 
 /**
@@ -176,6 +181,7 @@ export function DesignConfigSection({
   onMobileLayoutChange,
   availableBackgrounds = [],
   onSaveThemePreset,
+  inline = false,
 }: DesignConfigSectionProps) {
   // Get font options including any custom font from current design
   const fontFamilyOptions = useMemo(
@@ -371,27 +377,32 @@ export function DesignConfigSection({
     }
   };
 
-  return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h3" variant="headingMd">
-          Design & Colors
-        </Text>
-        <Text as="p" tone="subdued">
-          Customize the visual appearance of your campaign
-        </Text>
+  // Content to render (shared between inline and Card-wrapped modes)
+  const content = (
+    <BlockStack gap="400">
+      {/* Heading & subtitle only shown in non-inline mode */}
+      {!inline && (
+        <>
+          <Text as="h3" variant="headingMd">
+            Design & Colors
+          </Text>
+          <Text as="p" tone="subdued">
+            Customize the visual appearance of your campaign
+          </Text>
+        </>
+      )}
 
-        {/* Info banner about gated controls */}
-        {templateType && caps && (
-          <Banner tone="info">
-            <Text as="p" variant="bodySm">
-              Some controls are hidden because this template doesn&#39;t use them. Your design
-              settings are preserved and will reappear if you switch templates.
-            </Text>
-          </Banner>
-        )}
+      {/* Info banner about gated controls */}
+      {templateType && caps && (
+        <Banner tone="info">
+          <Text as="p" variant="bodySm">
+            Some controls are hidden because this template doesn&#39;t use them. Your design
+            settings are preserved and will reappear if you switch templates.
+          </Text>
+        </Banner>
+      )}
 
-        <Divider />
+      {!inline && <Divider />}
 
         {/* Match Your Theme - Import colors from Shopify theme */}
         {/* Hidden when custom themes already exist - use Custom Themes section instead */}
@@ -912,6 +923,12 @@ export function DesignConfigSection({
           </CollapsibleSection>
         )}
       </BlockStack>
-    </Card>
-  );
+    );
+
+  // Return inline content or wrapped in Card
+  if (inline) {
+    return content;
+  }
+
+  return <Card>{content}</Card>;
 }

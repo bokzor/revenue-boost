@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
+import type { PopupConfig } from "~/domains/storefront/popups-new/types";
 
 import {
   getPopupTitleStyles,
@@ -21,7 +22,10 @@ import {
   getDiscountCodeStyles,
 } from "~/domains/storefront/shared/PopupStyles";
 
-const mockConfig = {
+const mockConfig: PopupConfig = {
+  id: "test-popup",
+  position: "center",
+  size: "medium",
   backgroundColor: "#FFFFFF",
   textColor: "#000000",
   buttonColor: "#007BFF",
@@ -194,4 +198,3 @@ describe("getDiscountCodeStyles", () => {
     expect(styles.textAlign).toBe("center");
   });
 });
-

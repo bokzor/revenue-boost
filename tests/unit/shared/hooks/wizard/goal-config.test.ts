@@ -18,6 +18,7 @@ describe("Goal Config", () => {
   const mockDiscountConfig: DiscountConfig = {
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     type: "shared",
     valueType: "PERCENTAGE",
     value: 10,
@@ -176,4 +177,3 @@ describe("Goal Config", () => {
     });
   });
 });
-

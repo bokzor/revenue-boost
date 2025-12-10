@@ -11,7 +11,7 @@ import { ArrowLeftIcon, PlusIcon, DeleteIcon, MenuHorizontalIcon } from "@shopif
 import { VariantCampaignEditor } from "./VariantCampaignEditor";
 import type { StyledRecipe } from "../../../recipes/styled-recipe-types";
 import type { Experiment, Variant } from "../types";
-import type { CampaignData } from "../SingleCampaignFlow";
+import type { CampaignData, DefaultThemeTokens } from "../SingleCampaignFlow";
 
 export interface VariantConfiguratorProps {
   experiment: Experiment;
@@ -49,6 +49,8 @@ export interface VariantConfiguratorProps {
     successColor?: string;
     fontFamily?: string;
   }>;
+  /** Default theme tokens for preview (derived from store's default preset) */
+  defaultThemeTokens?: DefaultThemeTokens;
 }
 
 export function VariantConfigurator({
@@ -70,6 +72,7 @@ export function VariantConfigurator({
   shopDomain,
   advancedTargetingEnabled,
   customThemePresets,
+  defaultThemeTokens,
 }: VariantConfiguratorProps) {
   const activeVariant = experiment.variants.find((v) => v.id === activeVariantId);
   const controlVariant = experiment.variants.find((v) => v.isControl);
@@ -133,6 +136,7 @@ export function VariantConfigurator({
         controlGoal={controlGoal}
         onBackToVariants={onBack}
         customThemePresets={customThemePresets}
+        defaultThemeTokens={defaultThemeTokens}
       />
     </div>
   );

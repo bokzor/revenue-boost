@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import type { DesignConfig } from "~/domains/campaigns/types/campaign";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 import { getContrastingTextColor, hexToRgb } from "~/shared/utils/color-utilities";
 
 // ============================================================================
@@ -269,10 +270,9 @@ export function expandThemePreset(preset: ThemePresetInput): Partial<DesignConfi
     headlineFontFamily: headingFontFamily || fontFamily || "inherit",
 
     // Border radius
-    borderRadius: borderRadius ?? 8,
+    borderRadius: borderRadius ?? popupBorderRadius ?? 8,
     buttonBorderRadius: borderRadius ?? 8,
     inputBorderRadius: borderRadius ?? 8,
-    popupBorderRadius: popupBorderRadius ?? (borderRadius ?? 8),
   };
 }
 
@@ -350,23 +350,7 @@ export function getDefaultPreset(presets: ThemePresetsArray): ThemePresetInput |
  * Convert a ThemePresetInput to DesignTokens format
  * This is used by the storefront API to generate CSS variables
  */
-export function presetToDesignTokens(preset: ThemePresetInput): {
-  background: string;
-  foreground: string;
-  muted?: string;
-  primary: string;
-  primaryForeground: string;
-  surface?: string;
-  border?: string;
-  success: string;
-  error: string;
-  ring?: string;
-  overlay?: string;
-  fontFamily: string;
-  headingFontFamily?: string;
-  borderRadius: number;
-  popupBorderRadius: number;
-} {
+export function presetToDesignTokens(preset: ThemePresetInput): DesignTokens {
   return {
     background: preset.backgroundColor,
     foreground: preset.textColor,

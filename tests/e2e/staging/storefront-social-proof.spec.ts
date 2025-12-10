@@ -99,9 +99,9 @@ test.describe.serial('Social Proof Template', () => {
         await page.waitForTimeout(3000);
 
         // Check if notifications were returned by the API
-        const hasNotifications = notificationsResponse?.notifications &&
-                                 Array.isArray(notificationsResponse.notifications) &&
-                                 notificationsResponse.notifications.length > 0;
+        const notifications = notificationsResponse?.notifications;
+        const hasNotifications =
+          Array.isArray(notifications) && notifications.length > 0;
 
         if (!hasNotifications) {
             // No real purchase data in staging store - this is expected
@@ -154,9 +154,9 @@ test.describe.serial('Social Proof Template', () => {
         // Wait for API call to complete
         await page.waitForTimeout(3000);
 
-        const hasNotifications = notificationsResponse?.notifications &&
-                                 Array.isArray(notificationsResponse.notifications) &&
-                                 notificationsResponse.notifications.length > 0;
+        const notifications = notificationsResponse?.notifications;
+        const hasNotifications =
+          Array.isArray(notifications) && notifications.length > 0;
 
         return {
             hasNotifications: !!hasNotifications,
@@ -336,4 +336,3 @@ test.describe.serial('Social Proof Template', () => {
         console.log('✅ Social proof with visitor notifications rendered');
     });
 });
-

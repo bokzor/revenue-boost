@@ -378,8 +378,10 @@ export function CampaignDetail({
               <Divider />
 
               <BlockStack gap="300">
-                <InlineStack gap="200" blockAlign="center">
-                  <Icon source={TargetIcon} tone="subdued" />
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={TargetIcon} tone="subdued" />
+                  </Box>
                   <BlockStack gap="100">
                     <Text as="span" variant="bodySm" tone="subdued">
                       Goal
@@ -390,8 +392,10 @@ export function CampaignDetail({
                   </BlockStack>
                 </InlineStack>
 
-                <InlineStack gap="200" blockAlign="center">
-                  <Icon source={ViewIcon} tone="subdued" />
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={ViewIcon} tone="subdued" />
+                  </Box>
                   <BlockStack gap="100">
                     <Text as="span" variant="bodySm" tone="subdued">
                       Template Type
@@ -402,8 +406,10 @@ export function CampaignDetail({
                   </BlockStack>
                 </InlineStack>
 
-                <InlineStack gap="200" blockAlign="center">
-                  <Icon source={CalendarIcon} tone="subdued" />
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={CalendarIcon} tone="subdued" />
+                  </Box>
                   <BlockStack gap="100">
                     <Text as="span" variant="bodySm" tone="subdued">
                       Created
@@ -414,8 +420,10 @@ export function CampaignDetail({
                   </BlockStack>
                 </InlineStack>
 
-                <InlineStack gap="200" blockAlign="center">
-                  <Icon source={ClockIcon} tone="subdued" />
+                <InlineStack gap="200" blockAlign="start">
+                  <Box minWidth="20px">
+                    <Icon source={ClockIcon} tone="subdued" />
+                  </Box>
                   <BlockStack gap="100">
                     <Text as="span" variant="bodySm" tone="subdued">
                       Last Updated

@@ -439,7 +439,6 @@ describe("ProductUpsellContentSection", () => {
         productSelectionMethod: "manual",
         selectedProducts: ["gid://shopify/Product/123", "gid://shopify/Product/456"],
         layout: "grid",
-        columns: 3,
         maxProducts: 4,
         showImages: true,
         showPrices: true,
@@ -469,4 +468,3 @@ describe("ProductUpsellContentSection", () => {
     });
   });
 });
-

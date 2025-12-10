@@ -1,6 +1,5 @@
 import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
-import { logger } from "~/lib/logger.server";
 import { BILLING_PLANS } from "~/shopify.server";
 import { PLAN_DEFINITIONS, type PlanTier } from "../types/plan";
 import {

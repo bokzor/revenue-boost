@@ -106,7 +106,13 @@ describe("Wizard Defaults", () => {
 
     it("should merge with initial data", () => {
       const config = getDefaultDiscountConfig({
-        discountConfig: { enabled: true, value: 20 },
+        discountConfig: {
+          enabled: true,
+          showInPreview: true,
+          strategy: "simple",
+          behavior: "SHOW_CODE_AND_AUTO_APPLY",
+          value: 20,
+        },
       });
 
       expect(config.enabled).toBe(true);
@@ -142,4 +148,3 @@ describe("Wizard Defaults", () => {
     });
   });
 });
-

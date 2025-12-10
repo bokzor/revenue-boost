@@ -290,7 +290,7 @@ const completeSocialProof: SocialProofRecipe = {
   defaults: {
     contentConfig: {
       headline: "Join thousands of happy customers",
-      notificationType: "all", // Quick input value - ensures all types stay enabled
+      // notificationType: "all" - Quick input derived from enablePurchase/Visitor/Review booleans
       enablePurchaseNotifications: true,
       enableVisitorNotifications: true,
       enableReviewNotifications: true,

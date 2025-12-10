@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { LoaderFunctionArgs } from "react-router";
 
 // Mock ShopService
 vi.mock("~/domains/shops/services/shop.server", () => ({
@@ -16,6 +17,11 @@ vi.mock("~/domains/shops/services/shop.server", () => ({
 import { loader, options } from "~/routes/api.time";
 import { ShopService } from "~/domains/shops/services/shop.server";
 
+// Helper to create loader args with required properties
+function createLoaderArgs(request: Request): LoaderFunctionArgs {
+  return { request, params: {}, context: {}, unstable_pattern: "" };
+}
+
 describe("api.time", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -25,7 +31,7 @@ describe("api.time", () => {
     it("should return server time in ISO format", async () => {
       const request = new Request("http://localhost/api/time?shop=test.myshopify.com");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
       const data = await response.json();
 
       expect(data.serverTimeISO).toBeDefined();
@@ -35,7 +41,7 @@ describe("api.time", () => {
     it("should return server time as Unix timestamp", async () => {
       const request = new Request("http://localhost/api/time?shop=test.myshopify.com");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
       const data = await response.json();
 
       expect(data.serverTimeUnix).toBeDefined();
@@ -47,7 +53,7 @@ describe("api.time", () => {
       // Use unique shop domain to avoid cache
       const request = new Request("http://localhost/api/time?shop=unique-shop-1.myshopify.com");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
       const data = await response.json();
 
       expect(data.shopTimezone).toBe("America/New_York");
@@ -57,7 +63,7 @@ describe("api.time", () => {
     it("should default to UTC when no shop domain provided", async () => {
       const request = new Request("http://localhost/api/time");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
       const data = await response.json();
 
       expect(data.shopTimezone).toBe("UTC");
@@ -67,7 +73,7 @@ describe("api.time", () => {
       // Use unique shop domain to avoid cache
       const request = new Request("http://localhost/api/time?shopDomain=unique-shop-2.myshopify.com");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
       const data = await response.json();
 
       expect(ShopService.getTimezoneByShopDomain).toHaveBeenCalledWith("unique-shop-2.myshopify.com");
@@ -76,7 +82,7 @@ describe("api.time", () => {
     it("should set CORS headers for cross-origin requests", async () => {
       const request = new Request("http://localhost/api/time?shop=test.myshopify.com");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
 
       expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
     });
@@ -84,7 +90,7 @@ describe("api.time", () => {
     it("should set cache control headers", async () => {
       const request = new Request("http://localhost/api/time?shop=test.myshopify.com");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
 
       expect(response.headers.get("Cache-Control")).toBe("public, max-age=5");
     });
@@ -92,7 +98,7 @@ describe("api.time", () => {
     it("should return JSON content type", async () => {
       const request = new Request("http://localhost/api/time?shop=test.myshopify.com");
 
-      const response = await loader({ request, params: {}, context: {} });
+      const response = await loader(createLoaderArgs(request));
 
       expect(response.headers.get("Content-Type")).toBe("application/json");
     });
@@ -115,4 +121,3 @@ describe("api.time", () => {
     });
   });
 });
-

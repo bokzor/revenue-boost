@@ -111,7 +111,7 @@ describe("Wizard Validators", () => {
     it("should suggest audience targeting when disabled", () => {
       const result = validateAudienceStep(createMockData({
         goal: "NEWSLETTER_SIGNUP",
-        audienceTargeting: { enabled: false },
+        audienceTargeting: { enabled: false, shopifySegmentIds: [] },
       }));
 
       expect(result.isValid).toBe(true);
@@ -189,4 +189,3 @@ describe("Wizard Validators", () => {
     });
   });
 });
-

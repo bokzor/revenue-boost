@@ -4,9 +4,15 @@
 
 import { describe, it, expect, vi } from "vitest";
 
+// Type for mock return value
+interface MockDataResult {
+  data: unknown;
+  init: ResponseInit | null;
+}
+
 // Mock dependencies
 vi.mock("react-router", () => ({
-  data: vi.fn((body, init) => ({ body, init })),
+  data: vi.fn((payload, init) => ({ data: payload, init: init ?? null })),
 }));
 
 vi.mock("~/lib/cors.server", () => ({
@@ -31,45 +37,48 @@ import {
 
 describe("createSuccessResponse", () => {
   it("should create success response with data", () => {
-    const result = createSuccessResponse({ id: "123", name: "Test" });
+    const result = createSuccessResponse({ id: "123", name: "Test" }) as unknown as MockDataResult;
+    const payload = result.data as { success: boolean; data: { id: string; name: string } };
 
-    expect(result.body.success).toBe(true);
-    expect(result.body.data).toEqual({ id: "123", name: "Test" });
-    expect(result.init.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data).toEqual({ id: "123", name: "Test" });
+    expect(result.init?.status).toBe(200);
   });
 
   it("should allow custom status code", () => {
-    const result = createSuccessResponse({ created: true }, 201);
+    const result = createSuccessResponse({ created: true }, 201) as unknown as MockDataResult;
 
-    expect(result.init.status).toBe(201);
+    expect(result.init?.status).toBe(201);
   });
 
   it("should include CORS headers", () => {
-    const result = createSuccessResponse({});
+    const result = createSuccessResponse({}) as unknown as MockDataResult;
 
-    expect(result.init.headers).toHaveProperty("Access-Control-Allow-Origin");
+    expect((result.init?.headers as Record<string, string>)?.["Access-Control-Allow-Origin"]).toBe("*");
   });
 });
 
 describe("createErrorResponse", () => {
   it("should create error response with message", () => {
-    const result = createErrorResponse("Something went wrong");
+    const result = createErrorResponse("Something went wrong") as unknown as MockDataResult;
+    const payload = result.data as { success: boolean; message?: string };
 
-    expect(result.body.success).toBe(false);
-    expect(result.body.message).toBe("Something went wrong");
-    expect(result.init.status).toBe(400);
+    expect(payload.success).toBe(false);
+    expect(payload.message).toBe("Something went wrong");
+    expect(result.init?.status).toBe(400);
   });
 
   it("should allow custom status code", () => {
-    const result = createErrorResponse("Not found", 404);
+    const result = createErrorResponse("Not found", 404) as unknown as MockDataResult;
 
-    expect(result.init.status).toBe(404);
+    expect(result.init?.status).toBe(404);
   });
 
   it("should include errors array", () => {
-    const result = createErrorResponse("Validation failed", 400, ["field1: required", "field2: invalid"]);
+    const result = createErrorResponse("Validation failed", 400, ["field1: required", "field2: invalid"]) as unknown as MockDataResult;
+    const payload = result.data as { errors?: string[] };
 
-    expect(result.body.errors).toEqual(["field1: required", "field2: invalid"]);
+    expect(payload.errors).toEqual(["field1: required", "field2: invalid"]);
   });
 });
 
@@ -116,4 +125,3 @@ describe("validateRequiredId", () => {
     }
   });
 });
-

@@ -252,6 +252,7 @@ export function parseDiscountConfig(jsonValue: unknown): DiscountConfig {
   return parseJsonField(jsonValue, DiscountConfigSchema, {
     enabled: false,
     showInPreview: true,
+    strategy: "simple",
     behavior: "SHOW_CODE_AND_AUTO_APPLY",
   });
 }

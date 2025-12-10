@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import type { PrismaClient } from "@prisma/client";
 import "./load-staging-env";
 
 /**
@@ -8,6 +9,24 @@ import "./load-staging-env";
 export const STORE_URL = "https://revenue-boost-staging.myshopify.com";
 export const STORE_DOMAIN = "revenue-boost-staging.myshopify.com";
 export const STORE_PASSWORD = process.env.STORE_PASSWORD || "a";
+
+/**
+ * Get the store ID for the E2E testing store.
+ *
+ * IMPORTANT: There may be multiple stores in the staging database.
+ * This function finds the specific store that matches STORE_DOMAIN
+ * to ensure campaigns are created for the correct store.
+ */
+export async function getTestStoreId(prisma: PrismaClient): Promise<string> {
+  const store = await prisma.store.findFirst({
+    where: { shopifyDomain: STORE_DOMAIN },
+    select: { id: true },
+  });
+  if (!store) {
+    throw new Error(`E2E store not found in database. Expected: ${STORE_DOMAIN}`);
+  }
+  return store.id;
+}
 
 /**
  * Time to wait after creating a campaign before loading the page (in milliseconds)

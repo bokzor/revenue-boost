@@ -129,11 +129,14 @@ describe("PendingTemplateChange", () => {
 });
 
 describe("PopupDesignConfig", () => {
-  it("should support design config with content fields", () => {
-    const config: PopupDesignConfig = {
-      backgroundColor: "#FFFFFF",
-      textColor: "#000000",
-      buttonColor: "#3B82F6",
+    it("should support design config with content fields", () => {
+      const config: PopupDesignConfig = {
+        id: "popup-1",
+        position: "center",
+        size: "medium",
+        backgroundColor: "#FFFFFF",
+        textColor: "#000000",
+        buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       headline: "Welcome!",
       subheadline: "Get 10% off",
@@ -144,11 +147,14 @@ describe("PopupDesignConfig", () => {
     expect(config.backgroundColor).toBe("#FFFFFF");
   });
 
-  it("should support editor-specific fields", () => {
-    const config: PopupDesignConfig = {
-      backgroundColor: "#FFFFFF",
-      textColor: "#000000",
-      buttonColor: "#3B82F6",
+    it("should support editor-specific fields", () => {
+      const config: PopupDesignConfig = {
+        id: "popup-2",
+        position: "center",
+        size: "medium",
+        backgroundColor: "#FFFFFF",
+        textColor: "#000000",
+        buttonColor: "#3B82F6",
       buttonTextColor: "#FFFFFF",
       slideDirection: "right",
       width: "400px",
@@ -163,4 +169,3 @@ describe("PopupDesignConfig", () => {
     expect(config.animations?.entrance?.animation).toBe("fadeIn");
   });
 });
-

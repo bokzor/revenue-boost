@@ -74,7 +74,9 @@ export function captureMessage(
   context?: Record<string, unknown>
 ): void {
   if (!isInitialized) {
-    logger[level]({ context }, `[Sentry] ${message} (Sentry not initialized)`);
+    // Map Sentry levels to pino logger methods (warning -> warn)
+    const loggerLevel = level === "warning" ? "warn" : level;
+    logger[loggerLevel]({ context }, `[Sentry] ${message} (Sentry not initialized)`);
     return;
   }
 

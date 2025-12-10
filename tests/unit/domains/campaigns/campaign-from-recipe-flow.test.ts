@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import prisma from "~/db.server";
 import { CampaignMutationService } from "~/domains/campaigns/services/campaign-mutation.server";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
-import type { CampaignCreateData } from "~/domains/campaigns/types/campaign";
+import { DesignConfigSchema, DiscountConfigSchema, type CampaignCreateData } from "~/domains/campaigns/types/campaign";
 import type { StyledRecipe } from "~/domains/campaigns/recipes/styled-recipe-types";
 
 // Mock dependencies
@@ -38,10 +38,10 @@ function recipeToCreateData(recipe: StyledRecipe): CampaignCreateData {
     name: recipe.name,
     goal: recipe.goal,
     templateType: recipe.templateType,
-    contentConfig: recipe.defaults.contentConfig as Record<string, unknown>,
-    designConfig: recipe.defaults.designConfig as Record<string, unknown>,
-    targetRules: recipe.defaults.targetRules as Record<string, unknown>,
-    discountConfig: recipe.defaults.discountConfig as Record<string, unknown>,
+    contentConfig: recipe.defaults.contentConfig as CampaignCreateData["contentConfig"],
+    designConfig: DesignConfigSchema.parse(recipe.defaults.designConfig || {}),
+    targetRules: recipe.defaults.targetRules as CampaignCreateData["targetRules"],
+    discountConfig: DiscountConfigSchema.parse(recipe.defaults.discountConfig || {}),
     status: "DRAFT",
   };
 }
@@ -362,4 +362,3 @@ describe("Campaign Creation from Recipe - Integration", () => {
     });
   });
 });
-

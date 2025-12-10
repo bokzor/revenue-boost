@@ -832,9 +832,9 @@ test.describe.serial('Recipe Use Cases', () => {
             // Wait for API call to complete
             await page.waitForTimeout(3000);
 
-            const hasNotifications = notificationsResponse?.notifications &&
-                                     Array.isArray(notificationsResponse.notifications) &&
-                                     notificationsResponse.notifications.length > 0;
+            const notifications = (notificationsResponse as { notifications?: unknown[] } | null)?.notifications;
+            const hasNotifications =
+              Array.isArray(notifications) && notifications.length > 0;
 
             return { hasNotifications: !!hasNotifications };
         }

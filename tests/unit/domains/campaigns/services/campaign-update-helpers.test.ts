@@ -12,6 +12,11 @@ import {
   buildScheduleUpdates,
   buildCampaignUpdateData,
 } from "~/domains/campaigns/services/campaign-update-helpers";
+import {
+  DesignConfigSchema,
+  DiscountConfigSchema,
+  type CampaignUpdateData,
+} from "~/domains/campaigns/types/campaign";
 
 describe("buildBasicFieldUpdates", () => {
   it("should return empty object for empty data", () => {
@@ -57,7 +62,7 @@ describe("buildTemplateUpdates", () => {
   });
 
   it("should disconnect template when templateId is null", () => {
-    const result = buildTemplateUpdates({ templateId: null });
+    const result = buildTemplateUpdates({ templateId: null } as unknown as CampaignUpdateData);
     expect(result.template).toEqual({ disconnect: true });
   });
 
@@ -79,7 +84,9 @@ describe("buildConfigUpdates", () => {
   });
 
   it("should include designConfig when provided", () => {
-    const result = buildConfigUpdates({ designConfig: { primaryColor: "#000" } });
+    const result = buildConfigUpdates({
+      designConfig: DesignConfigSchema.parse({ backgroundColor: "#000000" }),
+    });
     expect(result.designConfig).toBeDefined();
   });
 
@@ -89,7 +96,14 @@ describe("buildConfigUpdates", () => {
   });
 
   it("should include discountConfig when provided", () => {
-    const result = buildConfigUpdates({ discountConfig: { enabled: true, type: "percentage" } });
+    const result = buildConfigUpdates({
+      discountConfig: DiscountConfigSchema.parse({
+        enabled: true,
+        showInPreview: true,
+        strategy: "simple",
+        behavior: "SHOW_CODE_AND_AUTO_APPLY",
+      }),
+    });
     expect(result.discountConfig).toBeDefined();
   });
 });
@@ -163,4 +177,3 @@ describe("buildCampaignUpdateData", () => {
     expect(result.updatedAt).toBeInstanceOf(Date);
   });
 });
-

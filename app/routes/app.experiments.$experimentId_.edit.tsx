@@ -27,6 +27,8 @@ import type { StyledRecipe } from "~/domains/campaigns/recipes/styled-recipe-typ
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import prisma from "~/db.server";
 import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { presetToDesignTokens, type ThemePresetInput } from "~/domains/store/types/theme-preset";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 
 // ============================================================================
 // TYPES
@@ -50,6 +52,7 @@ interface LoaderData {
     fontFamily?: string;
   }>;
   advancedTargetingEnabled: boolean;
+  defaultThemeTokens?: DesignTokens;
 }
 
 // ============================================================================
@@ -108,6 +111,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
     const planContext = await PlanGuardService.getPlanContext(storeId);
 
+    // Get default theme tokens from store's default preset
+    let defaultThemeTokens: DesignTokens | undefined;
+    if (parsedSettings.success) {
+      const presets = parsedSettings.data.customThemePresets as ThemePresetInput[] | undefined;
+      const defaultPreset = presets?.find((p) => p.isDefault);
+      if (defaultPreset) {
+        defaultThemeTokens = presetToDesignTokens(defaultPreset);
+      }
+    }
+
     return data<LoaderData>({
       experiment,
       variants: validVariants,
@@ -117,6 +130,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       globalCustomCSS: parsedSettings.success ? parsedSettings.data.globalCustomCSS : undefined,
       customThemePresets: parsedSettings.success ? parsedSettings.data.customThemePresets : undefined,
       advancedTargetingEnabled: planContext.definition.features.advancedTargeting,
+      defaultThemeTokens,
     });
   } catch (error) {
     console.error("Failed to load experiment for editing:", error);
@@ -131,6 +145,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         globalCustomCSS: undefined,
         customThemePresets: undefined,
         advancedTargetingEnabled: false,
+        defaultThemeTokens: undefined,
       },
       { status: 404 }
     );
@@ -265,6 +280,7 @@ export default function ExperimentEditPage() {
     globalCustomCSS: _globalCustomCSS,
     customThemePresets,
     advancedTargetingEnabled,
+    defaultThemeTokens,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -342,6 +358,7 @@ export default function ExperimentEditPage() {
           shopDomain={shopDomain}
           advancedTargetingEnabled={advancedTargetingEnabled}
           customThemePresets={customThemePresets}
+          defaultThemeTokens={defaultThemeTokens}
           isEditMode
           initialExperiment={initialExperiment}
           experimentId={experiment.id}

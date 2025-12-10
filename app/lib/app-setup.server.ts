@@ -270,6 +270,7 @@ async function createWelcomeCampaign(storeId: string) {
       discountConfig: {
         enabled: false,
         showInPreview: true,
+        strategy: "simple",
         behavior: "SHOW_CODE_AND_AUTO_APPLY",
       },
     });

@@ -376,6 +376,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 5,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -391,6 +392,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 10,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -406,6 +408,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 15,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -421,6 +424,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 20,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -436,6 +440,7 @@ const DEFAULT_SPIN_TO_WIN_SEGMENTS = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "FREE_SHIPPING" as const,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
       expiryDays: 30,
@@ -791,6 +796,7 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 5,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -805,6 +811,7 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 10,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -819,6 +826,7 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 15,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -833,6 +841,7 @@ const DEFAULT_SCRATCH_CARD_PRIZES = [
     discountConfig: {
       enabled: true,
       showInPreview: true,
+      strategy: "simple" as const,
       valueType: "PERCENTAGE" as const,
       value: 20,
       behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
@@ -955,6 +964,7 @@ export const ClassicUpsellContentSchema = BaseContentConfigSchema.extend({
   showCompareAtPrice: z.boolean().default(true),
   showImages: z.boolean().default(true),
   showRatings: z.boolean().default(true),
+  showReviewCount: z.boolean().default(true),
   // Use bundleDiscount to align with ProductUpsell and enable discount code issuance
   bundleDiscount: z.number().min(0).max(100).default(15),
   bundleDiscountText: z.string().optional(),

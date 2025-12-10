@@ -128,7 +128,7 @@ export function DesignOnlyStep({
 
   return (
     <BlockStack gap="400">
-      {/* Universal Design Configuration */}
+      {/* Universal Design Configuration (inline - no Card wrapper since parent provides container) */}
       <DesignConfigSection
         design={designConfig}
         templateType={templateType}
@@ -138,6 +138,7 @@ export function DesignOnlyStep({
         onMobileLayoutChange={onMobileLayoutChange}
         onThemeChange={handleThemeChange}
         onCustomPresetApply={handleCustomPresetApply}
+        inline
       />
 
       {/* Custom CSS Editor */}

@@ -116,7 +116,7 @@ const validCreateData = {
   templateId: "template-123",
   templateType: "NEWSLETTER" as const,
   contentConfig: { headline: "Subscribe Now" },
-  designConfig: {},
+  // designConfig is optional, omit to avoid type errors
 };
 
 // ==========================================================================

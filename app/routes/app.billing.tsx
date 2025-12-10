@@ -80,7 +80,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const billingContext = await BillingService.syncSubscriptionToDatabase(admin, session.shop);
 
   // Check current billing status using Shopify's billing API
-  const { hasActivePayment, appSubscriptions } = await billing.check();
+  const { hasActivePayment } = await billing.check();
 
   return {
     currentPlan: billingContext.planTier,
@@ -90,7 +90,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     trialEndsAt: billingContext.trialEndsAt?.toISOString() || null,
     currentPeriodEnd: billingContext.subscription?.currentPeriodEnd || null,
     shopifyHasPayment: hasActivePayment,
-    appSubscriptions,
     plans: DISPLAY_PLAN_ORDER.map((tier) => ({
       tier,
       ...PLAN_DEFINITIONS[tier],

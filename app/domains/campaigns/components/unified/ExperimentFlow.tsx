@@ -14,6 +14,7 @@ import { VariantConfigurator } from "./experiment/VariantConfigurator";
 import { ExperimentSetupView } from "./experiment/ExperimentSetupView";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
 import type { Experiment, Variant, TrafficAllocation } from "./types";
+import type { DefaultThemeTokens } from "./SingleCampaignFlow";
 export type { Experiment, Variant, TrafficAllocation, SuccessMetric } from "./types";
 
 // =============================================================================
@@ -41,6 +42,8 @@ export interface ExperimentFlowProps {
     successColor?: string;
     fontFamily?: string;
   }>;
+  /** Default theme tokens for preview (derived from store's default preset) */
+  defaultThemeTokens?: DefaultThemeTokens;
   /** Edit mode - pre-populate with existing experiment */
   isEditMode?: boolean;
   /** Initial experiment data for edit mode */
@@ -79,6 +82,7 @@ export function ExperimentFlow({
   shopDomain,
   advancedTargetingEnabled,
   customThemePresets,
+  defaultThemeTokens,
   isEditMode = false,
   initialExperiment,
   experimentId: _experimentId,
@@ -307,6 +311,7 @@ export function ExperimentFlow({
           shopDomain={shopDomain}
           advancedTargetingEnabled={advancedTargetingEnabled}
           customThemePresets={customThemePresets}
+          defaultThemeTokens={defaultThemeTokens}
         />
 
         {/* Delete Confirmation Modal */}

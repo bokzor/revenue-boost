@@ -137,13 +137,12 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup after time delay', async ({ page }) => {
-        
+
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('Time-Delay-Trigger')
-            .withTimeDelayTrigger(3) // 3 seconds
-            .withoutPageLoadTrigger()
+            .withPageLoadTrigger(3000) // 3 seconds delay (in milliseconds)
             .withPriority(MAX_TEST_PRIORITY)
             .create();
 
@@ -168,15 +167,14 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup when all triggers pass (AND logic)', async ({ page }) => {
-        
+
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('AND-Logic-Trigger')
             .withScrollDepthTrigger(30, 'down')
-            .withTimeDelayTrigger(3)
+            .withPageLoadTrigger(3000) // 3 seconds delay (in milliseconds)
             .withTriggerLogic('AND')
-            .withoutPageLoadTrigger()
             .withPriority(MAX_TEST_PRIORITY)
             .create();
 
@@ -219,15 +217,14 @@ test.describe('Trigger Combinations', () => {
     });
 
     test('shows popup when any trigger passes (OR logic)', async ({ page }) => {
-        
+
         const builder = factory.newsletter();
         await builder.init();
         const campaign = await builder
             .withName('OR-Logic-Trigger')
             .withScrollDepthTrigger(80, 'down')
-            .withTimeDelayTrigger(3)
+            .withPageLoadTrigger(3000) // 3 seconds delay (in milliseconds)
             .withTriggerLogic('OR')
-            .withoutPageLoadTrigger()
             .withPriority(MAX_TEST_PRIORITY)
             .create();
 

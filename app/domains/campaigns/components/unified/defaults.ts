@@ -52,7 +52,7 @@ export const DEFAULT_FREQUENCY_CONFIG: FrequencyCappingConfig = {
   enabled: true,
   max_triggers_per_session: 1,
   max_triggers_per_day: 3,
-  cooldown_between_triggers: 300,
+  cooldown_between_triggers: 300, // 5 minutes in seconds
   respectGlobalCap: true,
 };
 
