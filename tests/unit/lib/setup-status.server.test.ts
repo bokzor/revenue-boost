@@ -89,13 +89,15 @@ describe("Setup Status Server Module", () => {
       expect(result).toBe(false);
     });
 
-    it("should return true when app embed is enabled by extension UID", async () => {
+    it("should return true when app embed matches by block handle and app name together", async () => {
+      // This test verifies that even without extension UID configured,
+      // we can still detect our app embed using block handle + app name
       const settingsData = {
         current: {
           blocks: {
             "block1": {
-              // Real extension UID from shopify.extension.toml
-              type: "shopify://apps/my-app/blocks/popup-embed/725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80",
+              // Matches by both block handle (popup-embed) and app name (revenue-boost)
+              type: "shopify://apps/revenue-boost/blocks/popup-embed/any-extension-uid",
               disabled: false,
             },
           },
@@ -191,7 +193,7 @@ describe("Setup Status Server Module", () => {
         current: {
           blocks: {
             "block1": {
-              type: "shopify://apps/revenue-boost/blocks/popup-embed/725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80",
+              type: "shopify://apps/revenue-boost/blocks/popup-embed/some-uid",
               disabled: true,
             },
           },

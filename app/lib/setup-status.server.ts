@@ -77,12 +77,14 @@ export function clearSetupStatusCache(): void {
 // SETUP STATUS CHECKS
 // ============================================================================
 
-// Extension UID from extensions/storefront-popup/shopify.extension.toml
-// This is the unique identifier for our theme app extension
-const EXTENSION_UID = "725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80";
-
 // Block handle from blocks/popup-embed.liquid filename
+// This is consistent across all environments (dev, staging, production)
 const BLOCK_HANDLE = "popup-embed";
+
+// Extension UID can be set via environment variable for different deployments
+// Each app deployment (dev, staging, production) has a unique extension UID
+// If not set, we rely on block handle and app name matching instead
+const EXTENSION_UID = process.env.THEME_EXTENSION_UID || "";
 
 /**
  * Check if theme extension is enabled using REST API
@@ -177,9 +179,10 @@ export async function checkThemeExtensionEnabled({
         return false;
       }
 
-      // Strategy 1: Match by extension UID (most reliable)
+      // Strategy 1: Match by extension UID (most reliable, but only if configured)
       // Format: shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}
-      const matchesByUid = blockType.includes(EXTENSION_UID);
+      // EXTENSION_UID varies per environment (dev/staging/prod), so it's optional
+      const matchesByUid = EXTENSION_UID ? blockType.includes(EXTENSION_UID) : false;
 
       // Strategy 2: Match by block handle
       const matchesByBlockHandle = blockType.includes(`/blocks/${BLOCK_HANDLE}/`);
