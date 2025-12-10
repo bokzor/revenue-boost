@@ -1,4 +1,6 @@
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 
 interface CustomerSegmentMembersResponse {

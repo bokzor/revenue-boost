@@ -348,17 +348,6 @@ export function ProductUpsellContentSection({
                         updateField("layout", value as ProductUpsellContent["layout"])
                       }
                     />
-
-                    {layout === "grid" && (
-                      <TextField
-                        label="Number of Columns"
-                        name="content.columns"
-                        value={content.columns?.toString() ?? ""}
-                        placeholder="2"
-                        helpText="Columns in grid layout (1-4)"
-                        onChange={(value) => updateField("columns", (value === "" ? undefined : parseInt(value)) as number)}
-                      />
-                    )}
                   </FormGrid>
                 )}
 

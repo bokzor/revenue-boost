@@ -35,7 +35,7 @@ import {
   getSizeDimensions,
   prefersReducedMotion,
 } from "app/domains/storefront/popups-new/utils/utils";
-import { PopupCloseButton, PromotionDisplay } from "./components/shared";
+import { PopupCloseButton, PromotionDisplay, ProductImage } from "./components/shared";
 
 // Import custom hooks
 import { usePopupAnimation } from "./hooks";
@@ -516,7 +516,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
         {/* Product image with hover overlay */}
         {config.showImages !== false && product.imageUrl && (
           <div className="upsell-product-image">
-            <img src={product.imageUrl} alt={product.title} loading="lazy" />
+            <ProductImage
+              src={product.imageUrl}
+              alt={product.title}
+              aspectRatio="square"
+              priority={index < 3}
+            />
             <div className="upsell-image-overlay">
               <span className="upsell-quick-add">+</span>
             </div>
@@ -658,7 +663,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
                 {config.showImages !== false && product.imageUrl && (
                   <div className="upsell-carousel-image">
-                    <img src={product.imageUrl} alt={product.title} loading="lazy" />
+                    <ProductImage
+                      src={product.imageUrl}
+                      alt={product.title}
+                      aspectRatio="square"
+                      priority={index === carouselIndex}
+                    />
                   </div>
                 )}
 
@@ -767,7 +777,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
           {featuredProduct.imageUrl && (
             <div className="upsell-featured-image">
-              <img src={featuredProduct.imageUrl} alt={featuredProduct.title} />
+              <ProductImage
+                src={featuredProduct.imageUrl}
+                alt={featuredProduct.title}
+                aspectRatio="square"
+                priority={true}
+              />
             </div>
           )}
 
@@ -889,7 +904,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
 
             {product.imageUrl && (
               <div className="upsell-stack-image">
-                <img src={product.imageUrl} alt={product.title} />
+                <ProductImage
+                  src={product.imageUrl}
+                  alt={product.title}
+                  aspectRatio="square"
+                  priority={index < 3}
+                />
               </div>
             )}
 
@@ -930,7 +950,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   // Render LIST layout (existing card layout)
   const renderListLayout = () => (
     <div className="upsell-list">
-      {displayProducts.map((product) => {
+      {displayProducts.map((product, index) => {
         const isSelected = selectedProducts.has(product.id);
         const savingsPercent = getSavingsPercent(product);
 
@@ -945,7 +965,12 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
           >
             {config.showImages !== false && product.imageUrl && (
               <div className="upsell-list-image">
-                <img src={product.imageUrl} alt={product.title} />
+                <ProductImage
+                  src={product.imageUrl}
+                  alt={product.title}
+                  aspectRatio="square"
+                  priority={index < 3}
+                />
                 {savingsPercent !== null && (
                   <span className="upsell-list-savings">-{savingsPercent}%</span>
                 )}
@@ -1020,10 +1045,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
       case "grid":
       default:
         return (
-          <div
-            className="upsell-grid"
-            style={{ "--upsell-columns": config.columns || 2 } as React.CSSProperties}
-          >
+          <div className="upsell-grid">
             {displayProducts.map((product, index) => renderProductCard(product, index))}
           </div>
         );

@@ -50,12 +50,14 @@ export interface PopupTheme {
 export function usePopupTheme(config: PopupDesignConfig): PopupTheme {
   return useMemo(() => {
     // Core colors with fallbacks
-    const backgroundColor = config.backgroundColor || "#ffffff";
-    const textColor = config.textColor || "#111827";
+    // NOTE: These defaults MUST match buildCommonConfig() in template-preview-registry.tsx
+    // to ensure admin preview and storefront popup show identical colors
+    const backgroundColor = config.backgroundColor || "#FFFFFF";
+    const textColor = config.textColor || "#1A1A1A";
     const descriptionColor = config.descriptionColor || "#6b7280";
-    const buttonColor = config.buttonColor || "#000000";
-    const buttonTextColor = config.buttonTextColor || "#ffffff";
-    const accentColor = config.accentColor || "#dbeafe";
+    const buttonColor = config.buttonColor || "#007BFF";
+    const buttonTextColor = config.buttonTextColor || "#FFFFFF";
+    const accentColor = config.accentColor || "#007BFF";
     const successColor = config.successColor || "#16a34a";
     const errorColor = "#b91c1c"; // Standard error color
 

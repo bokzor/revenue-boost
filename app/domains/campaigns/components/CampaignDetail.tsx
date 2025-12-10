@@ -45,6 +45,7 @@ import type {
   CampaignGoal,
   TemplateType,
 } from "~/domains/campaigns/types/campaign";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 import { getTemplateLabel } from "~/domains/templates/registry/template-registry";
 import { CampaignConfigurationSummary } from "./CampaignConfigurationSummary";
 import { CampaignPopupPreview } from "./CampaignPopupPreview";
@@ -77,6 +78,8 @@ interface CampaignDetailProps {
   aov?: number;
   clicks?: number;
   currency?: string;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: DesignTokens;
 }
 
 interface CampaignMetrics {
@@ -110,6 +113,7 @@ export function CampaignDetail({
   aov,
   clicks,
   currency = "USD",
+  defaultThemeTokens,
 }: CampaignDetailProps) {
   const navigate = useNavigate();
 
@@ -354,7 +358,13 @@ export function CampaignDetail({
         {/* Left: Large Popup Preview */}
         <Card>
           <Box padding="400">
-            <CampaignPopupPreview campaign={campaign} height={450} showDeviceToggle showRefresh />
+            <CampaignPopupPreview
+              campaign={campaign}
+              height={450}
+              showDeviceToggle
+              showRefresh
+              defaultThemeTokens={defaultThemeTokens}
+            />
           </Box>
         </Card>
 

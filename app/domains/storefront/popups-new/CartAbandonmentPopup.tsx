@@ -1027,11 +1027,11 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             </div>
           )}
 
-          {/* Discount teaser - only show amount/percentage, not the code (code shown after CTA click) */}
-          {config.discount?.enabled && !discountCode && (
+          {/* Discount section - shows teaser OR generated code */}
+          {config.discount?.enabled && (
             <>
               {/* Tiered discount messaging */}
-              {tieredInfo && (
+              {tieredInfo && !discountCode && (
                 <div className="cart-ab-discount cart-ab-discount--tiered">
                   <p className="cart-ab-discount-label">🎯 Spend more, save more!</p>
                   <div className="cart-ab-discount-amount cart-ab-discount-tiered-msg">
@@ -1049,17 +1049,35 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                   )}
                 </div>
               )}
-              {/* Basic discount teaser (percentage or fixed amount) */}
-              {!tieredInfo && (config.discount.percentage || config.discount.value) && (
+              {/* Basic discount teaser (percentage or fixed amount) OR generated code */}
+              {!tieredInfo && (config.discount.percentage || config.discount.value || discountCode) && (
                 <div className="cart-ab-discount">
-                  <p className="cart-ab-discount-label">Special offer for you!</p>
-                  <div className="cart-ab-discount-amount">
-                    {config.discount.percentage && `${config.discount.percentage}% OFF`}
-                    {config.discount.value &&
-                      !config.discount.percentage &&
-                      `${formatCurrency(config.discount.value, config.currency)} OFF`}
-                  </div>
-                  <p className="cart-ab-discount-hint">Click below to claim your discount</p>
+                  {discountCode ? (
+                    <>
+                      <p className="cart-ab-discount-label">Your discount code:</p>
+                      <DiscountCodeDisplay
+                        code={discountCode}
+                        onCopy={handleCopyCode}
+                        copied={copiedCode}
+                        variant="minimal"
+                        backgroundColor="transparent"
+                        accentColor={config.accentColor || config.buttonColor}
+                        textColor={config.textColor}
+                        size="md"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="cart-ab-discount-label">Special offer for you!</p>
+                      <div className="cart-ab-discount-amount">
+                        {config.discount.percentage && `${config.discount.percentage}% OFF`}
+                        {config.discount.value &&
+                          !config.discount.percentage &&
+                          `${formatCurrency(config.discount.value, config.currency)} OFF`}
+                      </div>
+                      <p className="cart-ab-discount-hint">Click below to claim your discount</p>
+                    </>
+                  )}
                 </div>
               )}
             </>
@@ -1225,21 +1243,6 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
                       <p className="cart-ab-email-success">{emailSuccessMessage}</p>
                     ) : undefined
                   }
-                />
-              </div>
-            )}
-
-            {discountCode && (
-              <div className="cart-ab-code-block">
-                <DiscountCodeDisplay
-                  code={discountCode}
-                  onCopy={handleCopyCode}
-                  copied={copiedCode}
-                  label="Your discount code:"
-                  variant="dashed"
-                  accentColor={config.accentColor || config.buttonColor}
-                  textColor={config.textColor}
-                  size="md"
                 />
               </div>
             )}

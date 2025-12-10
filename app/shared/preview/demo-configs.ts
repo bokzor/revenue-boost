@@ -234,7 +234,6 @@ export const DEMO_CONFIGS: Record<
       subheadline: "Customers who bought this also loved",
       buttonText: "Add to Cart",
       layout: "grid",
-      columns: 2,
       maxProducts: 4,
       showPrices: true,
       showCompareAtPrice: true,

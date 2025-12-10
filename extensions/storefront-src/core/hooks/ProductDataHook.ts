@@ -110,6 +110,11 @@ export class ProductDataHook implements PreDisplayHook {
 
             console.log(`[ProductDataHook] Successfully loaded ${products.length} products`);
 
+            // Preload first 3 product images for instant display
+            if (products.length > 0) {
+                await this.preloadProductImages(products.slice(0, 3));
+            }
+
             return {
                 success: true,
                 data: products,
@@ -419,5 +424,47 @@ export class ProductDataHook implements PreDisplayHook {
         } catch {
             return [];
         }
+    }
+
+    /**
+     * Preload product images for instant display
+     * Uses Image() constructor to prefetch images into browser cache
+     *
+     * @param products - Array of products with imageUrl property
+     * @returns Promise that resolves when all images are loaded (or failed)
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- products are dynamically typed
+    private async preloadProductImages(products: any[]): Promise<void> {
+        const imageUrls = products
+            .map((p) => p.imageUrl)
+            .filter((url): url is string => typeof url === 'string' && url.length > 0);
+
+        if (imageUrls.length === 0) return;
+
+        console.log(`[ProductDataHook] Preloading ${imageUrls.length} product images`);
+
+        const preloadPromises = imageUrls.map((url) => {
+            return new Promise<void>((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    console.log(`[ProductDataHook] Preloaded: ${url.substring(0, 50)}...`);
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.warn(`[ProductDataHook] Failed to preload: ${url.substring(0, 50)}...`);
+                    resolve(); // Resolve anyway to not block other images
+                };
+                img.src = url;
+            });
+        });
+
+        // Wait for all images with a timeout to prevent blocking too long
+        const timeoutPromise = new Promise<void>((resolve) => setTimeout(resolve, 2000));
+        await Promise.race([
+            Promise.all(preloadPromises),
+            timeoutPromise,
+        ]);
+
+        console.log('[ProductDataHook] Image preloading complete');
     }
 }

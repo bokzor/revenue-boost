@@ -602,51 +602,6 @@ const blackFridaySale: FlashSaleRecipe = {
   },
 };
 
-const cyberMondaySale: FlashSaleRecipe = {
-  id: "cyber-monday-sale",
-  name: "Cyber Monday Flash Sale",
-  tagline: "Online exclusive savings",
-  description: "Tech-themed flash sale with neon Cyber Monday aesthetic.",
-  icon: "💻",
-  category: "sales_promos",
-  goal: "INCREASE_REVENUE",
-  templateType: "FLASH_SALE",
-  recipeType: "seasonal",
-  component: "FlashSaleCentered",
-  theme: "cyber-monday",
-  layout: "centered",
-  backgroundPresetId: "bg-cyber-monday",
-  seasonal: true,
-  inputs: [{ ...DISCOUNT_PERCENTAGE_INPUT, defaultValue: 40 }, DURATION_HOURS_INPUT],
-  editableFields: FLASH_SALE_EDITABLE_FIELDS,
-  defaults: {
-    contentConfig: {
-      headline: "CYBER MONDAY",
-      subheadline: "40% OFF - Online Only",
-      buttonText: "Shop Online Deals",
-      showCountdown: true,
-    },
-    designConfig: {
-      position: "center",
-      size: "large",
-      leadCaptureLayout: { desktop: "content-only", mobile: "content-only" },
-    },
-    targetRules: {
-      enhancedTriggers: {
-        page_load: { enabled: true, delay: 3 },
-        frequency_capping: FLASH_SALE_FREQUENCY_CAPPING,
-      },
-      pageTargeting: FLASH_SALE_PAGE_TARGETING,
-    },
-    discountConfig: {
-      enabled: true,
-      type: "shared",
-      valueType: "PERCENTAGE",
-      value: 40,
-    },
-  },
-};
-
 const summerSale: FlashSaleRecipe = {
   id: "summer-sale",
   name: "Summer Flash Sale",
@@ -1190,7 +1145,6 @@ export const USE_CASE_RECIPES: FlashSaleRecipe[] = [
 // Seasonal quick-starts (secondary) - ordered by calendar
 export const SEASONAL_RECIPES: FlashSaleRecipe[] = [
   blackFridaySale,
-  cyberMondaySale,
   holidaySale,
   newYearSale,
   winterSale,

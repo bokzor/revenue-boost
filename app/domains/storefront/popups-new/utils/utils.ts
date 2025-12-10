@@ -28,7 +28,19 @@ import type {
  * isColorDark("#111827"); // true (dark blue-gray)
  * ```
  */
-export function isColorDark(hexColor: string): boolean {
+export function isColorDark(colorValue: string): boolean {
+  // Handle gradients by extracting the first hex color
+  let hexColor = colorValue;
+  if (colorValue.includes("gradient")) {
+    const hexMatch = colorValue.match(/#[0-9a-fA-F]{3,6}/);
+    if (hexMatch) {
+      hexColor = hexMatch[0];
+    } else {
+      // If no hex found in gradient, assume dark (common for dark gradients)
+      return true;
+    }
+  }
+
   const hex = hexColor.replace("#", "");
   // Handle shorthand hex (e.g., #fff -> #ffffff)
   const fullHex = hex.length === 3

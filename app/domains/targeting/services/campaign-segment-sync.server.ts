@@ -8,6 +8,7 @@
  * to not block the user experience.
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 import type { TargetRulesConfig } from "~/domains/campaigns/types/campaign";
 import {
@@ -72,7 +73,7 @@ export function triggerCampaignSegmentSync(options: TriggerSyncOptions): void {
     forceSync,
   }).catch((error) => {
     // Log error but don't throw - this is background work
-    console.error("[CampaignSegmentSync] Background sync failed:", error);
+    logger.error({ error }, "[CampaignSegmentSync] Background sync failed:");
   });
 }
 
@@ -93,12 +94,12 @@ async function performSyncAsync(options: {
   if (!forceSync) {
     const hasData = await hasSegmentMembershipData({ storeId, segmentIds });
     if (hasData) {
-      console.log("[CampaignSegmentSync] Membership data already exists, skipping sync");
+      logger.debug("[CampaignSegmentSync] Membership data already exists, skipping sync");
       return;
     }
   }
 
-  console.log("[CampaignSegmentSync] Starting membership sync...");
+  logger.debug("[CampaignSegmentSync] Starting membership sync...");
   const startTime = Date.now();
 
   try {
@@ -113,7 +114,7 @@ async function performSyncAsync(options: {
       `[CampaignSegmentSync] Sync completed in ${duration}ms for ${segmentIds.length} segment(s)`
     );
   } catch (error) {
-    console.error("[CampaignSegmentSync] Sync failed:", error);
+    logger.error({ error }, "[CampaignSegmentSync] Sync failed:");
     throw error;
   }
 }

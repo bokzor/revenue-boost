@@ -245,7 +245,6 @@ describe("getAllPresetIds", () => {
     expect(ids.length).toBeGreaterThan(0);
     expect(ids).toContain("bold-energy");
     expect(ids).toContain("black-friday");
-    expect(ids).toContain("cyber-monday");
   });
 });
 

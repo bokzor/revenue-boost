@@ -55,13 +55,6 @@ export const UPSELL_EDITABLE_FIELDS: EditableField[] = [
     group: "content",
     validation: { required: true, maxLength: 30 },
   },
-  {
-    key: "bundleDiscountText",
-    type: "text",
-    label: "Bundle Discount Text",
-    group: "content",
-    validation: { maxLength: 50 },
-  },
 ];
 
 // Classic Upsell uses product name & description, so no headline/subheadline fields needed
@@ -77,13 +70,6 @@ export const CLASSIC_UPSELL_EDITABLE_FIELDS: EditableField[] = [
     key: "secondaryCtaLabel",
     type: "text",
     label: "Decline Button Text",
-    group: "content",
-    validation: { maxLength: 50 },
-  },
-  {
-    key: "bundleDiscountText",
-    type: "text",
-    label: "Discount Badge Text",
     group: "content",
     validation: { maxLength: 50 },
   },
@@ -112,13 +98,6 @@ const UPSELL_PAGE_TARGETING = {
   excludePages: ["/checkout", "/checkout/*", "/*/checkouts/*"],
   productTags: [] as string[],
   collections: [] as string[],
-};
-
-const BUNDLE_DISCOUNT_INPUT: QuickInput = {
-  type: "discount_percentage",
-  key: "bundleDiscount",
-  label: "Bundle Discount",
-  defaultValue: 15,
 };
 
 const PRODUCT_SELECTION_INPUT: QuickInput = {
@@ -179,7 +158,7 @@ export const completeTheLook: ProductUpsellRecipe = {
   layout: "centered",
   featured: true,
   recipeType: "use_case",
-  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT],
+  inputs: [PRODUCT_SELECTION_INPUT],
   editableFields: UPSELL_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -188,14 +167,13 @@ export const completeTheLook: ProductUpsellRecipe = {
       buttonText: "Add & Continue Shopping",
       productSelectionMethod: "ai",
       layout: "carousel",
-      columns: 1,
       maxProducts: 6,
       showPrices: true,
       showCompareAtPrice: true,
       showImages: true,
       showRatings: true,
-      bundleDiscount: 10,
-      bundleDiscountText: "Bundle & save 10%",
+      bundleDiscount: 15,
+      bundleDiscountText: "Bundle & save 15%",
       multiSelect: true,
     },
     designConfig: {
@@ -256,7 +234,6 @@ export const productPageCrossSell: ProductUpsellRecipe = {
       buttonText: "Quick Add",
       productSelectionMethod: "ai",
       layout: "card",
-      columns: 1,
       maxProducts: 3,
       showPrices: true,
       showCompareAtPrice: false,
@@ -309,22 +286,15 @@ export const lastChanceUpsell: ProductUpsellRecipe = {
   component: "ProductUpsell",
   layout: "centered",
   recipeType: "use_case",
-  inputs: [
-    {
-      ...BUNDLE_DISCOUNT_INPUT,
-      defaultValue: 25,
-    },
-    PRODUCT_SELECTION_INPUT,
-  ],
+  inputs: [PRODUCT_SELECTION_INPUT],
   editableFields: UPSELL_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
       headline: "Before You Go...",
-      subheadline: "Complete your order now and save 25% on these items",
+      subheadline: "Complete your order now and save on these items",
       buttonText: "Add & Checkout",
       productSelectionMethod: "ai",
       layout: "grid",
-      columns: 2,
       maxProducts: 3,
       showPrices: true,
       showCompareAtPrice: true,
@@ -368,7 +338,7 @@ export const frequentlyBoughtTogether: ProductUpsellRecipe = {
   component: "ProductUpsell",
   layout: "banner-bottom",
   recipeType: "use_case",
-  inputs: [BUNDLE_DISCOUNT_INPUT, MAX_PRODUCTS_INPUT],
+  inputs: [MAX_PRODUCTS_INPUT],
   editableFields: UPSELL_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -377,7 +347,6 @@ export const frequentlyBoughtTogether: ProductUpsellRecipe = {
       buttonText: "Add All to Cart",
       productSelectionMethod: "ai",
       layout: "grid",
-      columns: 3,
       maxProducts: 3,
       showPrices: true,
       showCompareAtPrice: true,
@@ -448,7 +417,7 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
   featured: true,
   new: false,
   recipeType: "use_case",
-  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT, MAX_PRODUCTS_INPUT],
+  inputs: [PRODUCT_SELECTION_INPUT, MAX_PRODUCTS_INPUT],
   editableFields: UPSELL_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -457,7 +426,6 @@ export const postPurchaseCrossSell: ProductUpsellRecipe = {
       buttonText: "Add to Cart",
       productSelectionMethod: "ai",
       layout: "grid",
-      columns: 3,
       maxProducts: 3,
       showPrices: true,
       showCompareAtPrice: true,
@@ -535,7 +503,6 @@ export const scrollBasedRecommendations: ProductUpsellRecipe = {
       buttonText: "Quick Add",
       productSelectionMethod: "ai",
       layout: "card",
-      columns: 1,
       maxProducts: 3,
       showPrices: true,
       showCompareAtPrice: false,
@@ -591,7 +558,7 @@ export const classicUpsellModal: ClassicUpsellRecipe = {
   featured: true,
   new: true,
   recipeType: "use_case",
-  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT_MANUAL_DEFAULT],
+  inputs: [PRODUCT_SELECTION_INPUT_MANUAL_DEFAULT],
   editableFields: CLASSIC_UPSELL_EDITABLE_FIELDS,
   defaults: {
     contentConfig: {
@@ -690,7 +657,7 @@ export const premiumFullscreen: PremiumFullscreenRecipe = {
   featured: true,
   new: true,
   recipeType: "use_case",
-  inputs: [BUNDLE_DISCOUNT_INPUT, PRODUCT_SELECTION_INPUT],
+  inputs: [PRODUCT_SELECTION_INPUT],
   editableFields: [
     ...UPSELL_EDITABLE_FIELDS,
     {
@@ -780,7 +747,6 @@ export const countdownUrgency: CountdownUrgencyRecipe = {
         { value: "900", label: "15 minutes" },
       ],
     },
-    BUNDLE_DISCOUNT_INPUT,
     PRODUCT_SELECTION_INPUT,
   ],
   editableFields: [
@@ -830,13 +796,14 @@ function ensureUpsellDiscountConfig(recipe: AnyStyledRecipe): AnyStyledRecipe {
   if (!("defaults" in recipe) || !recipe.defaults) return recipe;
 
   const defaults = recipe.defaults as {
-    contentConfig?: { bundleDiscount?: number };
+    contentConfig?: { bundleDiscount?: number; bundleDiscountText?: string };
     discountConfig?: Partial<{
       enabled: boolean;
+      showInPreview?: boolean;
       strategy?: "bundle" | "tiered" | "bogo" | "free_gift" | "simple";
       valueType?: "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING";
       value?: number;
-      behavior?: string;
+      behavior?: "SHOW_CODE_AND_AUTO_APPLY" | "SHOW_CODE_ONLY" | "SHOW_CODE_AND_ASSIGN_TO_EMAIL";
       applicability?: {
         scope: "all" | "cart" | "products" | "collections";
         productIds?: string[];
@@ -848,6 +815,7 @@ function ensureUpsellDiscountConfig(recipe: AnyStyledRecipe): AnyStyledRecipe {
     }>;
   };
 
+  // Read legacy bundleDiscount from contentConfig (for backward compatibility during migration)
   const bundleValue = defaults.contentConfig?.bundleDiscount;
   const existing = defaults.discountConfig;
 
@@ -856,6 +824,7 @@ function ensureUpsellDiscountConfig(recipe: AnyStyledRecipe): AnyStyledRecipe {
       ? {
           ...existing,
           enabled: existing.enabled ?? true,
+          showInPreview: existing.showInPreview ?? true,
           strategy:
             existing.strategy ||
             (existing.tiers && (existing.tiers as unknown[]).length > 0
@@ -867,26 +836,35 @@ function ensureUpsellDiscountConfig(recipe: AnyStyledRecipe): AnyStyledRecipe {
                   : bundleValue
                     ? "bundle"
                     : "simple"),
-          valueType: existing.valueType || "PERCENTAGE",
+          // Bundle strategy only supports PERCENTAGE
+          valueType: "PERCENTAGE" as const,
           value: existing.value ?? bundleValue ?? 15,
-          behavior: existing.behavior || "SHOW_CODE_AND_AUTO_APPLY",
+          behavior: (existing.behavior || "SHOW_CODE_AND_AUTO_APPLY") as "SHOW_CODE_AND_AUTO_APPLY" | "SHOW_CODE_ONLY" | "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
           applicability:
             existing.applicability || (bundleValue ? { scope: "products" as const } : undefined),
         }
       : {
           enabled: true,
+          showInPreview: true,
           strategy: "bundle",
           valueType: "PERCENTAGE" as const,
           value: bundleValue ?? 15,
-          behavior: "SHOW_CODE_AND_AUTO_APPLY",
+          behavior: "SHOW_CODE_AND_AUTO_APPLY" as const,
           applicability: { scope: "products" as const },
         };
+
+  // Remove deprecated bundleDiscount and bundleDiscountText from contentConfig
+  // discountConfig is now the single source of truth
+  const { bundleDiscount: _bd, bundleDiscountText: _bdt, ...cleanedContentConfig } =
+    (defaults.contentConfig || {}) as Record<string, unknown>;
 
   return {
     ...recipe,
     defaults: {
       ...defaults,
-      discountConfig: nextDiscountConfig,
+      contentConfig: cleanedContentConfig,
+      // Type assertion needed because we're constructing a partial config that will be merged with defaults
+      discountConfig: nextDiscountConfig as AnyStyledRecipe["defaults"] extends { discountConfig?: infer D } ? D : never,
     },
   };
 }

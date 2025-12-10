@@ -1,4 +1,6 @@
+import { logger } from "~/lib/logger.server";
 import prisma, { Prisma } from "~/db.server";
+import { logger } from "~/lib/logger.server";
 import {
   PLAN_DEFINITIONS,
   GAMIFICATION_TEMPLATE_TYPES,
@@ -39,7 +41,7 @@ export class PlanGuardService {
    * Get the plan context for a store, including validation of subscription status
    */
   static async getPlanContext(storeId: string): Promise<PlanContext> {
-    console.log(`[PlanGuardService] getPlanContext called with storeId: ${storeId}`);
+    logger.debug("[PlanGuardService] getPlanContext called with storeId: ${storeId}");
 
     const store = await prisma.store.findUnique({
       where: { id: storeId },

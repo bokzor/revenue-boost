@@ -188,6 +188,7 @@ const discountIncentive: CartAbandonmentRecipe = {
       enhancedTriggers: {
         exit_intent: { enabled: true, sensitivity: "high" },
         cart_value: { enabled: true, min_value: 25 },
+        trigger_combination: { operator: "AND" },
         frequency_capping: CART_ABANDONMENT_FREQUENCY_CAPPING,
       },
       pageTargeting: CART_ABANDONMENT_PAGE_TARGETING,

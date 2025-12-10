@@ -112,7 +112,7 @@ export async function action({ request }: ActionFunctionArgs) {
       // Valid theme values for the schema
       const VALID_THEMES = [
         "modern", "minimal", "dark", "gradient", "luxury", "neon", "ocean",
-        "summer", "black-friday", "cyber-monday", "holiday", "valentine", "spring"
+        "summer", "black-friday", "holiday", "valentine", "spring"
       ];
 
       // Transform designConfig - remove invalid theme values from recipes
@@ -260,7 +260,7 @@ export async function action({ request }: ActionFunctionArgs) {
         // Valid theme values for the schema
         const VALID_THEMES = [
           "modern", "minimal", "dark", "gradient", "luxury", "neon", "ocean",
-          "summer", "black-friday", "cyber-monday", "holiday", "valentine", "spring"
+          "summer", "black-friday", "holiday", "valentine", "spring"
         ];
 
         // Sanitize designConfig

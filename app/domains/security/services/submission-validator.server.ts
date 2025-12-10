@@ -5,6 +5,7 @@
  * Uses honeypot fields, timing validation, and impression verification for bot detection.
  */
 
+import { logger } from "~/lib/logger.server";
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 
 export interface SubmissionValidationInput {
@@ -51,7 +52,7 @@ export async function validateSubmission(
 
   // 1. Honeypot check - bots often fill hidden fields
   if (honeypot) {
-    console.log(`[Submission Validator] 🤖 Honeypot triggered for campaign ${campaignId}, IP: ${ip}`);
+    logger.debug("[Submission Validator] 🤖 Honeypot triggered for campaign ${campaignId}, IP: ${ip}");
     return { valid: false, reason: "honeypot", isBotLikely: true };
   }
 
@@ -97,7 +98,7 @@ export async function validateSubmission(
         // Only block if BOTH impression AND timing are missing
         // This catches bots that submit directly without seeing the popup
         if (!popupShownAt) {
-          console.log(`[Submission Validator] 🤖 No impression + no timing = likely bot`);
+          logger.debug("[Submission Validator] 🤖 No impression + no timing = likely bot");
           return { valid: false, reason: "no_impression", isBotLikely: true };
         }
         // If timing is provided but impression is missing, it's likely a network issue
@@ -243,7 +244,7 @@ export async function handleBotDetection<TFakeSuccess, TError>(
       return { response: options.fakeSuccess, isBot: true };
     }
 
-    console.warn(`[${prefix}] Validation failed: ${validation.reason}`);
+    logger.warn("[${prefix}] Validation failed: ${validation.reason}");
     const errorMessage =
       validation.reason === "session_expired"
         ? "Session expired. Please refresh the page."

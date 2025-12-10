@@ -61,11 +61,6 @@ const THEME_DEFAULTS: Record<
     text: NEWSLETTER_THEMES["black-friday"].text,
     button: NEWSLETTER_THEMES["black-friday"].primary,
   },
-  "cyber-monday": {
-    background: NEWSLETTER_THEMES["cyber-monday"].background,
-    text: NEWSLETTER_THEMES["cyber-monday"].text,
-    button: NEWSLETTER_THEMES["cyber-monday"].primary,
-  },
   holiday: {
     background: NEWSLETTER_THEMES.holiday.background,
     text: NEWSLETTER_THEMES.holiday.text,

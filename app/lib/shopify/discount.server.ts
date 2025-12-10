@@ -4,6 +4,7 @@
  * Handles creation and retrieval of discount codes via Shopify Admin GraphQL API
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 // Common types for GraphQL responses
@@ -380,12 +381,12 @@ export async function createDiscountCode(
       };
     }
 
-    console.error("[Shopify Discount] No discount node in response");
+    logger.error("[Shopify Discount] No discount node in response");
     return {
       errors: ["Failed to create discount code"],
     };
   } catch (error) {
-    console.error("[Shopify Discount] Error creating discount code:", error);
+    logger.error({ error }, "[Shopify Discount] Error creating discount code:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to create discount code"],
     };
@@ -486,12 +487,12 @@ async function createFreeShippingDiscount(
       };
     }
 
-    console.error("[Shopify Discount] No discount node in free shipping response");
+    logger.error("[Shopify Discount] No discount node in free shipping response");
     return {
       errors: ["Failed to create free shipping discount code"],
     };
   } catch (error) {
-    console.error("[Shopify Discount] Error creating free shipping discount:", error);
+    logger.error({ error }, "[Shopify Discount] Error creating free shipping discount:");
     return {
       errors: [
         error instanceof Error ? error.message : "Failed to create free shipping discount code",
@@ -534,7 +535,7 @@ export async function getDiscountCode(
       errors: ["Discount not found"],
     };
   } catch (error) {
-    console.error("[Shopify Discount] Error getting discount code:", error);
+    logger.error({ error }, "[Shopify Discount] Error getting discount code:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to get discount code"],
     };
@@ -730,7 +731,7 @@ export async function createBxGyDiscountCode(
       errors: ["Failed to create BxGy discount code - no discount node returned"],
     };
   } catch (error) {
-    console.error("[Shopify Discount] Error creating BxGy discount:", error);
+    logger.error({ error }, "[Shopify Discount] Error creating BxGy discount:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to create BxGy discount"],
     };

@@ -697,7 +697,6 @@ export const ProductUpsellContentSchema = BaseContentConfigSchema.extend({
       "countdown-urgency",
     ])
     .default("grid"),
-  columns: z.number().int().min(1).max(4).default(2),
   showPrices: z.boolean().default(true),
   showCompareAtPrice: z.boolean().default(true),
   showImages: z.boolean().default(true),
@@ -1116,7 +1115,6 @@ export const DesignConfigSchema = z.object({
       // Seasonal themes (for styled recipes)
       "summer",
       "black-friday",
-      "cyber-monday",
       "holiday",
       "valentine",
       "spring",

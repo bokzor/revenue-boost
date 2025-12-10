@@ -11,6 +11,7 @@
  * - Tracks setup completion
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import { CampaignService } from "~/domains/campaigns/services/campaign.server";
 import { ShopService } from "~/domains/shops/services/shop.server";
@@ -32,7 +33,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin type varies by context
 export async function setupAppOnInstall(admin: any, shopDomain: string) {
   try {
-    console.log(`[App Setup] Setting up app for ${shopDomain}`);
+    logger.debug("[App Setup] Setting up app for ${shopDomain}");
 
     // Try to find existing store first
     let store = await prisma.store.findUnique({
@@ -41,10 +42,10 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
 
     // If store doesn't exist, create it now
     if (!store) {
-      console.log(`[App Setup] Store not found for ${shopDomain} - creating it now`);
+      logger.debug("[App Setup] Store not found for ${shopDomain} - creating it now");
       store = await createStoreRecord(admin, shopDomain);
       if (!store) {
-        console.error(`[App Setup] Failed to create store record for ${shopDomain}`);
+        logger.error("[App Setup] Failed to create store record for ${shopDomain}");
         // Continue with what we can do (metafield setup)
       }
     }
@@ -53,7 +54,7 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
     if (store) {
       const setupCompleted = await checkSetupCompleted(store.id);
       if (setupCompleted) {
-        console.log(`[App Setup] Setup already completed for ${shopDomain}`);
+        logger.debug("[App Setup] Setup already completed for ${shopDomain}");
         return;
       }
     }
@@ -71,9 +72,9 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
     if (store) {
       try {
         await ShopService.getShopTimezone(admin, store.id);
-        console.log(`[App Setup] ✅ Fetched and cached shop timezone`);
+        logger.debug("[App Setup] ✅ Fetched and cached shop timezone");
       } catch (error) {
-        console.error("[App Setup] Error fetching shop timezone:", error);
+        logger.error({ error }, "[App Setup] Error fetching shop timezone:");
         // Don't fail setup if timezone fetch fails
       }
     }
@@ -91,9 +92,9 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
       await markSetupCompleted(store.id);
     }
 
-    console.log(`[App Setup] ✅ Successfully set up app for ${shopDomain}`);
+    logger.debug("[App Setup] ✅ Successfully set up app for ${shopDomain}");
   } catch (error) {
-    console.error("[App Setup] Error during app setup:", error);
+    logger.error({ error }, "[App Setup] Error during app setup:");
     // Don't throw - we want the auth flow to continue even if setup fails
   }
 }
@@ -119,7 +120,7 @@ async function checkSetupCompleted(storeId: string): Promise<boolean> {
  */
 async function markSetupCompleted(storeId: string) {
   // No-op - setup completion is tracked by the existence of the welcome campaign
-  console.log(`[App Setup] Setup marked as completed for store ${storeId}`);
+  logger.debug("[App Setup] Setup marked as completed for store ${storeId}");
 }
 
 /**
@@ -131,11 +132,11 @@ async function setAppUrlMetafield(admin: any, shop: string) {
     const appUrl = process.env.SHOPIFY_APP_URL;
 
     if (!appUrl) {
-      console.warn("[App Setup] SHOPIFY_APP_URL not set, skipping metafield creation");
+      logger.warn("[App Setup] SHOPIFY_APP_URL not set, skipping metafield creation");
       return;
     }
 
-    console.log(`[App Setup] Setting app URL metafield to: ${appUrl}`);
+    logger.debug("[App Setup] Setting app URL metafield to: ${appUrl}");
 
     const mutation = `
       mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
@@ -161,7 +162,7 @@ async function setAppUrlMetafield(admin: any, shop: string) {
     const shopId = shopData.data?.shop?.id;
 
     if (!shopId) {
-      console.error("[App Setup] Could not get shop ID");
+      logger.error("[App Setup] Could not get shop ID");
       return;
     }
 
@@ -187,10 +188,10 @@ async function setAppUrlMetafield(admin: any, shop: string) {
         data.data.metafieldsSet.userErrors
       );
     } else {
-      console.log(`[App Setup] ✅ Successfully set app URL metafield for ${shop}`);
+      logger.debug("[App Setup] ✅ Successfully set app URL metafield for ${shop}");
     }
   } catch (error) {
-    console.error("[App Setup] Error setting app URL metafield:", error);
+    logger.error({ error }, "[App Setup] Error setting app URL metafield:");
     // Don't throw - we want setup to continue even if this fails
   }
 }
@@ -209,7 +210,7 @@ async function createWelcomeCampaign(storeId: string) {
     });
 
     if (existingCampaign) {
-      console.log("[App Setup] Welcome campaign already exists");
+      logger.debug("[App Setup] Welcome campaign already exists");
       return;
     }
 
@@ -278,9 +279,9 @@ async function createWelcomeCampaign(storeId: string) {
       },
     });
 
-    console.log(`[App Setup] ✅ Created welcome campaign: ${campaign.id}`);
+    logger.debug("[App Setup] ✅ Created welcome campaign: ${campaign.id}");
   } catch (error) {
-    console.error("[App Setup] Error creating welcome campaign:", error);
+    logger.error({ error }, "[App Setup] Error creating welcome campaign:");
     // Don't throw - we want setup to continue even if this fails
   }
 }
@@ -296,7 +297,7 @@ async function createThemePresetFromShopifyTheme(
   accessToken: string
 ) {
   try {
-    console.log(`[App Setup] Fetching Shopify theme settings for ${shopDomain}`);
+    logger.debug("[App Setup] Fetching Shopify theme settings for ${shopDomain}");
 
     // Fetch theme settings from Shopify
     const result = await fetchThemeSettings(shopDomain, accessToken);
@@ -325,7 +326,7 @@ async function createThemePresetFromShopifyTheme(
     );
 
     if (hasStoreTheme) {
-      console.log("[App Setup] Store theme preset already exists, skipping");
+      logger.debug("[App Setup] Store theme preset already exists, skipping");
       return;
     }
 
@@ -348,7 +349,7 @@ async function createThemePresetFromShopifyTheme(
       `[App Setup] ✅ Created "My Store Theme" preset from theme: ${result.settings.themeName}`
     );
   } catch (error) {
-    console.error("[App Setup] Error creating theme preset:", error);
+    logger.error({ error }, "[App Setup] Error creating theme preset:");
     // Don't throw - we want setup to continue even if this fails
   }
 }
@@ -366,7 +367,7 @@ async function createStoreRecord(admin: any, shopDomain: string) {
     const shopGid: string | undefined = data?.data?.shop?.id;
 
     if (!shopGid) {
-      console.error("[App Setup] Could not fetch shop ID from Shopify");
+      logger.error("[App Setup] Could not fetch shop ID from Shopify");
       return null;
     }
 
@@ -410,10 +411,10 @@ async function createStoreRecord(admin: any, shopDomain: string) {
       },
     });
 
-    console.log(`[App Setup] ✅ Store record created/verified for ${shopDomain}`);
+    logger.debug("[App Setup] ✅ Store record created/verified for ${shopDomain}");
     return store;
   } catch (error) {
-    console.error("[App Setup] Error creating store record:", error);
+    logger.error({ error }, "[App Setup] Error creating store record:");
     return null;
   }
 }

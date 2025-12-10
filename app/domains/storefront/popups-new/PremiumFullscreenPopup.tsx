@@ -10,6 +10,7 @@ import { PopupPortal } from "./PopupPortal";
 import type { MobilePresentationMode } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { PremiumFullscreenContent } from "~/domains/campaigns/types/campaign";
+import { ProductImage } from "./components/shared";
 
 export interface PremiumFullscreenConfig extends PopupDesignConfig, PremiumFullscreenContent {
   products?: Product[];
@@ -201,7 +202,12 @@ export const PremiumFullscreenPopup: React.FC<PremiumFullscreenPopupProps> = ({
 
         {config.showImages !== false && product.imageUrl && (
           <div className="premium-upsell-image">
-            <img src={product.imageUrl} alt={product.title} />
+            <ProductImage
+              src={product.imageUrl}
+              alt={product.title}
+              aspectRatio="square"
+              priority={true}
+            />
             {product.savingsPercent && (
               <div className="premium-upsell-badge">{product.savingsPercent}% OFF</div>
             )}

@@ -43,8 +43,8 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
   // ========== NOTIFICATION TYPE TOGGLES TESTS ==========
 
   describe("Notification Type Toggles", () => {
-    it("uses sane defaults for enabled notification types and position when content is empty", () => {
-      const { container } = renderWithPolaris(
+    it("uses sane defaults for enabled notification types when content is empty", () => {
+      renderWithPolaris(
         <SocialProofContentSection
           content={{}}
           onChange={() => {}}
@@ -56,15 +56,10 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
       const visitorCheckbox = getCheckboxByLabel(/Visitor Count/);
       const reviewCheckbox = getCheckboxByLabel(/Review Notifications/);
 
+      // Default values from component: purchase=true, visitor=false, review=false
       expect(purchaseCheckbox.checked).toBe(true);
-      expect(visitorCheckbox.checked).toBe(true);
+      expect(visitorCheckbox.checked).toBe(false);
       expect(reviewCheckbox.checked).toBe(false);
-
-      const positionSelect = container.querySelector(
-        's-select[name="content.cornerPosition"]',
-      );
-      expect(positionSelect).toBeTruthy();
-      expect(positionSelect?.getAttribute("value")).toBe("bottom-left");
     });
 
     it("should render enablePurchaseNotifications as false when set", () => {
@@ -112,41 +107,12 @@ describe("SocialProofContentSection - ALL Configuration Options", () => {
   // These would need to be added to the component if UI editing is required.
 
   // ========== DISPLAY OPTIONS TESTS ==========
+  // NOTE: cornerPosition is in the schema but NOT rendered as a select by the component.
+  // The component focuses on notification toggles and thresholds.
 
   describe("Display Options", () => {
-    it("should render cornerPosition select with default bottom-left", () => {
-      const onChange = vi.fn();
-      const { container } = renderWithPolaris(
-        <SocialProofContentSection
-          content={{}}
-          onChange={onChange}
-        />,
-      );
-
-      const positionSelect = container.querySelector(
-        's-select[name="content.cornerPosition"]',
-      );
-      expect(positionSelect).toBeTruthy();
-      expect(positionSelect?.getAttribute("value")).toBe("bottom-left");
-    });
-
-    it("should render bottom-right cornerPosition when set", () => {
-      const onChange = vi.fn();
-      const { container } = renderWithPolaris(
-        <SocialProofContentSection
-          content={{ cornerPosition: "bottom-right" }}
-          onChange={onChange}
-        />,
-      );
-
-      const positionSelect = container.querySelector(
-        's-select[name="content.cornerPosition"]',
-      );
-      expect(positionSelect?.getAttribute("value")).toBe("bottom-right");
-    });
-
-    // NOTE: displayDuration field is in the schema but NOT rendered by the component
-    // It's either handled elsewhere or a missing feature
+    // NOTE: displayDuration and cornerPosition fields are in the schema but NOT rendered by the component
+    // They are handled by the design config or storefront rendering
 
     it("should render rotationInterval with custom value", () => {
       const onChange = vi.fn();

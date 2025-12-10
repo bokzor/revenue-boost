@@ -77,6 +77,11 @@ export {
 } from "./PromotionDisplay";
 
 // ============================================
+// PRODUCT IMAGE COMPONENT
+// ============================================
+export { ProductImage, type ProductImageProps } from "./ProductImage";
+
+// ============================================
 // HOOKS
 // ============================================
 export { usePopupTheme, type PopupTheme } from "./usePopupTheme";

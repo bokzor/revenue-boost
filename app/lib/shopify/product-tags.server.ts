@@ -4,6 +4,7 @@
  * Uses the Admin GraphQL API to fetch product tags for the current shop.
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 interface ProductTagsQueryResponse {

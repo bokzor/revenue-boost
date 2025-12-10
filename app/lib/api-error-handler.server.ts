@@ -6,6 +6,7 @@
  * Sanitizes error messages in production to prevent information leakage
  */
 
+import { logger } from "~/lib/logger.server";
 import { data } from "react-router";
 import { z } from "zod";
 import { createApiResponse } from "~/lib/api-types";
@@ -84,7 +85,7 @@ function logError(error: unknown, context: string): void {
     });
   } else {
     // In development, log full error details
-    console.error(`[API Error] ${context}:`, error);
+    logger.error({ error }, "[API Error] ${context}:");
   }
 }
 

@@ -129,12 +129,12 @@ describe("ProductUpsellContentSection", () => {
       expect(layoutSelect).toBeTruthy();
     });
 
-    it("accepts grid layout with columns prop", async () => {
+    it("accepts grid layout prop", async () => {
       const onChange = vi.fn();
 
       renderWithPolaris(
         <ProductUpsellContentSection
-          content={{ layout: "grid", columns: 3 }}
+          content={{ layout: "grid" }}
           errors={{}}
           onChange={onChange}
         />,
@@ -292,12 +292,12 @@ describe("ProductUpsellContentSection", () => {
       expect(productSection).toBeTruthy();
     });
 
-    it("accepts columns prop without errors", async () => {
+    it("accepts grid layout without errors", async () => {
       const onChange = vi.fn();
 
       renderWithPolaris(
         <ProductUpsellContentSection
-          content={{ layout: "grid", columns: 3 }}
+          content={{ layout: "grid" }}
           errors={{}}
           onChange={onChange}
         />,
@@ -319,9 +319,9 @@ describe("ProductUpsellContentSection", () => {
         />,
       );
 
-      // Verify the Bundle Discount section button exists
-      const bundleSection = screen.getByRole("button", { name: /bundle discount/i });
-      expect(bundleSection).toBeTruthy();
+      // Verify the Behavior & Actions section button exists (bundleDiscount is in this section)
+      const behaviorSection = screen.getByRole("button", { name: /behavior & actions/i });
+      expect(behaviorSection).toBeTruthy();
     });
   });
 
@@ -342,7 +342,6 @@ describe("ProductUpsellContentSection", () => {
       // Verify defaults are applied (must match actual schema defaults)
       expect(parsed.productSelectionMethod).toBe("ai");
       expect(parsed.layout).toBe("grid");
-      expect(parsed.columns).toBe(2);
       expect(parsed.maxProducts).toBe(3); // Schema default is 3
       expect(parsed.showImages).toBe(true);
       expect(parsed.showPrices).toBe(true);
@@ -368,7 +367,6 @@ describe("ProductUpsellContentSection", () => {
         selectedProducts: ["prod_123", "prod_456"],
         selectedCollection: "col_789",
         layout: "card" as const,
-        columns: 3,
         maxProducts: 6,
         showImages: true,
         showPrices: true,
@@ -385,7 +383,6 @@ describe("ProductUpsellContentSection", () => {
 
       expect(parsed.productSelectionMethod).toBe("manual");
       expect(parsed.layout).toBe("card");
-      expect(parsed.columns).toBe(3);
       expect(parsed.showRatings).toBe(true);
       expect(parsed.bundleDiscount).toBe(15);
       expect(parsed.multiSelect).toBe(true);

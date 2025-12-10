@@ -121,7 +121,8 @@ export const DiscountCodeDisplay: React.FC<DiscountCodeDisplayProps> = ({
   copied = false,
   label,
   variant = "dashed",
-  accentColor = "#3b82f6",
+  // NOTE: These defaults MUST match buildCommonConfig() in template-preview-registry.tsx
+  accentColor = "#007BFF",
   textColor,
   backgroundColor,
   size = "md",

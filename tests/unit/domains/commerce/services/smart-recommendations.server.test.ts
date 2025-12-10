@@ -70,7 +70,7 @@ function createMockAdmin(graphqlResponses: Record<string, any>) {
           },
         };
       }
-      if (query.includes("BEST_SELLING")) {
+      if (query.includes("INVENTORY_TOTAL")) {
         return {
           json: async () => graphqlResponses.bestSellers || { data: { products: { edges: [] } } },
         };
@@ -116,7 +116,7 @@ function createMockAdminProduct(id: string, title: string, price: string = "29.9
       minVariantPrice: { amount: price, currencyCode: "USD" },
     },
     compareAtPriceRange: {
-      minVariantPrice: { amount: "0", currencyCode: "USD" },
+      minVariantCompareAtPrice: { amount: "0", currencyCode: "USD" },
     },
     variants: {
       nodes: [{ id: `gid://shopify/ProductVariant/${id}` }],
@@ -304,10 +304,10 @@ describe("Smart Recommendations - Fallback Strategy", () => {
   });
 
   it("should fall back to best sellers when Storefront API fails", async () => {
-    // The mock needs to return products for BEST_SELLING query using Admin API format (nodes)
+    // The mock needs to return products for INVENTORY_TOTAL query using Admin API format (nodes)
     const mockAdmin = {
       graphql: vi.fn().mockImplementation(async (query: string) => {
-        if (query.includes("BEST_SELLING")) {
+        if (query.includes("INVENTORY_TOTAL")) {
           return {
             json: async () => ({
               data: {
@@ -477,10 +477,10 @@ describe("Smart Recommendations - Caching", () => {
     const mockRedis = createMockRedis();
     vi.mocked(getRedis).mockReturnValue(mockRedis as unknown as Redis);
 
-    // Create a mock that returns products for BEST_SELLING using Admin API format (nodes)
+    // Create a mock that returns products for INVENTORY_TOTAL using Admin API format (nodes)
     const mockAdmin = {
       graphql: vi.fn().mockImplementation(async (query: string) => {
-        if (query.includes("BEST_SELLING")) {
+        if (query.includes("INVENTORY_TOTAL")) {
           return {
             json: async () => ({
               data: {
@@ -512,10 +512,10 @@ describe("Smart Recommendations - Caching", () => {
   it("should work without Redis (graceful degradation)", async () => {
     vi.mocked(getRedis).mockReturnValue(null);
 
-    // Create a mock that returns products for BEST_SELLING using Admin API format (nodes)
+    // Create a mock that returns products for INVENTORY_TOTAL using Admin API format (nodes)
     const mockAdmin = {
       graphql: vi.fn().mockImplementation(async (query: string) => {
-        if (query.includes("BEST_SELLING")) {
+        if (query.includes("INVENTORY_TOTAL")) {
           return {
             json: async () => ({
               data: {

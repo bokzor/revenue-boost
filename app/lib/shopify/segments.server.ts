@@ -4,6 +4,7 @@
  * Uses the Admin GraphQL API to fetch customer segments and member counts.
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 export interface ShopifyCustomerSegment {

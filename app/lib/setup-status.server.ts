@@ -5,6 +5,7 @@
  * Includes in-memory caching to avoid expensive API calls on every request.
  */
 
+import { logger } from "~/lib/logger.server";
 import type { SetupStatusData } from "~/domains/setup/components/SetupStatus";
 
 interface CheckThemeExtensionParams {
@@ -35,11 +36,11 @@ function getCachedStatus(shop: string): CachedSetupStatus | null {
   const isExpired = Date.now() - cached.timestamp > CACHE_TTL_MS;
   if (isExpired) {
     setupStatusCache.delete(shop);
-    console.log(`[Setup Cache] EXPIRED for shop: ${shop}`);
+    logger.debug("[Setup Cache] EXPIRED for shop: ${shop}");
     return null;
   }
 
-  console.log(`[Setup Cache] HIT for shop: ${shop}`);
+  logger.debug("[Setup Cache] HIT for shop: ${shop}");
   return cached;
 }
 
@@ -52,7 +53,7 @@ function setCachedStatus(shop: string, status: SetupStatusData, setupComplete: b
     setupComplete,
     timestamp: Date.now(),
   });
-  console.log(`[Setup Cache] SET for shop: ${shop} (setupComplete: ${setupComplete})`);
+  logger.debug("[Setup Cache] SET for shop: ${shop} (setupComplete: ${setupComplete})");
 }
 
 /**
@@ -61,7 +62,7 @@ function setCachedStatus(shop: string, status: SetupStatusData, setupComplete: b
  */
 export function invalidateSetupStatusCache(shop: string): void {
   setupStatusCache.delete(shop);
-  console.log(`[Setup Cache] INVALIDATED for shop: ${shop}`);
+  logger.debug("[Setup Cache] INVALIDATED for shop: ${shop}");
 }
 
 /**
@@ -69,7 +70,7 @@ export function invalidateSetupStatusCache(shop: string): void {
  */
 export function clearSetupStatusCache(): void {
   setupStatusCache.clear();
-  console.log("[Setup Cache] All entries cleared");
+  logger.debug("[Setup Cache] All entries cleared");
 }
 
 // ============================================================================
@@ -106,7 +107,7 @@ export async function checkThemeExtensionEnabled({
     const publishedTheme = themesData.themes?.find((t) => t.role === "main");
 
     if (!publishedTheme) {
-      console.error("[Setup] No published theme found");
+      logger.error("[Setup] No published theme found");
       return false;
     }
 
@@ -131,7 +132,7 @@ export async function checkThemeExtensionEnabled({
     const settingsValue = settingsData.asset?.value;
 
     if (!settingsValue) {
-      console.error("[Setup] No settings_data.json value found");
+      logger.error("[Setup] No settings_data.json value found");
       return false;
     }
 
@@ -154,7 +155,7 @@ export async function checkThemeExtensionEnabled({
     console.log("[Setup] App embed enabled:", appEmbedEnabled);
     return appEmbedEnabled;
   } catch (error) {
-    console.error("[Setup] Error checking theme extension:", error);
+    logger.error({ error }, "[Setup] Error checking theme extension:");
     return false;
   }
 }
@@ -185,7 +186,7 @@ export async function checkCustomProxyUrl(admin: { graphql: (query: string) => P
 
     return null;
   } catch (error) {
-    console.error("[Setup] Error checking metafield:", error);
+    logger.error({ error }, "[Setup] Error checking metafield:");
     return null;
   }
 }
@@ -204,7 +205,7 @@ export async function checkAppProxyReachable(
     const baseUrl = customProxyUrl || process.env.SHOPIFY_APP_URL;
 
     if (!baseUrl) {
-      console.error("[Setup] No app URL configured");
+      logger.error("[Setup] No app URL configured");
       return false;
     }
 
@@ -236,7 +237,7 @@ export async function checkAppProxyReachable(
     console.log("[Setup] App health check result:", isReachable ? "REACHABLE" : "ERROR", data);
     return isReachable;
   } catch (error) {
-    console.error("[Setup] Error checking app health:", error);
+    logger.error({ error }, "[Setup] Error checking app health:");
     return false;
   }
 }
@@ -264,7 +265,7 @@ export async function getSetupStatus(
     invalidateSetupStatusCache(shop);
   }
 
-  console.log(`[Setup Cache] MISS for shop: ${shop} - fetching from APIs`);
+  logger.debug("[Setup Cache] MISS for shop: ${shop} - fetching from APIs");
 
   // Run checks in parallel for better performance
   const [themeExtensionEnabled, customProxyUrl] = await Promise.all([

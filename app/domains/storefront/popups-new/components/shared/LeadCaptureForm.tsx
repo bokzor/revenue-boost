@@ -256,9 +256,10 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
   emailRequired = true,
   labels,
   placeholders,
-  accentColor = "#4F46E5",
+  // NOTE: These defaults MUST match buildCommonConfig() in template-preview-registry.tsx
+  accentColor = "#007BFF",
   buttonColor,
-  textColor = "#1F2937",
+  textColor = "#1A1A1A",
   backgroundColor = "#FFFFFF",
   buttonTextColor = "#FFFFFF",
   inputTextColor,

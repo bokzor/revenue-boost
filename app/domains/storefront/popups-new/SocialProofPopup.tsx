@@ -294,9 +294,10 @@ export const SocialProofPopup: React.FC<SocialProofPopupProps> = ({
   );
 
   // Derive colors based on background for proper contrast
-  const textColor = config.textColor || "#0a0a0a";
   const bgColor = config.backgroundColor || "#ffffff";
   const derived = getDerivedColors(bgColor);
+  // Auto-detect text color based on background darkness if not explicitly set
+  const textColor = config.textColor || (derived.isDark ? "#ffffff" : "#0a0a0a");
 
   // Build CSS variables from config (matching mock's --sp-* naming)
   const cssVariables: React.CSSProperties = {
@@ -556,27 +557,27 @@ const SOCIAL_PROOF_STYLES = `
   animation: sp-slide-out 0.3s ease-in forwards;
 }
 
-/* Tablet: centered with max-width */
-@container (min-width: 640px) {
-  .sp-notification {
+/* Tablet: centered with max-width - using @media for broad compatibility */
+@media (min-width: 640px) {
+  .sp-notification:not(.sp-notification--preview) {
     left: 50%;
     right: auto;
     width: 360px;
     transform: translateX(-50%);
   }
 
-  .sp-notification--entering {
+  .sp-notification:not(.sp-notification--preview).sp-notification--entering {
     animation: sp-slide-in-tablet 0.4s ease-out forwards;
   }
 
-  .sp-notification--exiting {
+  .sp-notification:not(.sp-notification--preview).sp-notification--exiting {
     animation: sp-slide-out-tablet 0.3s ease-in forwards;
   }
 }
 
-/* Desktop: bottom-left fixed position */
-@container (min-width: 768px) {
-  .sp-notification {
+/* Desktop: bottom-left fixed position - using @media for broad compatibility */
+@media (min-width: 768px) {
+  .sp-notification:not(.sp-notification--preview) {
     left: 24px;
     right: auto;
     bottom: 24px;
@@ -584,35 +585,35 @@ const SOCIAL_PROOF_STYLES = `
     transform: none;
   }
 
-  .sp-notification--entering {
+  .sp-notification:not(.sp-notification--preview).sp-notification--entering {
     animation: sp-slide-in 0.4s ease-out forwards;
   }
 
-  .sp-notification--exiting {
+  .sp-notification:not(.sp-notification--preview).sp-notification--exiting {
     animation: sp-slide-out 0.3s ease-in forwards;
   }
 
   /* Position variants for desktop */
-  .sp-notification.sp-position--bottom-left {
+  .sp-notification:not(.sp-notification--preview).sp-position--bottom-left {
     left: 24px;
     right: auto;
     bottom: 24px;
   }
 
-  .sp-notification.sp-position--bottom-right {
+  .sp-notification:not(.sp-notification--preview).sp-position--bottom-right {
     left: auto;
     right: 24px;
     bottom: 24px;
   }
 
-  .sp-notification.sp-position--top-left {
+  .sp-notification:not(.sp-notification--preview).sp-position--top-left {
     left: 24px;
     right: auto;
     top: 24px;
     bottom: auto;
   }
 
-  .sp-notification.sp-position--top-right {
+  .sp-notification:not(.sp-notification--preview).sp-position--top-right {
     left: auto;
     right: 24px;
     top: 24px;
@@ -620,9 +621,45 @@ const SOCIAL_PROOF_STYLES = `
   }
 }
 
+/* Preview mode: use container queries for responsive behavior within DeviceFrame */
+@container (min-width: 640px) {
+  .sp-notification--preview {
+    left: 50%;
+    right: auto;
+    width: 360px;
+    transform: translateX(-50%);
+  }
+
+  .sp-notification--preview.sp-notification--entering {
+    animation: sp-slide-in-tablet 0.4s ease-out forwards;
+  }
+
+  .sp-notification--preview.sp-notification--exiting {
+    animation: sp-slide-out-tablet 0.3s ease-in forwards;
+  }
+}
+
+@container (min-width: 768px) {
+  .sp-notification--preview {
+    left: 24px;
+    right: auto;
+    bottom: 24px;
+    width: 380px;
+    transform: none;
+  }
+
+  .sp-notification--preview.sp-notification--entering {
+    animation: sp-slide-in 0.4s ease-out forwards;
+  }
+
+  .sp-notification--preview.sp-notification--exiting {
+    animation: sp-slide-out 0.3s ease-in forwards;
+  }
+}
+
 /* Card */
 .sp-notification__card {
-  background-color: var(--sp-background);
+  background: var(--sp-background);
   border: 1px solid var(--sp-border);
   border-radius: 12px;
   box-shadow: 0 4px 12px var(--sp-shadow);

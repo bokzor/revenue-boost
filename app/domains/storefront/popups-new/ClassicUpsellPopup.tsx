@@ -9,6 +9,7 @@ import React, { useState } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { ClassicUpsellContent } from "~/domains/campaigns/types/campaign";
+import { ProductImage } from "./components/shared";
 
 export interface ClassicUpsellConfig extends PopupDesignConfig, ClassicUpsellContent {
   products?: Product[];
@@ -177,7 +178,12 @@ export const ClassicUpsellPopup: React.FC<ClassicUpsellPopupProps> = ({
 
         {config.showImages !== false && product.imageUrl && (
           <div className="classic-upsell-image">
-            <img src={product.imageUrl} alt={product.title} />
+            <ProductImage
+              src={product.imageUrl}
+              alt={product.title}
+              aspectRatio="square"
+              priority={true}
+            />
           </div>
         )}
 

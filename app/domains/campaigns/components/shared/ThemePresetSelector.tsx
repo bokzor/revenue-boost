@@ -25,7 +25,6 @@ const THEME_DISPLAY_NAMES: Record<NewsletterThemeKey, string> = {
   // Seasonal themes
   summer: "Summer",
   "black-friday": "Black Friday",
-  "cyber-monday": "Cyber Monday",
   holiday: "Holiday",
   valentine: "Valentine",
   spring: "Spring",

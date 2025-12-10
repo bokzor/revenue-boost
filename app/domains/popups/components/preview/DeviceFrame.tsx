@@ -60,7 +60,8 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children, show
             overflow: "hidden",
             position: "relative",
             backgroundColor: "#FFFFFF",
-          }}
+            containerType: "inline-size", // Enable CSS container queries
+          } as React.CSSProperties}
         >
           {/* Simulated page content */}
           <div
@@ -123,7 +124,8 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children, show
             overflow: "hidden",
             position: "relative",
             backgroundColor: "#FFFFFF",
-          }}
+            containerType: "inline-size", // Enable CSS container queries
+          } as React.CSSProperties}
         >
           {/* Simulated page content */}
           <div
@@ -203,7 +205,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children, show
         {/* Address Bar */}
         <div
           style={{
-            flex: 1,
+            flex: "1",
             height: "28px",
             backgroundColor: "#FFFFFF",
             borderRadius: "6px",
@@ -236,12 +238,13 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ device, children, show
       {/* Content Area - Creates positioning context for popups */}
       <div
         style={{
-          flex: 1, // Take remaining height after browser chrome
+          flex: "1", // Take remaining height after browser chrome
           minHeight: "500px",
           backgroundColor: "#FFFFFF",
           position: "relative",
           overflow: "hidden",
-        }}
+          containerType: "inline-size", // Enable CSS container queries
+        } as React.CSSProperties}
       >
         {/* Simulated page content */}
         <div

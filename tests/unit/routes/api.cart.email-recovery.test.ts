@@ -210,7 +210,6 @@ describe("api.cart.email-recovery action", () => {
     expect(discountCfg.authorizedEmail).toBe("locked@example.com");
     expect(discountCfg.requireEmailMatch).toBe(true);
   });
-});
 
   it("returns 400 when discount is disabled", async () => {
     appProxyMock.mockResolvedValue({
@@ -253,5 +252,4 @@ describe("api.cart.email-recovery action", () => {
     expect(payload.success).toBe(false);
     expect(payload.error).toMatch(/discount not enabled/i);
   });
-
-
+});

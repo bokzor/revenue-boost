@@ -5,6 +5,7 @@
  * Single Responsibility: Mutation operations only
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import type {
   CampaignCreateData,

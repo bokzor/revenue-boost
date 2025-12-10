@@ -9,6 +9,7 @@ import React, { useState, useEffect } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { CountdownUrgencyContent } from "~/domains/campaigns/types/campaign";
+import { ProductImage } from "./components/shared";
 
 export interface CountdownUrgencyConfig extends PopupDesignConfig, CountdownUrgencyContent {
   products?: Product[];
@@ -219,7 +220,12 @@ export const CountdownUrgencyPopup: React.FC<CountdownUrgencyPopupProps> = ({
           <div className="countdown-product">
             {config.showImages !== false && product.imageUrl && (
               <div className="countdown-image">
-                <img src={product.imageUrl} alt={product.title} />
+                <ProductImage
+                  src={product.imageUrl}
+                  alt={product.title}
+                  aspectRatio="square"
+                  priority={true}
+                />
               </div>
             )}
             <div className="countdown-info">

@@ -743,7 +743,6 @@ export const USE_CASE_RECIPE_IDS = [
 export const SEASONAL_RECIPE_IDS = [
   // Flash Sale seasonal (IDs must match actual recipe IDs in flash-sale-design-recipes.ts)
   "black-friday-sale",
-  "cyber-monday-sale",
   "holiday-sale",
   "summer-sale",
   "easter-sale",

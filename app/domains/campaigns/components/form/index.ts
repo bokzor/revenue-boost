@@ -46,7 +46,7 @@ export {
 
 export {
   GenericDiscountComponent,
-  type DiscountStrategy,
+  type DiscountStrategyOption,
 } from "./GenericDiscountComponent";
 
 export { CTAConfigEditor } from "./CTAConfigEditor";

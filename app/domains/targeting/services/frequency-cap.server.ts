@@ -12,6 +12,7 @@
  * - Graceful fallback when Redis unavailable
  */
 
+import { logger } from "~/lib/logger.server";
 import { redis, REDIS_PREFIXES, REDIS_TTL } from "~/lib/redis.server";
 import type { CampaignWithConfigs } from "~/domains/campaigns/types/campaign";
 import type { StorefrontContext } from "~/domains/campaigns/types/storefront-context";
@@ -138,7 +139,7 @@ export class FrequencyCapService {
           : undefined,
       };
     } catch (error) {
-      console.error("Frequency capping check failed:", error);
+      logger.error({ error }, "Frequency capping check failed:");
       // Fail open - allow display if frequency capping fails
       return { allowed: true, currentCounts: this.getEmptyCounts() };
     }
@@ -183,7 +184,7 @@ export class FrequencyCapService {
         await this.setCooldown(identifier, trackingKey, rules.cooldown_between_triggers, now);
       }
     } catch (error) {
-      console.error("Failed to record display for frequency capping:", error);
+      logger.error({ error }, "Failed to record display for frequency capping:");
       // Don't throw - recording failure shouldn't break popup display
     }
   }
@@ -198,6 +199,7 @@ export class FrequencyCapService {
     _group: FrequencyCapGroup = "popup"
   ): Promise<FrequencyCapResult> {
     if (!redis) {
+      console.log('[FrequencyCap] ⚠️ checkCooldown: Redis not available, allowing');
       return {
         allowed: true,
         currentCounts: this.getEmptyCounts(),
@@ -207,7 +209,17 @@ export class FrequencyCapService {
     const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
     const cooldownUntil = await redis.get(cooldownKey);
 
+    console.log('[FrequencyCap] 🔍 checkCooldown:', {
+      cooldownKey,
+      identifier,
+      trackingKey,
+      cooldownUntil: cooldownUntil ? new Date(parseInt(cooldownUntil)).toISOString() : null,
+      now: new Date(now).toISOString(),
+      isInCooldown: cooldownUntil && parseInt(cooldownUntil) > now,
+    });
+
     if (cooldownUntil && parseInt(cooldownUntil) > now) {
+      console.log('[FrequencyCap] ❌ In cooldown period, blocking campaign');
       return {
         allowed: false,
         reason: "In cooldown period",
@@ -235,10 +247,25 @@ export class FrequencyCapService {
     cooldownSeconds: number,
     now: number
   ): Promise<void> {
-    if (!redis || cooldownSeconds <= 0) return;
+    if (!redis || cooldownSeconds <= 0) {
+      console.log('[FrequencyCap] ⚠️ setCooldown skipped:', {
+        hasRedis: !!redis,
+        cooldownSeconds,
+        reason: !redis ? 'Redis not available' : 'cooldownSeconds <= 0',
+      });
+      return;
+    }
 
     const cooldownKey = `${REDIS_PREFIXES.COOLDOWN}:${identifier}:${trackingKey}`;
     const cooldownUntil = now + cooldownSeconds * 1000;
+
+    console.log('[FrequencyCap] 🔒 Setting cooldown:', {
+      cooldownKey,
+      cooldownSeconds,
+      cooldownUntil: new Date(cooldownUntil).toISOString(),
+      identifier,
+      trackingKey,
+    });
 
     await redis.setex(cooldownKey, cooldownSeconds, cooldownUntil.toString());
   }
@@ -303,7 +330,7 @@ export class FrequencyCapService {
     });
 
     if (rules.max_triggers_per_session && counts.session >= rules.max_triggers_per_session) {
-      console.log(`[FrequencyCap] ❌ Session limit EXCEEDED: ${counts.session} >= ${rules.max_triggers_per_session}`);
+      logger.debug("[FrequencyCap] ❌ Session limit EXCEEDED: ${counts.session} >= ${rules.max_triggers_per_session}");
       return {
         allowed: false,
         reason: `Session limit exceeded (${rules.max_triggers_per_session})`,
@@ -535,7 +562,7 @@ export class FrequencyCapService {
         }
       }
     } catch (error) {
-      console.error("Failed to reset frequency capping:", error);
+      logger.error({ error }, "Failed to reset frequency capping:");
     }
   }
 

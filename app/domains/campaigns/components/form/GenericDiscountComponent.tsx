@@ -338,6 +338,8 @@ export function GenericDiscountComponent({
                       },
                     ];
                   } else if (value === "bundle") {
+                    // Bundle strategy only supports PERCENTAGE discounts
+                    base.valueType = "PERCENTAGE";
                     base.applicability = {
                       scope: "products",
                       productIds:
@@ -378,28 +380,39 @@ export function GenericDiscountComponent({
             <>
               {/* Discount Type & Value - 2 Column Grid */}
               <FormGrid columns={2}>
-                <Select
-                  label="Discount Type"
-                  options={[
-                    { label: "Percentage Off", value: "PERCENTAGE" },
-                    { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
-                    { label: "Free Shipping", value: "FREE_SHIPPING" },
-                  ]}
-                  value={config.valueType}
-                  onChange={(valueType) => {
-                    const updates: Partial<DiscountConfig> = {
-                      valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
-                    };
-                    // Clear value when switching to FREE_SHIPPING
-                    if (valueType === "FREE_SHIPPING") {
-                      updates.value = undefined;
-                    } else if (!config.value) {
-                      // Set default value when switching from FREE_SHIPPING
-                      updates.value = getRecommendedValue();
-                    }
-                    updateConfig(updates);
-                  }}
-                />
+                {/* Bundle strategy only supports percentage - show info instead of selector */}
+                {isBundleStrategy ? (
+                  <Box padding="300" background="bg-surface-secondary" borderRadius="200">
+                    <Text as="p" variant="bodySm">
+                      <strong>Percentage Off</strong>
+                      <br />
+                      Bundle discounts are always percentage-based.
+                    </Text>
+                  </Box>
+                ) : (
+                  <Select
+                    label="Discount Type"
+                    options={[
+                      { label: "Percentage Off", value: "PERCENTAGE" },
+                      { label: "Fixed Amount Off", value: "FIXED_AMOUNT" },
+                      { label: "Free Shipping", value: "FREE_SHIPPING" },
+                    ]}
+                    value={config.valueType}
+                    onChange={(valueType) => {
+                      const updates: Partial<DiscountConfig> = {
+                        valueType: valueType as "PERCENTAGE" | "FIXED_AMOUNT" | "FREE_SHIPPING",
+                      };
+                      // Clear value when switching to FREE_SHIPPING
+                      if (valueType === "FREE_SHIPPING") {
+                        updates.value = undefined;
+                      } else if (!config.value) {
+                        // Set default value when switching from FREE_SHIPPING
+                        updates.value = getRecommendedValue();
+                      }
+                      updateConfig(updates);
+                    }}
+                  />
+                )}
 
                 {/* Discount Value */}
                 {config.valueType !== "FREE_SHIPPING" && (

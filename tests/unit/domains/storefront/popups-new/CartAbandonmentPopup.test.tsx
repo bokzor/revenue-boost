@@ -172,6 +172,7 @@ describe("CartAbandonmentPopup", () => {
       discount: {
         enabled: true,
         deliveryMode: "show_code_always",
+        percentage: 10, // Required for discount display section to render
       },
     });
 
@@ -239,6 +240,7 @@ describe("CartAbandonmentPopup", () => {
       discount: {
         enabled: true,
         deliveryMode: "show_code_always",
+        percentage: 10, // Required for discount display section to render
       },
     });
 
@@ -263,7 +265,9 @@ describe("CartAbandonmentPopup", () => {
 
     fireEvent.click(resumeButton);
 
-    expect(await screen.findByText(/cta10/i)).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByText(/cta10/i)).toBeTruthy();
+    });
   });
 
 

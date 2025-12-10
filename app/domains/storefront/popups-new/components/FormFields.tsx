@@ -276,8 +276,9 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
   error,
   required = false,
   disabled = false,
-  accentColor = "#4F46E5",
-  textColor = "#1F2937",
+  // NOTE: These defaults MUST match buildCommonConfig() in template-preview-registry.tsx
+  accentColor = "#007BFF",
+  textColor = "#1A1A1A",
   privacyPolicyUrl,
   privacyPolicyLinkText = "Privacy Policy",
 }) => {

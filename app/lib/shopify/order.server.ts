@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 export interface CartItem {
@@ -118,7 +119,7 @@ export async function createDraftOrder(
       draftOrder: result?.draftOrder,
     };
   } catch (error) {
-    console.error("[Order Service] Failed to create draft order:", error);
+    logger.error({ error }, "[Order Service] Failed to create draft order:");
     return {
       success: false,
       errors: [error instanceof Error ? error.message : "Unknown error"],

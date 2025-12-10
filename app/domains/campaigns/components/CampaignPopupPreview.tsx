@@ -12,6 +12,7 @@ import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePre
 import { DeviceFrame } from "~/domains/popups/components/preview/DeviceFrame";
 import { ShadowDomWrapper } from "./recipes/ShadowDomWrapper";
 import type { CampaignWithConfigs, TemplateType } from "~/domains/campaigns/types/campaign";
+import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 
 // iPhone 14 dimensions (used by DeviceFrame for mobile)
 const IPHONE_14_WIDTH = 390;
@@ -34,6 +35,8 @@ export interface CampaignPopupPreviewProps {
   showDeviceToggle?: boolean;
   /** Show refresh button */
   showRefresh?: boolean;
+  /** Default theme tokens for preview (from store's default preset or Shopify theme) */
+  defaultThemeTokens?: DesignTokens;
 }
 
 export function CampaignPopupPreview({
@@ -41,6 +44,7 @@ export function CampaignPopupPreview({
   height = 400,
   showDeviceToggle = true,
   showRefresh = true,
+  defaultThemeTokens,
 }: CampaignPopupPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -220,6 +224,7 @@ export function CampaignPopupPreview({
                     designConfig={designConfig}
                     onClose={handleClose}
                     isVisible={isPopupVisible}
+                    defaultThemeTokens={defaultThemeTokens}
                   />
                 </DeviceFrame>
               </div>

@@ -5,6 +5,7 @@
  * Uses Redis for fast rate limiting with PostgreSQL fallback and audit logging.
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import { getRedis } from "~/lib/redis.server";
 import type { Redis } from "ioredis";
@@ -47,7 +48,7 @@ export async function checkRateLimit(
     try {
       return await checkRateLimitRedis(redis, key, action, config, resetAt);
     } catch (error) {
-      console.error("[Rate Limit] Redis check failed, falling back to PostgreSQL:", error);
+      logger.error({ error }, "[Rate Limit] Redis check failed, falling back to PostgreSQL:");
       // Fall through to PostgreSQL
     }
   }
@@ -162,7 +163,7 @@ export async function logRateLimitEvent(
       },
     });
   } catch (error) {
-    console.error("[Rate Limit] Audit logging failed:", error);
+    logger.error({ error }, "[Rate Limit] Audit logging failed:");
     // Don't throw - audit logging is best-effort
   }
 }

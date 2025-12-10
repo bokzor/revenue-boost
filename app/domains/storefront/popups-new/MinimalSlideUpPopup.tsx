@@ -9,6 +9,7 @@ import React, { useState } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { MinimalSlideUpContent } from "~/domains/campaigns/types/campaign";
+import { ProductImage } from "./components/shared";
 
 export interface MinimalSlideUpConfig extends PopupDesignConfig, MinimalSlideUpContent {
   products?: Product[];
@@ -156,7 +157,12 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
         <div className="minimal-upsell-row">
           {config.showImages !== false && product.imageUrl && (
             <div className="minimal-upsell-image">
-              <img src={product.imageUrl} alt={product.title} />
+              <ProductImage
+                src={product.imageUrl}
+                alt={product.title}
+                aspectRatio="square"
+                priority={true}
+              />
               {product.savingsPercent && (
                 <div className="minimal-upsell-badge">{product.savingsPercent}% OFF</div>
               )}

@@ -490,7 +490,7 @@ export async function fetchThemeSettings(
       settings: extractedSettings,
     };
   } catch (error) {
-    console.error("[Theme Settings] Error fetching theme settings:", error);
+    logger.error({ error }, "[Theme Settings] Error fetching theme settings:");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -502,6 +502,7 @@ export async function fetchThemeSettings(
 // CONVERT TO THEME PRESET
 // =============================================================================
 
+import { logger } from "~/lib/logger.server";
 import type { ThemePresetInput } from "~/domains/store/types/theme-preset";
 
 /**
@@ -658,7 +659,7 @@ export function themeSettingsToPresets(settings: ExtractedThemeSettings): ThemeP
     schemeEntries.forEach(([schemeKey, scheme], index) => {
       // Skip schemes with poor contrast
       if (!hasValidContrast(scheme)) {
-        console.log(`[Theme Settings] Skipping ${schemeKey}: poor contrast (${getContrastRatio(scheme.background, scheme.text).toFixed(2)}:1)`);
+        logger.debug("[Theme Settings] Skipping ${schemeKey}: poor contrast (${getContrastRatio(scheme.background, scheme.text).toFixed(2)}:1)");
         return;
       }
 
@@ -675,7 +676,7 @@ export function themeSettingsToPresets(settings: ExtractedThemeSettings): ThemeP
       presets.push(preset);
     });
 
-    console.log(`[Theme Settings] Generated ${presets.length} presets from ${schemeEntries.length} color schemes`);
+    logger.debug("[Theme Settings] Generated ${presets.length} presets from ${schemeEntries.length} color schemes");
   }
 
   // Fallback: if no valid schemes found, create one from the primary colors

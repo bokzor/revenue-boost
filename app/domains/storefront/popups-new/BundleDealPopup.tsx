@@ -10,6 +10,7 @@ import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, Product } from "./types";
 import type { BundleDealContent } from "~/domains/campaigns/types/campaign";
 import { getAdaptiveMutedColor } from "./utils/utils";
+import { ProductImage } from "./components/shared";
 
 export interface BundleDealConfig extends PopupDesignConfig, BundleDealContent {
   products?: Product[];
@@ -162,7 +163,12 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
         <div className="bundle-products">
           <div className="bundle-item bundle-item--main">
             <div className="bundle-item-image">
-              <img src={mainProduct.imageUrl} alt={mainProduct.title} />
+              <ProductImage
+                src={mainProduct.imageUrl}
+                alt={mainProduct.title}
+                aspectRatio="square"
+                priority={true}
+              />
             </div>
             <div className="bundle-item-info">
               <p className="bundle-item-label">In your cart</p>
@@ -175,7 +181,12 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
           {bundleProducts.map((product, index) => (
             <div key={product.id} className="bundle-item">
               <div className="bundle-item-image">
-                <img src={product.imageUrl} alt={product.title} />
+                <ProductImage
+                  src={product.imageUrl}
+                  alt={product.title}
+                  aspectRatio="square"
+                  priority={index < 2}
+                />
               </div>
               <div className="bundle-item-info">
                 {product.savingsPercent && (

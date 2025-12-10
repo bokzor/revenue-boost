@@ -18,7 +18,7 @@ export interface PresetDesignSelectorProps {
 /** Group presets by category for display */
 const PRESET_CATEGORIES: Record<string, string[]> = {
   newsletter: ["bold-energy", "active-life", "spa-serenity", "fresh-organic", "elegant-luxe"],
-  seasonal: ["black-friday", "cyber-monday", "holiday-festive", "summer-vibes"],
+  seasonal: ["black-friday", "holiday-festive", "summer-vibes"],
   "spin-to-win": ["neon-nights", "retro-arcade"],
 };
 

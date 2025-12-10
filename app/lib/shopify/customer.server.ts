@@ -4,6 +4,7 @@
  * Handles customer creation, lookup, and updates via Shopify Admin GraphQL API
  */
 
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 export interface ShopifyCustomer {
@@ -151,7 +152,7 @@ export async function findCustomerByEmail(
       customer: undefined,
     };
   } catch (error) {
-    console.error("[Shopify Customer] Error finding customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error finding customer:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to find customer"],
     };
@@ -232,12 +233,12 @@ export async function createCustomer(
       return { customer: mapped };
     }
 
-    console.error("[Shopify Customer] No customer in response");
+    logger.error("[Shopify Customer] No customer in response");
     return {
       errors: ["Failed to create customer"],
     };
   } catch (error) {
-    console.error("[Shopify Customer] Error creating customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error creating customer:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to create customer"],
     };
@@ -309,7 +310,7 @@ export async function updateCustomer(
       errors: ["Failed to update customer"],
     };
   } catch (error) {
-    console.error("[Shopify Customer] Error updating customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error updating customer:");
     return {
       errors: [error instanceof Error ? error.message : "Failed to update customer"],
     };
@@ -407,7 +408,7 @@ export async function upsertCustomer(
       };
     }
   } catch (error) {
-    console.error("[Shopify Customer] Error upserting customer:", error);
+    logger.error({ error }, "[Shopify Customer] Error upserting customer:");
     return {
       success: false,
       errors: [error instanceof Error ? error.message : "Failed to upsert customer"],

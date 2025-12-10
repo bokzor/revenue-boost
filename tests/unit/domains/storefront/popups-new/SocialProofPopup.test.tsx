@@ -22,15 +22,24 @@ function createConfig(overrides: Partial<SocialProofConfig> = {}): SocialProofCo
     // BaseContentConfig required fields
     headline: "Social Proof",
     successMessage: "Thank you!",
-    // SocialProofContent fields
+    // SocialProofContent fields - Core (Tier 1)
     enablePurchaseNotifications: false,
     enableVisitorNotifications: true,
     enableReviewNotifications: false,
+    // SocialProofContent fields - Additional (Tier 2)
+    enableSalesCountNotifications: false,
+    enableLowStockAlerts: false,
+    enableTrendingNotifications: false,
+    enableCartActivityNotifications: false,
+    enableRecentlyViewedNotifications: false,
+    // Display settings
     rotationInterval: 8,
     displayDuration: 6,
     maxNotificationsPerSession: 5,
     minVisitorCount: 0,
     minReviewRating: 0,
+    lowStockThreshold: 10,
+    purchaseLookbackHours: 48,
     cornerPosition: "bottom-left",
     showProductImage: true,
     showTimer: true,

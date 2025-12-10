@@ -13,6 +13,7 @@
  * - Response formatting
  */
 
+import { logger } from "~/lib/logger.server";
 import { data } from "react-router";
 import { z } from "zod";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
@@ -190,7 +191,7 @@ export async function createPreviewResponse(
   config: GamePopupConfig,
   campaignId?: string
 ): Promise<ReturnType<typeof data>> {
-  console.log(`${config.logPrefix} ✅ Preview mode - returning mock prize (BYPASSING RATE LIMITS)`);
+  logger.debug("${config.logPrefix} ✅ Preview mode - returning mock prize (BYPASSING RATE LIMITS)");
 
   // Default preview values
   let prize = {
@@ -240,7 +241,7 @@ export async function createPreviewResponse(
             }
           }
 
-          console.log(`${config.logPrefix} 🎟️ Preview prize selected: ${prize.label} -> ${discountCode}`);
+          logger.debug("${config.logPrefix} 🎟️ Preview prize selected: ${prize.label} -> ${discountCode}");
         }
       }
     } catch (error) {
@@ -368,7 +369,7 @@ export async function checkGameRateLimit(
   );
 
   if (!rateLimitResult.allowed) {
-    console.warn(`${config.logPrefix} Rate limit exceeded for ${email}`);
+    logger.warn("${config.logPrefix} Rate limit exceeded for ${email}");
     return createErrorResponse("You've already played today", 429);
   }
 
@@ -555,7 +556,7 @@ export async function storeLead(
       return lead;
     }
   } catch (error) {
-    console.error(`${config.logPrefix} Lead storage failed:`, error);
+    logger.error({ error }, "${config.logPrefix} Lead storage failed:");
     // Continue anyway - code was generated successfully
     return null;
   }
@@ -639,10 +640,10 @@ async function recordGamePopupEvents(params: RecordGamePopupEventsParams): Promi
       },
     });
 
-    console.log(`${config.logPrefix} Analytics events recorded (SUBMIT + COUPON_ISSUED)`);
+    logger.debug("${config.logPrefix} Analytics events recorded (SUBMIT + COUPON_ISSUED)");
   } catch (error) {
     // Don't fail the request if analytics recording fails
-    console.error(`${config.logPrefix} Failed to record analytics events:`, error);
+    logger.error({ error }, "${config.logPrefix} Failed to record analytics events:");
   }
 }
 

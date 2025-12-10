@@ -506,10 +506,19 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
       failureMessage: mergedConfig.failureMessage,
       ctaText: mergedConfig.ctaText,
 
-      // SocialProof-specific fields
+      // SocialProof-specific fields - Core (Tier 1)
       enablePurchaseNotifications: mergedConfig.enablePurchaseNotifications ?? true,
       enableVisitorNotifications: mergedConfig.enableVisitorNotifications ?? false,
       enableReviewNotifications: mergedConfig.enableReviewNotifications ?? false,
+
+      // SocialProof-specific fields - Additional (Tier 2)
+      enableSalesCountNotifications: mergedConfig.enableSalesCountNotifications ?? false,
+      enableLowStockAlerts: mergedConfig.enableLowStockAlerts ?? false,
+      enableTrendingNotifications: mergedConfig.enableTrendingNotifications ?? false,
+      enableCartActivityNotifications: mergedConfig.enableCartActivityNotifications ?? false,
+      enableRecentlyViewedNotifications: mergedConfig.enableRecentlyViewedNotifications ?? false,
+
+      // Message templates
       purchaseMessageTemplate: mergedConfig.purchaseMessageTemplate,
       visitorMessageTemplate: mergedConfig.visitorMessageTemplate,
       reviewMessageTemplate: mergedConfig.reviewMessageTemplate,
@@ -519,6 +528,8 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
       maxNotificationsPerSession: mergedConfig.maxNotificationsPerSession ?? 5,
       minVisitorCount: mergedConfig.minVisitorCount,
       minReviewRating: mergedConfig.minReviewRating,
+      lowStockThreshold: mergedConfig.lowStockThreshold ?? 10,
+      purchaseLookbackHours: mergedConfig.purchaseLookbackHours ?? 48,
       messageTemplates: mergedConfig.messageTemplates,
       showProductImage: mergedConfig.showProductImage ?? true,
       showTimer: mergedConfig.showTimer ?? true,
@@ -703,7 +714,6 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PRODUCT_UPSELL] = {
       selectedCollection: mergedConfig.selectedCollection,
       maxProducts: mergedConfig.maxProducts ?? 3,
       layout: mergedConfig.layout || "grid",
-      columns: mergedConfig.columns ?? 2,
       showPrices: mergedConfig.showPrices ?? true,
       showCompareAtPrice: mergedConfig.showCompareAtPrice ?? true,
       showImages: mergedConfig.showImages ?? true,

@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 interface StagedUploadParameter {

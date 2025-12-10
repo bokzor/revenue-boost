@@ -66,6 +66,17 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === "true"),
+
+  // E2E Testing Configuration
+  // Set to "true" to bypass Shopify authentication for E2E tests
+  // WARNING: Never enable in production! Only for local/CI E2E testing
+  TEST_MODE: z
+    .string()
+    .optional()
+    .transform((val) => val === "true"),
+
+  // The shop domain to use in TEST_MODE (e.g., "revenue-boost-staging.myshopify.com")
+  TEST_SHOP_DOMAIN: z.string().optional(),
 });
 
 /**

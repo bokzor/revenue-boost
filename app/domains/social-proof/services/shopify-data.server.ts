@@ -7,6 +7,7 @@
  * - Sales statistics (for sales count notifications)
  */
 
+import { logger } from "~/lib/logger.server";
 import type {
   PurchaseNotification,
   SocialProofNotification,
@@ -79,7 +80,7 @@ export class ShopifyDataService {
 
       return notifications;
     } catch (error) {
-      console.error("[ShopifyDataService] Error fetching purchases:", error);
+      logger.error({ error }, "[ShopifyDataService] Error fetching purchases:");
       return [];
     }
   }
@@ -106,7 +107,7 @@ export class ShopifyDataService {
       });
 
       if (!session) {
-        console.warn(`[ShopifyDataService] No session found for shop: ${shopDomain}`);
+        logger.warn("[ShopifyDataService] No session found for shop: ${shopDomain}");
         return [];
       }
 
@@ -114,7 +115,7 @@ export class ShopifyDataService {
       // Scopes are stored as comma-separated string in session.scope
       const grantedScopes = session.scope?.split(",") || [];
       if (!grantedScopes.includes("read_orders")) {
-        console.log(`[ShopifyDataService] read_orders scope not granted for ${shopDomain} - social proof disabled`);
+        logger.debug("[ShopifyDataService] read_orders scope not granted for ${shopDomain} - social proof disabled");
         return [];
       }
 
@@ -236,7 +237,7 @@ export class ShopifyDataService {
 
       return notifications;
     } catch (error) {
-      console.error("[ShopifyDataService] Error in fetchOrdersFromShopify:", error);
+      logger.error({ error }, "[ShopifyDataService] Error in fetchOrdersFromShopify:");
       return [];
     }
   }
@@ -268,7 +269,7 @@ export class ShopifyDataService {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[ShopifyDataService] Error getting sales count:", error);
+      logger.error({ error }, "[ShopifyDataService] Error getting sales count:");
       return null;
     }
   }
@@ -316,7 +317,7 @@ export class ShopifyDataService {
 
       return notification;
     } catch (error) {
-      console.error("[ShopifyDataService] Error getting low stock:", error);
+      logger.error({ error }, "[ShopifyDataService] Error getting low stock:");
       return null;
     }
   }
@@ -342,7 +343,7 @@ export class ShopifyDataService {
       });
 
       if (!session) {
-        console.warn(`[ShopifyDataService] No session found for shop: ${shopDomain}`);
+        logger.warn("[ShopifyDataService] No session found for shop: ${shopDomain}");
         return null;
       }
 
@@ -410,7 +411,7 @@ export class ShopifyDataService {
 
       return null;
     } catch (error) {
-      console.error("[ShopifyDataService] Error in fetchInventoryFromShopify:", error);
+      logger.error({ error }, "[ShopifyDataService] Error in fetchInventoryFromShopify:");
       return null;
     }
   }

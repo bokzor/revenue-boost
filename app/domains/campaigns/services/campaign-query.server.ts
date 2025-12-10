@@ -5,6 +5,7 @@
  * Single Responsibility: Query operations only
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import type { CampaignStatus, CampaignWithConfigs, TemplateType } from "../types/campaign.js";
 import { parseCampaignFields } from "../utils/json-helpers.js";

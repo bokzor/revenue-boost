@@ -5,6 +5,7 @@
  * Gracefully handles missing Redis configuration by returning null.
  */
 
+import { logger } from "~/lib/logger.server";
 import Redis from "ioredis";
 import { getEnv } from "./env.server";
 
@@ -20,8 +21,8 @@ function getRedisClient(): Redis | null {
   const redisUrl = env.REDIS_URL;
 
   if (!redisUrl) {
-    console.warn("⚠️  REDIS_URL not configured, Redis features will be disabled");
-    console.warn("   Frequency capping and visitor tracking will not work properly");
+    logger.warn("⚠️  REDIS_URL not configured, Redis features will be disabled");
+    logger.warn("   Frequency capping and visitor tracking will not work properly");
     return null;
   }
 
@@ -40,24 +41,24 @@ function getRedisClient(): Redis | null {
     });
 
     redisClient.on("error", (error) => {
-      console.error("❌ Redis connection error:", error);
+      logger.error({ error }, "❌ Redis connection error:");
     });
 
     redisClient.on("connect", () => {
-      console.log("✅ Redis connected successfully");
+      logger.debug("✅ Redis connected successfully");
     });
 
     redisClient.on("ready", () => {
-      console.log("✅ Redis ready to accept commands");
+      logger.debug("✅ Redis ready to accept commands");
     });
 
     redisClient.on("close", () => {
-      console.warn("⚠️  Redis connection closed");
+      logger.warn("⚠️  Redis connection closed");
     });
 
     return redisClient;
   } catch (error) {
-    console.error("❌ Failed to initialize Redis:", error);
+    logger.error({ error }, "❌ Failed to initialize Redis:");
     return null;
   }
 }
@@ -91,7 +92,7 @@ export async function executeRedisCommand<T>(
   try {
     return await command(client);
   } catch (error) {
-    console.error("❌ Redis command failed:", error);
+    logger.error({ error }, "❌ Redis command failed:");
     return fallback ?? null;
   }
 }
@@ -118,9 +119,9 @@ export async function closeRedis(): Promise<void> {
   if (redisClient) {
     try {
       await redisClient.quit();
-      console.log("✅ Redis connection closed gracefully");
+      logger.debug("✅ Redis connection closed gracefully");
     } catch (error) {
-      console.error("❌ Error closing Redis connection:", error);
+      logger.error({ error }, "❌ Error closing Redis connection:");
     } finally {
       redisClient = null;
     }

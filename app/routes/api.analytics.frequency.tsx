@@ -69,6 +69,18 @@ export async function action({ request }: ActionFunctionArgs) {
     const targetRules = campaign?.targetRules as { enhancedTriggers?: { frequency_capping?: Record<string, unknown> } } | null;
     const frequencyRules = targetRules?.enhancedTriggers?.frequency_capping;
 
+    // DIAGNOSTIC: Log frequency capping rules being used for recordDisplay
+    console.log('[Analytics Frequency] 🔍 Frequency rules for recordDisplay:', {
+      campaignId,
+      trackingKey,
+      visitorId,
+      hasFrequencyRules: !!frequencyRules,
+      cooldown_between_triggers: frequencyRules?.cooldown_between_triggers,
+      max_triggers_per_session: frequencyRules?.max_triggers_per_session,
+      max_triggers_per_day: frequencyRules?.max_triggers_per_day,
+      rawFrequencyRules: frequencyRules,
+    });
+
     // Fetch store settings for global frequency capping
     const store = await prisma.store.findUnique({
       where: { id: storeId },

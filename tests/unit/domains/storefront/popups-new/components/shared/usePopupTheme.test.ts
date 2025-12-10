@@ -32,14 +32,16 @@ describe("usePopupTheme", () => {
       const config = { ...baseConfig, backgroundColor: "" };
       const { result } = renderHook(() => usePopupTheme(config as any));
 
-      expect(result.current.backgroundColor).toBe("#ffffff");
+      // Fallback is #FFFFFF (uppercase) per usePopupTheme implementation
+      expect(result.current.backgroundColor).toBe("#FFFFFF");
     });
 
     it("uses fallback for missing textColor", () => {
       const config = { ...baseConfig, textColor: "" };
       const { result } = renderHook(() => usePopupTheme(config as any));
 
-      expect(result.current.textColor).toBe("#111827");
+      // Fallback is #1A1A1A per usePopupTheme implementation
+      expect(result.current.textColor).toBe("#1A1A1A");
     });
 
     it("uses custom descriptionColor when provided", () => {
@@ -65,7 +67,8 @@ describe("usePopupTheme", () => {
     it("uses fallback accentColor when not provided", () => {
       const { result } = renderHook(() => usePopupTheme(baseConfig));
 
-      expect(result.current.accentColor).toBe("#dbeafe");
+      // Fallback is #007BFF per usePopupTheme implementation
+      expect(result.current.accentColor).toBe("#007BFF");
     });
 
     it("uses custom successColor when provided", () => {

@@ -5,7 +5,7 @@
  * Includes all Tier 1 & Tier 2 features with organized sections
  */
 
-import { TextField, FormGrid, SelectField } from "../form";
+import { TextField, FormGrid } from "../form";
 import { useFieldUpdater } from "~/shared/hooks/useFieldUpdater";
 import { Card, BlockStack, Text, Divider, Banner, Checkbox } from "@shopify/polaris";
 
@@ -153,26 +153,9 @@ export function SocialProofContentSection({
             Display & Frequency
           </Text>
           <Text as="p" tone="subdued">
-            Control where notifications appear, how often they rotate, and basic visibility rules.
+            Control how often notifications rotate and basic visibility rules.
           </Text>
           <Divider />
-
-          <SelectField
-            label="Position"
-            name="content.cornerPosition"
-            value={content.cornerPosition || "bottom-left"}
-            options={[
-              { label: "Bottom Left", value: "bottom-left" },
-              { label: "Bottom Right", value: "bottom-right" },
-              { label: "Top Left", value: "top-left" },
-              { label: "Top Right", value: "top-right" },
-            ]}
-            helpText="Where to display notifications on the page"
-            onChange={(value) => {
-              type PositionOption = "bottom-left" | "bottom-right" | "top-left" | "top-right";
-              updateField("cornerPosition", value as PositionOption);
-            }}
-          />
 
           <FormGrid columns={2}>
             <TextField

@@ -18,6 +18,7 @@ import type { Product } from "~/domains/storefront/popups-new/types";
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 import { apiVersion } from "~/shopify.server";
 import { getEnv } from "~/lib/env.server";
+import { logger } from "~/lib/logger.server";
 
 // =============================================================================
 // TYPES
@@ -71,7 +72,7 @@ async function getStorefrontAccessToken(
         }
       }
     } catch (error) {
-      console.warn("[Smart Recommendations] Failed to read token cache:", error);
+      logger.warn({ error }, "[Smart Recommendations] Failed to read token cache");
     }
   }
 
@@ -104,7 +105,7 @@ async function getStorefrontAccessToken(
     const errors = body?.data?.storefrontAccessTokenCreate?.userErrors;
 
     if (errors?.length) {
-      console.error("[Smart Recommendations] Token creation errors:", errors);
+      logger.error({ errors }, "[Smart Recommendations] Token creation errors");
       return null;
     }
 
@@ -119,7 +120,7 @@ async function getStorefrontAccessToken(
 
     return token || null;
   } catch (error) {
-    console.error("[Smart Recommendations] Failed to create storefront token:", error);
+    logger.error({ error }, "[Smart Recommendations] Failed to create storefront token");
     return null;
   }
 }
@@ -147,14 +148,14 @@ async function storefrontGraphQL<T>(
     );
 
     if (!response.ok) {
-      console.error("[Smart Recommendations] Storefront API error:", response.status);
+      logger.error({ status: response.status }, "[Smart Recommendations] Storefront API error");
       return null;
     }
 
     const body = await response.json();
     return body?.data as T;
   } catch (error) {
-    console.error("[Smart Recommendations] Storefront API request failed:", error);
+    logger.error({ error }, "[Smart Recommendations] Storefront API request failed");
     return null;
   }
 }
@@ -225,7 +226,7 @@ export async function fetchShopifyRecommendations(
 ): Promise<Product[]> {
   const storefrontToken = await getStorefrontAccessToken(admin, shopDomain);
   if (!storefrontToken) {
-    console.warn("[Smart Recommendations] No storefront token available");
+    logger.warn({ shopDomain }, "[Smart Recommendations] No storefront token available");
     return [];
   }
 
@@ -243,7 +244,7 @@ export async function fetchShopifyRecommendations(
           .slice(0, limit);
       }
     } catch (error) {
-      console.warn("[Smart Recommendations] Cache read error:", error);
+      logger.warn({ error }, "[Smart Recommendations] Cache read error");
     }
   }
 
@@ -277,7 +278,7 @@ export async function fetchShopifyRecommendations(
     try {
       await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(products));
     } catch (error) {
-      console.warn("[Smart Recommendations] Cache write error:", error);
+      logger.warn({ error }, "[Smart Recommendations] Cache write error");
     }
   }
 
@@ -289,11 +290,14 @@ export async function fetchShopifyRecommendations(
 
 // =============================================================================
 // BEST SELLERS (Admin API)
+// Note: Admin API doesn't have BEST_SELLING sort key for root products query.
+// We use INVENTORY_TOTAL as a proxy - products with lower inventory may indicate
+// higher sales velocity. Alternatively, UPDATED_AT can indicate active products.
 // =============================================================================
 
 const BEST_SELLERS_QUERY = `#graphql
   query getBestSellers($first: Int!) {
-    products(first: $first, sortKey: BEST_SELLING) {
+    products(first: $first, sortKey: INVENTORY_TOTAL) {
       nodes {
         id
         title
@@ -308,7 +312,7 @@ const BEST_SELLERS_QUERY = `#graphql
           }
         }
         compareAtPriceRange {
-          minVariantPrice {
+          minVariantCompareAtPrice {
             amount
             currencyCode
           }
@@ -334,8 +338,8 @@ interface AdminProductsResponse {
         minVariantPrice: { amount: string; currencyCode: string };
       };
       compareAtPriceRange: {
-        minVariantPrice: { amount: string; currencyCode: string };
-      };
+        minVariantCompareAtPrice: { amount: string; currencyCode: string } | null;
+      } | null;
       variants: {
         nodes: Array<{ id: string }>;
       };
@@ -365,20 +369,23 @@ export async function fetchBestSellers(
     return products
       .filter((p: { id: string }) => !excludeProductIds.includes(p.id))
       .slice(0, limit)
-      .map((p: AdminProductsResponse["products"]["nodes"][0]) => ({
-        id: p.id,
-        title: p.title,
-        handle: p.handle,
-        price: p.priceRangeV2.minVariantPrice.amount,
-        imageUrl: p.featuredImage?.url || "",
-        compareAtPrice:
-          parseFloat(p.compareAtPriceRange.minVariantPrice.amount) > 0
-            ? p.compareAtPriceRange.minVariantPrice.amount
-            : undefined,
-        variantId: p.variants.nodes[0]?.id || "",
-      }));
+      .map((p: AdminProductsResponse["products"]["nodes"][0]) => {
+        const compareAtAmount = p.compareAtPriceRange?.minVariantCompareAtPrice?.amount;
+        return {
+          id: p.id,
+          title: p.title,
+          handle: p.handle,
+          price: p.priceRangeV2.minVariantPrice.amount,
+          imageUrl: p.featuredImage?.url || "",
+          compareAtPrice:
+            compareAtAmount && parseFloat(compareAtAmount) > 0
+              ? compareAtAmount
+              : undefined,
+          variantId: p.variants.nodes[0]?.id || "",
+        };
+      });
   } catch (error) {
-    console.error("[Smart Recommendations] Best sellers fetch failed:", error);
+    logger.error({ error }, "[Smart Recommendations] Best sellers fetch failed");
     return [];
   }
 }
@@ -404,7 +411,7 @@ const NEWEST_PRODUCTS_QUERY = `#graphql
           }
         }
         compareAtPriceRange {
-          minVariantPrice {
+          minVariantCompareAtPrice {
             amount
             currencyCode
           }
@@ -440,20 +447,23 @@ export async function fetchNewestProducts(
     return products
       .filter((p: { id: string }) => !excludeProductIds.includes(p.id))
       .slice(0, limit)
-      .map((p: AdminProductsResponse["products"]["nodes"][0]) => ({
-        id: p.id,
-        title: p.title,
-        handle: p.handle,
-        price: p.priceRangeV2.minVariantPrice.amount,
-        imageUrl: p.featuredImage?.url || "",
-        compareAtPrice:
-          parseFloat(p.compareAtPriceRange.minVariantPrice.amount) > 0
-            ? p.compareAtPriceRange.minVariantPrice.amount
-            : undefined,
-        variantId: p.variants.nodes[0]?.id || "",
-      }));
+      .map((p: AdminProductsResponse["products"]["nodes"][0]) => {
+        const compareAtAmount = p.compareAtPriceRange?.minVariantCompareAtPrice?.amount;
+        return {
+          id: p.id,
+          title: p.title,
+          handle: p.handle,
+          price: p.priceRangeV2.minVariantPrice.amount,
+          imageUrl: p.featuredImage?.url || "",
+          compareAtPrice:
+            compareAtAmount && parseFloat(compareAtAmount) > 0
+              ? compareAtAmount
+              : undefined,
+          variantId: p.variants.nodes[0]?.id || "",
+        };
+      });
   } catch (error) {
-    console.error("[Smart Recommendations] Newest products fetch failed:", error);
+    logger.error({ error }, "[Smart Recommendations] Newest products fetch failed");
     return [];
   }
 }
@@ -540,13 +550,14 @@ export async function fetchSmartRecommendations(
       const cached = await redis.get(cacheKey);
       if (cached) {
         const result = JSON.parse(cached) as SmartRecommendationsResult;
-        console.log(
-          `[Smart Recommendations] Cache HIT for ${context.triggerType || "unknown"} trigger, source: ${result.source}`
+        logger.debug(
+          { triggerType: context.triggerType, source: result.source },
+          "[Smart Recommendations] Cache HIT"
         );
         return { ...result, cached: true };
       }
     } catch (error) {
-      console.warn("[Smart Recommendations] Cache read error:", error);
+      logger.warn({ error }, "[Smart Recommendations] Cache read error");
     }
   }
 
@@ -557,13 +568,14 @@ export async function fetchSmartRecommendations(
   const primaryIntent = getPrimaryIntentForTrigger(context.triggerType);
   const secondaryIntent: RecommendationIntent = primaryIntent === "RELATED" ? "COMPLEMENTARY" : "RELATED";
 
-  console.log(
-    `[Smart Recommendations] Trigger: ${context.triggerType || "unknown"} → Primary intent: ${primaryIntent}, Secondary: ${secondaryIntent}`
+  logger.debug(
+    { triggerType: context.triggerType, primaryIntent, secondaryIntent },
+    "[Smart Recommendations] Determining recommendation strategy"
   );
 
   // Strategy 1: Primary intent recommendations (if viewing a product)
   if (context.currentProductId && products.length < limit) {
-    console.log(`[Smart Recommendations] Trying Shopify ${primaryIntent} for:`, context.currentProductId);
+    logger.debug({ intent: primaryIntent, productId: context.currentProductId }, "[Smart Recommendations] Trying Shopify recommendations");
     const primaryResults = await fetchShopifyRecommendations(
       admin,
       shopDomain,
@@ -580,7 +592,7 @@ export async function fetchSmartRecommendations(
 
   // Strategy 2: Secondary intent recommendations (if viewing a product)
   if (context.currentProductId && products.length < limit) {
-    console.log(`[Smart Recommendations] Trying Shopify ${secondaryIntent} for:`, context.currentProductId);
+    logger.debug({ intent: secondaryIntent, productId: context.currentProductId }, "[Smart Recommendations] Trying secondary intent");
     const secondaryResults = await fetchShopifyRecommendations(
       admin,
       shopDomain,
@@ -602,7 +614,7 @@ export async function fetchSmartRecommendations(
 
   // Strategy 3: Cart-based COMPLEMENTARY recommendations
   if (context.cartProductIds?.length && products.length < limit) {
-    console.log("[Smart Recommendations] Trying cart-based recommendations");
+    logger.debug({ cartProductIds: context.cartProductIds }, "[Smart Recommendations] Trying cart-based recommendations");
     // Get recommendations for the first cart item (most recently added)
     const cartProductId = context.cartProductIds[0];
     const cartBased = await fetchShopifyRecommendations(
@@ -625,7 +637,7 @@ export async function fetchSmartRecommendations(
 
   // Strategy 4: Best-selling products fallback
   if (products.length < limit) {
-    console.log("[Smart Recommendations] Falling back to best sellers");
+    logger.debug("[Smart Recommendations] Falling back to best sellers");
     const bestSellers = await fetchBestSellers(
       admin,
       limit - products.length,
@@ -643,7 +655,7 @@ export async function fetchSmartRecommendations(
 
   // Strategy 5: Newest products (final fallback)
   if (products.length < limit) {
-    console.log("[Smart Recommendations] Final fallback to newest products");
+    logger.debug("[Smart Recommendations] Final fallback to newest products");
     const newest = await fetchNewestProducts(
       admin,
       limit - products.length,
@@ -670,12 +682,13 @@ export async function fetchSmartRecommendations(
     try {
       await redis.setex(cacheKey, CACHE_TTL_SECONDS, JSON.stringify(result));
     } catch (error) {
-      console.warn("[Smart Recommendations] Cache write error:", error);
+      logger.warn({ error }, "[Smart Recommendations] Cache write error");
     }
   }
 
-  console.log(
-    `[Smart Recommendations] Returning ${products.length} products from source: ${source} (trigger: ${context.triggerType || "unknown"})`
+  logger.info(
+    { productCount: products.length, source, triggerType: context.triggerType },
+    "[Smart Recommendations] Returning recommendations"
   );
 
   // Track analytics (fire-and-forget, don't block response)
@@ -739,7 +752,7 @@ export async function trackRecommendationSource(
     await redis.hincrby(globalKey, "total", 1);
   } catch (error) {
     // Don't throw - analytics should never break the main flow
-    console.warn("[Smart Recommendations] Analytics tracking error:", error);
+    logger.warn({ error }, "[Smart Recommendations] Analytics tracking error");
   }
 }
 
@@ -814,7 +827,7 @@ export async function getRecommendationAnalytics(
       byTrigger,
     };
   } catch (error) {
-    console.error("[Smart Recommendations] Failed to get analytics:", error);
+    logger.error({ error }, "[Smart Recommendations] Failed to get analytics");
     return null;
   }
 }

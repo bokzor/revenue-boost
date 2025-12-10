@@ -5,6 +5,7 @@
  * Eliminates N+1 queries by using aggregations and batch queries
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import { Prisma } from "@prisma/client";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
@@ -444,7 +445,7 @@ export class CampaignAnalyticsService {
         .map(([date, metrics]) => ({ date, ...metrics }))
         .sort((a, b) => a.date.localeCompare(b.date));
     } catch (error) {
-      console.error("Failed to fetch daily metrics:", error);
+      logger.error({ error }, "Failed to fetch daily metrics:");
       // Return empty array instead of throwing to avoid breaking the whole page
       return [];
     }
@@ -585,7 +586,7 @@ export class CampaignAnalyticsService {
       // Reuse the existing getDailyMetrics method which already supports multiple campaign IDs
       return this.getDailyMetrics(campaignIds, days);
     } catch (error) {
-      console.error("Failed to fetch global daily metrics:", error);
+      logger.error({ error }, "Failed to fetch global daily metrics:");
       return [];
     }
   }

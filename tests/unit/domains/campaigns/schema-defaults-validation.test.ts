@@ -76,7 +76,6 @@ describe("Schema Defaults Validation", () => {
 
       expect(parsed.productSelectionMethod).toBe("ai");
       expect(parsed.layout).toBe("grid");
-      expect(parsed.columns).toBe(2);
       expect(parsed.maxProducts).toBe(3);
     });
 

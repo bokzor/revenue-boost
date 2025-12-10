@@ -57,8 +57,9 @@ export const CTAButton: React.FC<CTAButtonProps> = ({
   openInNewTab = false,
   onClick,
   variant = "primary",
-  accentColor = "#3b82f6",
-  textColor = "#ffffff",
+  // NOTE: These defaults MUST match buildCommonConfig() in template-preview-registry.tsx
+  accentColor = "#007BFF",
+  textColor = "#FFFFFF",
   className,
   style,
   disabled = false,

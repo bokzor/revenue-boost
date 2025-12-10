@@ -5,6 +5,7 @@
  * Lean and focused on essential template management
  */
 
+import { logger } from "~/lib/logger.server";
 import prisma from "~/db.server";
 import type { Template } from "@prisma/client";
 import type { TemplateCreateData, TemplateWithConfigs } from "../types/template.js";
@@ -106,7 +107,7 @@ function setCache(key: string, data: TemplateWithConfigs[]): void {
  */
 export function clearTemplateCache(): void {
   templateCache.clear();
-  console.log("[Template Cache] Cache cleared");
+  logger.debug("[Template Cache] Cache cleared");
 }
 
 // ============================================================================
@@ -124,11 +125,11 @@ export class TemplateService {
       const cacheKey = getCacheKey(storeId);
       const cached = getFromCache(cacheKey);
       if (cached) {
-        console.log(`[Template Cache] HIT for key: ${cacheKey} (${cached.length} templates)`);
+        logger.debug("[Template Cache] HIT for key: ${cacheKey} (${cached.length} templates)");
         return cached;
       }
 
-      console.log(`[Template Cache] MISS for key: ${cacheKey}`);
+      logger.debug("[Template Cache] MISS for key: ${cacheKey}");
       const startTime = Date.now();
 
       const templates = await prisma.template.findMany({
@@ -185,11 +186,11 @@ export class TemplateService {
       const cacheKey = getCacheKey(storeId, templateType);
       const cached = getFromCache(cacheKey);
       if (cached) {
-        console.log(`[Template Cache] HIT for key: ${cacheKey} (${cached.length} templates)`);
+        logger.debug("[Template Cache] HIT for key: ${cacheKey} (${cached.length} templates)");
         return cached;
       }
 
-      console.log(`[Template Cache] MISS for key: ${cacheKey}`);
+      logger.debug("[Template Cache] MISS for key: ${cacheKey}");
       const startTime = Date.now();
 
       const templates = await prisma.template.findMany({

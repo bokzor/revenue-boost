@@ -41,7 +41,6 @@ export type NewsletterThemeKey =
   // Seasonal themes (for styled recipes)
   | "summer"
   | "black-friday"
-  | "cyber-monday"
   | "holiday"
   | "valentine"
   | "spring";
@@ -309,32 +308,6 @@ export const NEWSLETTER_THEMES: Record<NewsletterThemeKey, ThemeColors> = {
     descriptionFontWeight: "600",
   },
 
-  // Cyber Monday theme - tech, neon, dark with purple/blue
-  "cyber-monday": {
-    background: "linear-gradient(135deg, #0F0F23 0%, #1A1A2E 100%)",
-    text: "#FFFFFF",
-    primary: "#00D9FF", // Cyan
-    secondary: "rgba(0, 217, 255, 0.1)",
-    accent: "#FF00FF", // Magenta
-    border: "rgba(0, 217, 255, 0.3)",
-    success: "#00FF88",
-    warning: "#FF0066",
-    imageBg: "rgba(0, 217, 255, 0.1)",
-    descColor: "#B8B8D1",
-    inputBorder: "rgba(0, 217, 255, 0.5)",
-    inputTextColor: "#FFFFFF",
-    timerBg: "rgba(0, 217, 255, 0.2)",
-    timerText: "#00D9FF",
-    ctaBg: "linear-gradient(90deg, #00D9FF 0%, #FF00FF 100%)",
-    ctaText: "#FFFFFF",
-    fontFamily: "inherit",
-    titleFontSize: "2rem",
-    titleFontWeight: "800",
-    titleTextShadow: "0 0 30px rgba(0, 217, 255, 0.6)",
-    descriptionFontSize: "1rem",
-    descriptionFontWeight: "400",
-  },
-
   // Holiday theme - festive, red/green/gold
   holiday: {
     background: "linear-gradient(135deg, #1A472A 0%, #2D5A3D 100%)", // Forest green
@@ -434,7 +407,6 @@ export function getSpinToWinSliceColors(theme: NewsletterThemeKey, sliceCount: n
     // Seasonal themes
     summer: ["#FF6B6B", "#FFE66D", "#4ECDC4", "#FF8E53", "#45B7D1", "#F7DC6F"],
     "black-friday": ["#FFD700", "#FFC107", "#FFAB00", "#FF9100", "#FF6D00", "#FFD54F"],
-    "cyber-monday": ["#00D9FF", "#FF00FF", "#7B68EE", "#00BFFF", "#9370DB", "#00CED1"],
     holiday: ["#C41E3A", "#228B22", "#FFD700", "#DC143C", "#006400", "#B8860B"],
     valentine: ["#FF1493", "#FF69B4", "#DC143C", "#FFB6C1", "#DB7093", "#C71585"],
     spring: ["#66BB6A", "#AB47BC", "#81C784", "#BA68C8", "#A5D6A7", "#CE93D8"],
@@ -471,7 +443,6 @@ const SPIN_TO_WIN_WHEEL_BORDER_DEFAULTS: Record<NewsletterThemeKey, SpinToWinWhe
   // Seasonal themes
   summer: { color: "#4ECDC4", width: 3 },
   "black-friday": { color: "#FFD700", width: 4 },
-  "cyber-monday": { color: "#00D9FF", width: 3 },
   holiday: { color: "#FFD700", width: 3 },
   valentine: { color: "#FF1493", width: 3 },
   spring: { color: "#66BB6A", width: 3 },
@@ -820,7 +791,6 @@ function getColorThemeForNewsletterTheme(theme: NewsletterThemeKey): ColorTheme 
     // Seasonal themes
     summer: "playful",
     "black-friday": "dark",
-    "cyber-monday": "dark",
     holiday: "vibrant",
     valentine: "elegant",
     spring: "playful",
@@ -843,7 +813,6 @@ function getNewsletterThemeDescription(theme: NewsletterThemeKey): string {
     // Seasonal themes
     summer: "Warm coral & turquoise summer vibes",
     "black-friday": "Bold black & gold urgency",
-    "cyber-monday": "Neon tech aesthetic",
     holiday: "Festive red, green & gold",
     valentine: "Romantic pink & red",
     spring: "Fresh pastels & greens",

@@ -144,7 +144,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         },
         discountConfig: {
           enabled: true,
-          type: "generated",
+          type: "single_use",
           valueType: "FREE_SHIPPING",
           prefix: "FREESHIP",
           behavior: "SHOW_CODE_ONLY",
@@ -357,7 +357,7 @@ describe("Free Shipping Email-Required Flow - Integration Tests", () => {
         },
         discountConfig: {
           enabled: true,
-          type: "generated",
+          type: "single_use",
           valueType: "FREE_SHIPPING",
           prefix: "FREESHIP",
         },

@@ -1,3 +1,4 @@
+import { logger } from "~/lib/logger.server";
 import type { AdminApiContext } from "@shopify/shopify-app-react-router/server";
 
 interface EngagementMetrics {
@@ -91,7 +92,7 @@ export class MarketingEventsService {
 
       return { marketingEventId, utmCampaign, utmSource, utmMedium };
     } catch (error) {
-      console.error("Failed to create marketing activity:", error);
+      logger.error({ error }, "Failed to create marketing activity:");
       return null;
     }
   }
@@ -145,7 +146,7 @@ export class MarketingEventsService {
 
       return true;
     } catch (error) {
-      console.error("Failed to update marketing activity:", error);
+      logger.error({ error }, "Failed to update marketing activity:");
       return false;
     }
   }
@@ -185,7 +186,7 @@ export class MarketingEventsService {
 
       return true;
     } catch (error) {
-      console.error("Failed to delete marketing activity:", error);
+      logger.error({ error }, "Failed to delete marketing activity:");
       return false;
     }
   }
@@ -248,7 +249,7 @@ export class MarketingEventsService {
 
       return true;
     } catch (error) {
-      console.error("Failed to sync engagement metrics:", error);
+      logger.error({ error }, "Failed to sync engagement metrics:");
       return false;
     }
   }

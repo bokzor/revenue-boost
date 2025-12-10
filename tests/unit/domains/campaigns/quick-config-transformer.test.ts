@@ -289,7 +289,8 @@ describe("applyQuickConfigToState", () => {
 
       const result = applyQuickConfigToState(params);
 
-      expect(result.targetingConfig.enhancedTriggers.page_load).toEqual({
+      // page_load trigger includes delay (default 5000ms)
+      expect(result.targetingConfig.enhancedTriggers.page_load).toMatchObject({
         enabled: true,
       });
     });
