@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Mail, Gift, Timer, Ticket, LogOut, ShoppingCart, Users, Clock, Truck, Package, Megaphone } from "lucide-react"
 
+// Brand gradient: #AEE5AB → #0E7768
+const BRAND_GRADIENT = "from-[#AEE5AB] to-[#0E7768]"
+
 const templates = [
   {
     id: "NEWSLETTER",
@@ -18,7 +21,7 @@ const templates = [
       cta: "Subscribe",
       showEmail: true,
     },
-    color: "from-blue-500 to-cyan-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "SPIN_TO_WIN",
@@ -31,7 +34,7 @@ const templates = [
       cta: "Spin Now",
       showWheel: true,
     },
-    color: "from-purple-500 to-pink-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "FLASH_SALE",
@@ -44,7 +47,7 @@ const templates = [
       cta: "Shop Now",
       showTimer: true,
     },
-    color: "from-orange-500 to-red-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "SCRATCH_CARD",
@@ -57,7 +60,7 @@ const templates = [
       cta: "Claim Prize",
       showScratch: true,
     },
-    color: "from-yellow-500 to-orange-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "EXIT_INTENT",
@@ -70,7 +73,7 @@ const templates = [
       cta: "Get Discount",
       showEmail: true,
     },
-    color: "from-rose-500 to-pink-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "CART_ABANDONMENT",
@@ -83,7 +86,7 @@ const templates = [
       cta: "Return to Cart",
       showCart: true,
     },
-    color: "from-emerald-500 to-teal-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "SOCIAL_PROOF",
@@ -96,7 +99,7 @@ const templates = [
       cta: "",
       showNotification: true,
     },
-    color: "from-violet-500 to-purple-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "COUNTDOWN_TIMER",
@@ -109,7 +112,7 @@ const templates = [
       cta: "Shop Now",
       showTimer: true,
     },
-    color: "from-cyan-500 to-blue-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "FREE_SHIPPING",
@@ -122,7 +125,7 @@ const templates = [
       cta: "Continue Shopping",
       showProgress: true,
     },
-    color: "from-green-500 to-emerald-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "PRODUCT_UPSELL",
@@ -135,7 +138,7 @@ const templates = [
       cta: "Add to Cart",
       showProducts: true,
     },
-    color: "from-amber-500 to-yellow-500",
+    color: BRAND_GRADIENT,
   },
   {
     id: "ANNOUNCEMENT",
@@ -148,7 +151,7 @@ const templates = [
       cta: "Learn More",
       showBanner: true,
     },
-    color: "from-indigo-500 to-violet-500",
+    color: BRAND_GRADIENT,
   },
 ]
 
@@ -163,7 +166,7 @@ export function TemplatesSection() {
     if (selectedTemplate.id === "SOCIAL_PROOF") {
       return (
         <div className="flex items-center gap-4 rounded-xl bg-card p-4 shadow-xl">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-500">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#AEE5AB] to-[#0E7768]">
             <Users className="h-6 w-6 text-white" />
           </div>
           <div>
@@ -187,7 +190,7 @@ export function TemplatesSection() {
             <span className="text-sm text-muted-foreground">{preview.subtext}</span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-green-500 to-emerald-500" />
+            <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-[#AEE5AB] to-[#0E7768]" />
           </div>
         </div>
       )
@@ -233,7 +236,7 @@ export function TemplatesSection() {
         )}
         {preview.showScratch && (
           <div className="mb-3 flex justify-center">
-            <div className="relative h-20 w-32 overflow-hidden rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500">
+            <div className="relative h-20 w-32 overflow-hidden rounded-lg bg-gradient-to-br from-[#AEE5AB] to-[#0E7768]">
               <div className="absolute inset-0 flex items-center justify-center text-white">
                 <span className="text-2xl">🎁 ?</span>
               </div>
@@ -297,7 +300,7 @@ export function TemplatesSection() {
                   onClick={() => setSelectedTemplate(template)}
                   className={`flex flex-col items-center gap-1 rounded-lg px-3 py-3 text-xs font-medium transition-all md:flex-row md:gap-2 md:px-4 md:py-2 md:text-sm ${
                     selectedTemplate.id === template.id
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-gradient-to-r from-[#AEE5AB] to-[#0E7768] text-white"
                       : "bg-card text-foreground hover:bg-muted"
                   }`}
                   title={template.description}

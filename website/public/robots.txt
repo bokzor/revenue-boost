@@ -1,0 +1,12 @@
+# Revenue Boost Website - robots.txt
+# https://revenueboost.app
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://revenueboost.app/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 1
+

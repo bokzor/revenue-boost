@@ -22,10 +22,10 @@ import type { ScratchCardContent } from "~/domains/campaigns/types/campaign";
 import {
   prefersReducedMotion,
   getAdaptiveMutedColor,
-} from "app/domains/storefront/popups-new/utils/utils";
-import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
+} from "./utils/utils";
+import { POPUP_SPACING } from "./utils/spacing";
 import { ScratchCardRenderer } from "./utils/scratch-canvas";
-import { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
+import { LeadCaptureLayout } from "./components/shared/LeadCaptureLayout";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation, useDesignVariables } from "./hooks";

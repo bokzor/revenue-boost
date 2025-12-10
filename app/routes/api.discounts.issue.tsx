@@ -17,11 +17,6 @@ import prisma from "~/db.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import {
-  DiscountConfigSchema,
-  type DiscountConfig,
-  type DiscountStrategy,
-} from "~/domains/campaigns/types/campaign";
-import {
   getCampaignDiscountCode,
   inferStrategy,
   normalizeDiscountConfig,

@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { createPortal } from "react-dom";
 import type { PopupSize } from "./types";
-import { getSizeDimensions } from "app/domains/storefront/popups-new/utils/utils";
+import { getSizeDimensions } from "./utils/utils";
 import { PoweredByBadge } from "./components/primitives/PoweredByBadge";
 
 /**

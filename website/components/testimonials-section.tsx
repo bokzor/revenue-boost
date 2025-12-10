@@ -56,7 +56,7 @@ export function TestimonialsSection() {
                 </div>
                 <p className="mb-4 text-sm text-muted-foreground">"{testimonial.content}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-sm font-semibold text-primary-foreground">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#AEE5AB] to-[#0E7768] text-sm font-semibold text-white">
                     {testimonial.avatar}
                   </div>
                   <div>

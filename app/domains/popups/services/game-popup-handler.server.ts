@@ -500,7 +500,7 @@ export async function storeLead(
   email: string | undefined,
   sessionId: string,
   source: string,
-  config: GamePopupConfig
+  _config: GamePopupConfig
 ): Promise<{ id: string } | null> {
   try {
     const leadMetadata: LeadMetadata = {

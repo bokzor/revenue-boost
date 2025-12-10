@@ -5,52 +5,56 @@ import { Check } from "lucide-react"
 
 const plans = [
   {
-    name: "Free",
-    price: "$0",
+    name: "Starter",
+    price: "$9",
     period: "/month",
-    description: "Perfect for getting started",
+    description: "For new stores getting started",
     features: [
-      "Up to 1,000 popup views/month",
-      "3 popup templates",
-      "Basic analytics",
-      "Email support",
-      "Mobile responsive",
+      "10,000 popup views/month",
+      "5 active campaigns",
+      "500 leads/month",
+      "Social proof templates",
+      "Scheduled campaigns",
+      "Analytics dashboard",
     ],
-    cta: "Start Free",
+    cta: "Start Free Trial",
     popular: false,
   },
   {
     name: "Growth",
-    price: "$19",
+    price: "$29",
     period: "/month",
     description: "For growing stores",
     features: [
-      "Up to 25,000 popup views/month",
-      "All 11 popup types",
-      "A/B testing",
+      "50,000 popup views/month",
+      "15 active campaigns",
+      "2,500 leads/month",
+      "A/B testing (2 variants)",
       "Advanced targeting",
-      "Auto discount codes",
-      "Priority support",
+      "Gamification (Spin-to-Win)",
       "Remove branding",
+      "Custom CSS",
+      "Priority support",
     ],
     cta: "Start Free Trial",
     popular: true,
   },
   {
     name: "Pro",
-    price: "$49",
+    price: "$79",
     period: "/month",
     description: "For high-volume stores",
     features: [
-      "Unlimited popup views",
+      "200,000 popup views/month",
+      "Unlimited campaigns",
+      "10,000 leads/month",
+      "A/B testing (4 variants)",
       "All Growth features",
-      "Custom CSS",
-      "API access",
-      "Dedicated account manager",
-      "White-label solution",
-      "Custom integrations",
+      "Unlimited experiments",
+      "Unlimited custom templates",
+      "Priority support",
     ],
-    cta: "Contact Sales",
+    cta: "Start Free Trial",
     popular: false,
   },
 ]
@@ -62,7 +66,17 @@ export function PricingSection() {
         <div className="mx-auto mb-16 max-w-2xl text-center">
           <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">Simple, Transparent Pricing</h2>
           <p className="text-lg text-muted-foreground">
-            Start free and scale as you grow. No hidden fees, cancel anytime.
+            All plans include a 14-day free trial. No credit card required.
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Need to test first? Start with our{" "}
+            <a
+              href="https://apps.shopify.com/revenue-boost"
+              className="text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              free plan
+            </a>
+            {" "}— 3,000 views/month, no credit card.
           </p>
         </div>
 
@@ -75,7 +89,7 @@ export function PricingSection() {
               }`}
             >
               {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-primary to-accent">
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#AEE5AB] to-[#0E7768] text-white">
                   Most Popular
                 </Badge>
               )}
@@ -97,7 +111,7 @@ export function PricingSection() {
                   ))}
                 </ul>
                 <Button
-                  className={`w-full ${plan.popular ? "bg-gradient-to-r from-primary to-accent hover:opacity-90" : ""}`}
+                  className="w-full"
                   variant={plan.popular ? "default" : "outline"}
                   asChild
                 >

@@ -13,8 +13,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import type { PopupDesignConfig, DiscountConfig as StorefrontDiscountConfig } from "./types";
 import type { FreeShippingContent } from "~/domains/campaigns/types/campaign";
-import { debounce } from "app/domains/storefront/popups-new/utils/utils";
-import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
+import { debounce } from "./utils/utils";
+import { POPUP_SPACING } from "./utils/spacing";
 
 // Import custom hooks
 import { usePopupAnimation, usePopupForm, useDiscountCode } from "./hooks";

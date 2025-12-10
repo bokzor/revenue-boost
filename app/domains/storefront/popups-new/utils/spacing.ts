@@ -15,7 +15,7 @@ export {
   BREAKPOINTS as POPUP_BREAKPOINTS,
   mediaQuery,
   containerQuery,
-} from "app/shared/constants/breakpoints";
+} from "~/shared/constants/breakpoints";
 
 /**
  * Spacing constants based on FlashSale's system

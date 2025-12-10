@@ -70,25 +70,38 @@ export function ShadowDomWrapper({
   // During SSR or before hydration, render children directly (no isolation)
   // This prevents hydration mismatch and ensures content is visible
   if (!isClient) {
+    // Don't add default width/height if position is absolute (it will use inset/transform)
+    const isAbsolute = style?.position === "absolute";
     return (
-      <div className={className} style={{ width: "100%", height: "100%", ...style }}>
+      <div
+        className={className}
+        style={isAbsolute ? style : { width: "100%", height: "100%", ...style }}
+      >
         {styles && <style>{styles}</style>}
         {children}
       </div>
     );
   }
 
+  // Check if style uses absolute positioning (with inset or transform)
+  // In that case, don't add default width/height as they're not needed
+  const isAbsolute = style?.position === "absolute";
+
   return (
     <div
       ref={hostRef}
       className={className}
-      style={{
-        // Use 100% width/height instead of display:contents to maintain
-        // positioning context for children that use position:absolute
-        width: "100%",
-        height: "100%",
-        ...style,
-      }}
+      style={
+        isAbsolute
+          ? style
+          : {
+              // Use 100% width/height instead of display:contents to maintain
+              // positioning context for children that use position:absolute
+              width: "100%",
+              height: "100%",
+              ...style,
+            }
+      }
     >
       {shadowContainer &&
         createPortal(

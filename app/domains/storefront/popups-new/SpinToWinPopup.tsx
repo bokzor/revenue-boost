@@ -13,11 +13,11 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
-import { PopupGridContainer } from "app/domains/storefront/popups-new/components/shared/PopupGridContainer";
+import { PopupGridContainer } from "./components/shared/PopupGridContainer";
 import type { PopupDesignConfig, Prize } from "./types";
 import type { SpinToWinContent } from "~/domains/campaigns/types/campaign";
-import { prefersReducedMotion, debounce, getAdaptiveMutedColor } from "app/domains/storefront/popups-new/utils/utils";
-import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
+import { prefersReducedMotion, debounce, getAdaptiveMutedColor } from "./utils/utils";
+import { POPUP_SPACING } from "./utils/spacing";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation } from "./hooks";
@@ -29,7 +29,7 @@ import { EmailInput, NameInput, GdprCheckbox } from "./components";
 
 // Import shared components from Phase 1 & 2
 import { DiscountCodeDisplay } from "./components/shared";
-import { WheelRenderer } from "app/domains/storefront/popups-new/utils/wheel-canvas";
+import { WheelRenderer } from "./utils/wheel-canvas";
 
 /**
  * Utility function to adjust color brightness

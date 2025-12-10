@@ -168,7 +168,7 @@ export class ProductDataHook implements PreDisplayHook {
         currentProductId?: string,
         triggerType?: TriggerType,
         cartProductIds?: string[]
-    ): Promise<any[]> {
+    ): Promise<unknown[]> {
         const params = new URLSearchParams({
             campaignId,
         });

@@ -18,7 +18,7 @@ import type { AnnouncementContent } from "~/domains/campaigns/types/campaign";
 // Import custom hooks
 import { useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
-import { getBackgroundStyles } from "app/domains/storefront/popups-new/utils/utils";
+import { getBackgroundStyles } from "./utils/utils";
 
 // Import shared components
 import { CTAButton } from "./components/shared";

@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Zap } from "lucide-react"
+import { Menu, X } from "lucide-react"
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -12,24 +13,28 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
-            <Zap className="h-5 w-5 text-primary-foreground" />
-          </div>
+          <Image
+            src="/logo.webp"
+            alt="Revenue Boost"
+            width={36}
+            height={36}
+            className="h-9 w-9"
+          />
           <span className="text-xl font-bold text-foreground">Revenue Boost</span>
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
           <Link
-            href="#features"
+            href="/designs"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Features
+            Designs
           </Link>
           <Link
-            href="#templates"
+            href="#how-it-works"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
-            Templates
+            How It Works
           </Link>
           <Link
             href="#pricing"
@@ -46,7 +51,7 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <Button size="sm" className="bg-gradient-to-r from-primary to-accent hover:opacity-90" asChild>
+          <Button size="sm" asChild>
             <a href="https://apps.shopify.com/revenue-boost" target="_blank" rel="noopener noreferrer">
               Install on Shopify
             </a>
@@ -62,18 +67,18 @@ export function Header() {
         <div className="border-t border-border md:hidden">
           <nav className="container mx-auto flex flex-col gap-4 px-4 py-4">
             <Link
-              href="#features"
+              href="/designs"
               className="text-sm font-medium text-muted-foreground"
               onClick={() => setIsOpen(false)}
             >
-              Features
+              Designs
             </Link>
             <Link
-              href="#templates"
+              href="#how-it-works"
               className="text-sm font-medium text-muted-foreground"
               onClick={() => setIsOpen(false)}
             >
-              Templates
+              How It Works
             </Link>
             <Link
               href="#pricing"
@@ -86,7 +91,7 @@ export function Header() {
               FAQ
             </Link>
             <div className="flex flex-col gap-2 pt-4">
-              <Button size="sm" className="bg-gradient-to-r from-primary to-accent" asChild>
+              <Button size="sm" asChild>
                 <a href="https://apps.shopify.com/revenue-boost" target="_blank" rel="noopener noreferrer">
                   Install on Shopify
                 </a>

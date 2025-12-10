@@ -27,11 +27,11 @@ export { BannerPortal } from "./BannerPortal";
 export type { BannerPortalProps, BannerPosition } from "./BannerPortal";
 
 // Layout components (shared across template families)
-export { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
+export { LeadCaptureLayout } from "./components/shared/LeadCaptureLayout";
 export type {
   LeadCaptureLayoutProps,
   LayoutSize,
-} from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
+} from "./components/shared/LeadCaptureLayout";
 
 // Newsletter components
 export { NewsletterPopup } from "./NewsletterPopup";
@@ -123,4 +123,4 @@ export {
   formatTimeRemaining,
   prefersReducedMotion,
   debounce,
-} from "app/domains/storefront/popups-new/utils/utils";
+} from "./utils/utils";

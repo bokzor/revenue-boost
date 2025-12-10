@@ -148,9 +148,9 @@ async function checkSetupCompleted(storeId: string): Promise<boolean> {
  * Mark setup as completed
  * This is implicit - the welcome campaign existing means setup is complete
  */
-async function markSetupCompleted(storeId: string) {
+async function markSetupCompleted(_storeId: string) {
   // No-op - setup completion is tracked by the existence of the welcome campaign
-  logger.debug("[App Setup] Setup marked as completed for store ${storeId}");
+  logger.debug("[App Setup] Setup marked as completed");
 }
 
 /**
@@ -242,7 +242,7 @@ async function createWelcomeCampaign(storeId: string) {
     }
 
     // Create welcome campaign with ACTIVE status
-    const campaign = await CampaignService.createCampaign(storeId, {
+    await CampaignService.createCampaign(storeId, {
       name: "Welcome Popup",
       description: "Your first popup - customize it in the app!",
       templateType: "NEWSLETTER",

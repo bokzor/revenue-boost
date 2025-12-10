@@ -17,8 +17,8 @@ import type { NewsletterContent } from "~/domains/campaigns/types/campaign";
 
 import { PopupPortal } from "./PopupPortal";
 import type { MobilePresentationMode } from "./PopupPortal";
-import { LeadCaptureLayout } from "app/domains/storefront/popups-new/components/shared/LeadCaptureLayout";
-import { SPACING_GUIDELINES } from "app/domains/storefront/popups-new/utils/spacing";
+import { LeadCaptureLayout } from "./components/shared/LeadCaptureLayout";
+import { SPACING_GUIDELINES } from "./utils/spacing";
 
 // Import custom hooks
 import { usePopupForm, useDiscountCode, usePopupAnimation, useDesignVariables } from "./hooks";

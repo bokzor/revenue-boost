@@ -19,11 +19,13 @@ const nextConfig = {
   transpilePackages: ['../app'],
 
   // Turbopack configuration for aliases
+  // Uses relative paths from the website directory to parent app/
   turbopack: {
     resolveAlias: {
-      '~/domains': path.resolve(__dirname, '../app/domains'),
-      '~/shared': path.resolve(__dirname, '../app/shared'),
-      '~/lib': path.resolve(__dirname, '../app/lib'),
+      '~/domains': '../app/domains',
+      '~/shared': '../app/shared',
+      '~/lib': '../app/lib',
+      '~/config': '../app/config',
     },
   },
 
@@ -34,6 +36,7 @@ const nextConfig = {
       '~/domains': path.resolve(__dirname, '../app/domains'),
       '~/shared': path.resolve(__dirname, '../app/shared'),
       '~/lib': path.resolve(__dirname, '../app/lib'),
+      '~/config': path.resolve(__dirname, '../app/config'),
     };
     return config;
   },
