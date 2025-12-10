@@ -116,8 +116,14 @@ jobs:
               ;;
             "all"|*)
               echo "🔍 Running all admin and integration E2E tests"
+              # Note: admin-dashboard.spec.ts is excluded because it doesn't support TEST_MODE
+              # It requires real Shopify admin login which triggers CAPTCHA in CI
               TEST_MODE=true TEST_SERVER_URL=http://localhost:3001 \
-              npx playwright test --project=admin-ci --project=integration tests/e2e/staging/admin-*.spec.ts tests/e2e/staging/integration-*.spec.ts --retries=2
+              npx playwright test --project=admin-ci --project=integration \
+                tests/e2e/staging/admin-campaign-templates.spec.ts \
+                tests/e2e/staging/admin-experiment-creation.spec.ts \
+                tests/e2e/staging/integration-*.spec.ts \
+                --retries=2
               ;;
           esac
         env:
