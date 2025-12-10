@@ -5,6 +5,8 @@
  * Includes in-memory caching to avoid expensive API calls on every request.
  */
 
+import * as fs from "fs";
+import * as path from "path";
 import { logger } from "~/lib/logger.server";
 import type { SetupStatusData } from "~/domains/setup/components/SetupStatus";
 
@@ -81,10 +83,39 @@ export function clearSetupStatusCache(): void {
 // This is consistent across all environments (dev, staging, production)
 const BLOCK_HANDLE = "popup-embed";
 
-// Extension UID can be set via environment variable for different deployments
-// Each app deployment (dev, staging, production) has a unique extension UID
-// If not set, we rely on block handle and app name matching instead
-const EXTENSION_UID = process.env.THEME_EXTENSION_UID || "";
+// Read extension UID from shopify.extension.toml at startup
+// This file is deployed with the app and contains the correct UID for each environment
+function getExtensionUid(): string {
+  // First check env var (useful for testing or override)
+  if (process.env.THEME_EXTENSION_UID) {
+    return process.env.THEME_EXTENSION_UID;
+  }
+
+  try {
+    // Read from the extension's toml file
+    const tomlPath = path.join(
+      process.cwd(),
+      "extensions",
+      "storefront-popup",
+      "shopify.extension.toml"
+    );
+    const tomlContent = fs.readFileSync(tomlPath, "utf-8");
+
+    // Parse the uid from the TOML file (simple regex since it's a basic format)
+    const uidMatch = tomlContent.match(/^uid\s*=\s*"([^"]+)"/m);
+    if (uidMatch && uidMatch[1]) {
+      logger.debug({ uid: uidMatch[1] }, "[Setup] Loaded extension UID from shopify.extension.toml");
+      return uidMatch[1];
+    }
+  } catch (error) {
+    logger.debug({ error }, "[Setup] Could not read shopify.extension.toml, falling back to block handle matching");
+  }
+
+  return "";
+}
+
+// Cache the extension UID (read once at module load)
+const EXTENSION_UID = getExtensionUid();
 
 /**
  * Check if theme extension is enabled using REST API
