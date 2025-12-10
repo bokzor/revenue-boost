@@ -279,12 +279,16 @@ export async function checkThemeExtensionEnabled({
       }
 
       // Strategy 3: Fallback loose matching (only if no exact app slug is configured)
-      // This matches any app containing "revenue-boost" etc. - used when APP_SLUG is not set
+      // This matches any app that contains our app name patterns - used when APP_SLUG is not set
+      // This is more permissive but needed when config files aren't available (e.g., in Docker)
+      // Note: This uses regex to match app slugs that START with our patterns to avoid
+      // matching unrelated apps that might have "revenue" in them
       const matchesByLooseAppSlug = !APP_SLUG && (
-        blockType.includes("/apps/revenue-boost/") ||
-        blockType.includes("/apps/revenue_boost/") ||
-        blockType.includes("/apps/split-pop/") ||
-        blockType.includes("/apps/splitpop/")
+        // Match /apps/revenue-boost, /apps/revenue-boost-dev, /apps/revenue-boost-staging, etc.
+        /\/apps\/revenue-boost(-[a-z0-9]+)?\//.test(blockType) ||
+        /\/apps\/revenue_boost(_[a-z0-9]+)?\//.test(blockType) ||
+        /\/apps\/split-pop(-[a-z0-9]+)?\//.test(blockType) ||
+        /\/apps\/splitpop(-[a-z0-9]+)?\//.test(blockType)
       );
 
       // NOTE: We intentionally do NOT match by block handle alone!
