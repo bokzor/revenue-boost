@@ -89,15 +89,16 @@ describe("Setup Status Server Module", () => {
       expect(result).toBe(false);
     });
 
-    it("should return true when app embed matches by block handle and app name together", async () => {
+    it("should return true when app embed matches by block handle and app slug together", async () => {
       // This test verifies that even without extension UID configured,
-      // we can still detect our app embed using block handle + app name
+      // we can still detect our app embed using block handle + app slug
+      // Note: The app slug is derived from "Revenue Boost - DEV" -> "revenue-boost-dev"
       const settingsData = {
         current: {
           blocks: {
             "block1": {
-              // Matches by both block handle (popup-embed) and app name (revenue-boost)
-              type: "shopify://apps/revenue-boost/blocks/popup-embed/any-extension-uid",
+              // Matches by both block handle (popup-embed) and app slug (revenue-boost-dev)
+              type: "shopify://apps/revenue-boost-dev/blocks/popup-embed/any-extension-uid",
               disabled: false,
             },
           },
@@ -160,12 +161,13 @@ describe("Setup Status Server Module", () => {
       expect(result).toBe(false);
     });
 
-    it("should return true when app embed is enabled by app name", async () => {
+    it("should return true when app embed is enabled by app slug", async () => {
+      // Uses a different block handle (other-block) but still matches by app slug
       const settingsData = {
         current: {
           blocks: {
             "block1": {
-              type: "shopify://apps/revenue-boost/blocks/other-block/some-uid",
+              type: "shopify://apps/revenue-boost-dev/blocks/other-block/some-uid",
               disabled: false,
             },
           },
@@ -197,7 +199,7 @@ describe("Setup Status Server Module", () => {
         current: {
           blocks: {
             "block1": {
-              type: "shopify://apps/revenue-boost/blocks/popup-embed/some-uid",
+              type: "shopify://apps/revenue-boost-dev/blocks/popup-embed/some-uid",
               disabled: true,
             },
           },
@@ -229,7 +231,7 @@ describe("Setup Status Server Module", () => {
         current: {
           blocks: {
             "block1": {
-              type: "shopify://apps/revenue-boost/blocks/popup-embed/some-uid",
+              type: "shopify://apps/revenue-boost-dev/blocks/popup-embed/some-uid",
               // disabled is undefined - means enabled per Shopify docs
             },
           },
