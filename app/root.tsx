@@ -31,6 +31,12 @@ export default function App() {
         {ENV.SENTRY_DSN && <meta name="sentry-dsn" content={ENV.SENTRY_DSN} />}
         <link rel="preconnect" href="https://cdn.shopify.com/" />
         <link rel="stylesheet" href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css" />
+        {/* Preload EmptyState images to prevent CLS when images load */}
+        <link
+          rel="preload"
+          href="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+          as="image"
+        />
         <Meta />
         <Links />
       </head>

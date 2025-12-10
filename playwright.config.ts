@@ -1,11 +1,35 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 
-dotenv.config({
-  path: path.resolve(process.cwd(), ".env.staging.env"),
-  override: true,
-});
+/**
+ * Load environment variables for E2E tests.
+ *
+ * Priority (first found wins):
+ * 1. CI mode: Use environment variables from GitHub secrets
+ * 2. E2E_ENV_FILE: Custom env file path
+ * 3. .env.e2e: E2E-specific config file
+ * 4. .env.staging.env: Legacy support
+ * 5. .env: Default fallback
+ */
+const isCI = process.env.CI === "true";
+
+if (!isCI) {
+  const envFileCandidates = [
+    process.env.E2E_ENV_FILE,
+    path.resolve(process.cwd(), ".env.e2e"),
+    path.resolve(process.cwd(), ".env.staging.env"),
+    path.resolve(process.cwd(), ".env"),
+  ].filter(Boolean) as string[];
+
+  for (const envFile of envFileCandidates) {
+    if (fs.existsSync(envFile)) {
+      dotenv.config({ path: envFile, override: true });
+      break;
+    }
+  }
+}
 
 /**
  * Playwright Configuration for E2E Tests
@@ -147,6 +171,22 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         // Storefront tests don't use baseURL - they use STORE_URL directly
+      },
+    },
+
+    // =========================================================================
+    // INTEGRATION TESTS - Admin to Storefront Full Flow
+    // =========================================================================
+    // Tests that create campaigns in admin and verify them on storefront.
+    // Requires TEST_MODE=true for admin access without Shopify login.
+    // Usage: TEST_MODE=true npm run test:e2e -- --project=integration
+    {
+      name: "integration",
+      testMatch: "**/integration-*.spec.ts",
+      fullyParallel: false,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.TEST_SERVER_URL || "http://localhost:3001",
       },
     },
   ],

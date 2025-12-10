@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import * as dotenv from 'dotenv';
+// Environment loaded via helpers/load-staging-env
 import { CampaignFactory } from './factories/campaign-factory';
 import { STORE_URL, handlePasswordPage, getTestPrefix } from './helpers/test-helpers';
 
 // Load staging environment variables
-dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const STORE_DOMAIN = 'revenue-boost-staging.myshopify.com';
 const TEST_PREFIX = getTestPrefix('storefront-cart-abandonment.spec.ts');

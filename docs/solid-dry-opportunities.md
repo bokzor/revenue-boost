@@ -72,13 +72,13 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 - Risk: Draft vs published flows show different defaults or validation results when defaults diverge.
 - Suggested refactor: Centralize targeting/frequency default factories (e.g., `domains/targeting/defaults.ts`) and import them in both loaders and UI validation.
 
-## 11) Legacy popup admin/preview stack vs new storefront stack
+## 11) Legacy popup admin/preview stack vs new storefront stack **[COMPLETED]**
 - Where:
   - Legacy admin design/preview components under `app/domains/popups/components/design/*` (`PopupDesignEditor`, `PopupPreview`, etc.)
   - New storefront popup system under `app/domains/storefront/popups-new/*` with shared components/layout.
 - Pattern: Two distinct stacks for previewing/styling popups; design tokens and layout logic live separately.
 - Risk: Visual/behavioral drift between admin preview and storefront rendering; changes to tokens or layout must be applied twice.
-- Suggested refactor: Align admin preview to reuse the new storefront shared components (or at least the shared layout/theme primitives) so the preview renders the same code path as production.
+- Resolution: Legacy components (`PopupPreview.tsx`, `RealTimePreviewPanel.tsx`) were deleted. Admin flows now use `TemplatePreview.tsx` which shares code with storefront.
 
 ## 12) Portal/rendering primitives duplicated
 - Where: `PopupPortal.tsx` (modal/backdrop/fullscreen handling) vs `BannerPortal.tsx` (banner-specific) vs `slideins/SlideInPopup.tsx`.
@@ -102,13 +102,13 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 - Risk: Adding a field (e.g., consent text) or changing defaults requires edits in both UIs; risk of mismatched placeholders/labels or validation behavior.
 - Suggested refactor: Extract shared lead-capture field descriptors + validation helpers (already defined in `LeadCaptureConfigSchema`) and render both admin and storefront forms from the same descriptors where feasible, or at minimum share default builders and validation.
 
-## 15) Popup preview styling vs production styling
+## 15) Popup preview styling vs production styling **[COMPLETED]**
 - Where:
   - Admin preview: `app/domains/popups/components/design/PopupPreview.tsx` contains its own style builders (button, close button, container sizing).
   - Storefront/shared styling: `app/domains/storefront/shared/PopupStyles.ts` used by live popups.
 - Pattern: Two styling systems for popup preview vs live rendering.
 - Risk: Admin preview can diverge from storefront rendering (font sizes, spacing, button styles), leading to surprises after publish.
-- Suggested refactor: Have admin preview consume the shared PopupStyles (or a thin adapter) so visual parity is guaranteed.
+- Resolution: Legacy `PopupPreview.tsx` deleted. Active preview components use shared logic.
 
 ## 16) Multiple popup manager variants
 - Where: `PopupManagerCore` + `PopupManagerReact` wrapper + legacy popup/slide-in components under `app/domains/popups` vs new popups under `storefront/popups-new`.
@@ -357,7 +357,7 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 2) **Bulk campaign actions abstraction** (Item 1): Shared bulk handler for activate/pause/archive/delete/duplicate; reduces 5x duplication and future intent bugs.  
 3) **Unified campaign mutation pipeline** (Items 3, 7, 29): Single mutation entrypoint (PUT/POST/DELETE) with shared hooks (sanitize custom CSS, segment sync, plan guards). Retire duplicate routes or proxy them.  
 4) **Shared campaign mapper/defaults** (Items 4, 10): One `campaignToFormData` mapper with centralized targeting/frequency defaults; used by both edit and experiment flows + SingleCampaignFlow. Prevents UI inconsistency.  
-5) **Design/custom CSS sanitization + preview parity** (Items 3, 9, 15, 33): Central CSS sanitizer (Done), shared Custom CSS field component, and admin preview using the same design tokens/styles as storefront. Avoids XSS issues and preview/prod drift.
+5) **Design/custom CSS sanitization + preview parity** (Items 3, 9, 15, 33) **[COMPLETED]**: Central CSS sanitizer (Done), and admin preview legacy code removed to enforce usage of storefront-consistent `TemplatePreview`.
 
 ## Medium Priority
 6) **Discount normalization/strategy single source** (Items 6, 22, 39) **[COMPLETED]**: Move normalization + strategy inference + caching/idempotency into commerce discount service; routes thin.  

@@ -26,10 +26,9 @@ import { test, expect, type Page, type FrameLocator, type BrowserContext, type L
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 import fs from "fs";
-import * as dotenv from "dotenv";
 
-// Load staging environment
-dotenv.config({ path: path.resolve(process.cwd(), ".env.staging.env"), override: true });
+// Load E2E environment (supports .env.e2e, .env, or CI secrets)
+import "./helpers/load-staging-env";
 
 // =============================================================================
 // CI/TEST MODE DETECTION
@@ -216,9 +215,9 @@ async function navigateToExperimentCreate(page: Page): Promise<AppContext> {
     await experimentCard.click();
     console.log("📋 Clicked A/B Experiment card");
 
-    // Wait for experiment setup page - look for "Create A/B Experiment" header or Name field
+    // Wait for experiment setup page - look for "Create A/B Experiment" header
     await expect(
-      page.getByText(/Create A\/B Experiment/i).or(page.getByText("EXPERIMENT DETAILS"))
+      page.getByText("Create A/B Experiment").first()
     ).toBeVisible({ timeout: 15000 });
     console.log("✅ Experiment setup page loaded");
     return page;
@@ -276,44 +275,140 @@ async function fillExperimentSetup(
 }
 
 
+// Template type to sidebar filter text mapping
+const TEMPLATE_TYPE_FILTERS: Record<string, string> = {
+  NEWSLETTER: "Newsletter",
+  SPIN_TO_WIN: "Spin to Win",
+  SCRATCH_CARD: "Scratch Card",
+  FLASH_SALE: "Flash Sale",
+  SOCIAL_PROOF: "Social Proof",
+  ANNOUNCEMENT: "Announcement",
+  WELCOME_MAT: "Welcome Mat",
+  EXIT_INTENT: "Exit Intent",
+  GAMIFICATION: "Gamification",
+  COUNTDOWN: "Countdown",
+  UPSELL: "Upsell",
+  CROSS_SELL: "Cross Sell",
+};
+
 /**
  * Configure a variant by selecting a recipe
+ * @param templateType - Optional template type to filter recipes (e.g., "NEWSLETTER", "SPIN_TO_WIN")
  */
 async function configureVariant(
   appContext: AppContext,
   variantKey: "A" | "B" | "C" | "D",
-  page: Page
+  page: Page,
+  templateType?: string
 ): Promise<void> {
-  console.log(`🔧 Configuring Variant ${variantKey}...`);
+  console.log(`🔧 Configuring Variant ${variantKey}${templateType ? ` with ${templateType}` : ""}...`);
 
-  // Click on the variant to configure it
-  // The variant buttons show "Variant A (Control)" or "Variant B" etc.
-  const variantPattern = variantKey === "A" ? /Variant A.*Control/i : new RegExp(`Variant ${variantKey}`, "i");
-  const variantButton = appContext.getByRole("button", { name: variantPattern });
+  // Check if we're on the ExperimentSetupView (has "Configure variant X" buttons)
+  // or on the VariantConfigurator (has variant tabs like "A (Control)", "B")
 
-  if (await variantButton.isVisible().catch(() => false)) {
-    await variantButton.click();
-    console.log(`📋 Clicked Variant ${variantKey} button`);
+  // First, try to find the variant card button on ExperimentSetupView
+  // The VariantCard has aria-label="Configure variant A" etc.
+  const variantCardButton = appContext.getByRole("button", { name: `Configure variant ${variantKey}` });
+
+  if (await variantCardButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await variantCardButton.click();
+    console.log(`📋 Clicked variant card for Variant ${variantKey}`);
+    await page.waitForTimeout(1000);
+  } else {
+    // We might be in VariantConfigurator - look for variant tabs
+    // The tabs show "A (Control)" or just "B", "C", "D"
+    const tabPattern = variantKey === "A" ? /^A \(Control\)/ : new RegExp(`^${variantKey}$`);
+    const variantTab = appContext.getByRole("button", { name: tabPattern });
+
+    if (await variantTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await variantTab.click();
+      console.log(`📋 Clicked variant tab for Variant ${variantKey}`);
+      await page.waitForTimeout(1000);
+    }
+  }
+
+  // Wait for recipe picker to appear - use expect with timeout for proper waiting
+  const recipePickerHeading = appContext.getByRole("heading", { name: /Choose a Recipe/i });
+
+  try {
+    await expect(recipePickerHeading).toBeVisible({ timeout: 15000 });
+    console.log(`📋 Recipe picker visible for Variant ${variantKey}`);
+
+    // Wait for recipes to load
+    await page.waitForTimeout(2000);
+
+    // If templateType specified, click the sidebar filter
+    if (templateType && TEMPLATE_TYPE_FILTERS[templateType]) {
+      const filterName = TEMPLATE_TYPE_FILTERS[templateType];
+      console.log(`🔍 Filtering by template type: ${filterName}`);
+
+      // First, reset to "All Types" to clear any previous filter
+      const allTypesButton = appContext.getByRole("button", { name: /All Types/i });
+      if (await allTypesButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await allTypesButton.click();
+        console.log(`📋 Reset to All Types`);
+        await page.waitForTimeout(1000);
+      }
+
+      // Now click the specific template type filter
+      // The button contains icon + label + count, use text matching
+      const filterButton = appContext.locator(`button:has-text("${filterName}")`).first();
+      if (await filterButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await filterButton.click();
+        console.log(`📋 Clicked sidebar filter: ${filterName}`);
+        await page.waitForTimeout(2000); // Wait for filter to apply and recipes to re-render
+      } else {
+        console.log(`⚠️ Sidebar filter button not found for: ${filterName}`);
+        // Debug: list all visible buttons in the sidebar
+        const allButtons = await appContext.locator("button").all();
+        console.log(`📋 Found ${allButtons.length} buttons on page`);
+        for (let i = 0; i < Math.min(allButtons.length, 20); i++) {
+          const text = await allButtons[i].textContent().catch(() => "");
+          if (text && text.length < 50) {
+            console.log(`   Button ${i}: "${text.trim()}"`);
+          }
+        }
+        // Take a screenshot for debugging
+        await page.screenshot({ path: `test-results/debug-filter-${templateType}.png` });
+      }
+    }
+
+    // Scroll down to see recipe cards with Select buttons
+    await page.evaluate(() => window.scrollBy(0, 500));
     await page.waitForTimeout(500);
-  }
 
-  // If we see "Configure" button, click it
-  const configureButton = appContext.getByRole("button", { name: /Configure/i }).first();
-  if (await configureButton.isVisible().catch(() => false)) {
-    await configureButton.click();
-    console.log(`📋 Clicked Configure button for Variant ${variantKey}`);
-    await page.waitForTimeout(1000);
-  }
-
-  // Wait for recipe picker to appear
-  const recipePickerVisible = await appContext.getByText(/Choose a Recipe/i).isVisible().catch(() => false);
-  if (recipePickerVisible) {
-    // Click first recipe's Select button
+    // Look for "Select" button on recipe cards
+    // The RecipeCard component has a button with text "Select" or "Selected"
     const selectButton = appContext.getByRole("button", { name: "Select" }).first();
-    await expect(selectButton).toBeVisible({ timeout: 10000 });
+
+    await expect(selectButton).toBeVisible({ timeout: 15000 });
+    await selectButton.scrollIntoViewIfNeeded();
     await selectButton.click();
-    console.log(`📋 Selected first recipe for Variant ${variantKey}`);
-    await page.waitForTimeout(1000);
+    console.log(`📋 Clicked Select button for Variant ${variantKey}`);
+
+    // Wait for the editor step to load (after recipe selection, it auto-saves and moves to editor)
+    // The editor shows sections like "Design", "Content", etc.
+    await page.waitForTimeout(3000);
+
+    // Verify we're in the editor step by looking for the campaign editor form
+    const editorVisible = await appContext.getByText(/Design|Content|Targeting/i).first().isVisible({ timeout: 5000 }).catch(() => false);
+    if (editorVisible) {
+      console.log(`📋 Editor step loaded for Variant ${variantKey}`);
+    }
+
+    // The variant is now configured (auto-saved when recipe was selected)
+    // We can either:
+    // 1. Click "← Back to Variants" to go back to variant tabs (stays in VariantConfigurator)
+    // 2. Click on another variant tab directly
+    // 3. Click "Back to setup" to go back to ExperimentSetupView
+
+    // For now, just wait - the variant data is already saved
+    // The next variant configuration will click on the variant tab
+
+  } catch (error) {
+    console.log(`⚠️ Recipe picker not found for Variant ${variantKey}: ${error}`);
+    // Take a screenshot for debugging
+    await page.screenshot({ path: `test-results/debug-variant-${variantKey}.png` });
   }
 
   console.log(`✅ Variant ${variantKey} configured`);
@@ -331,11 +426,18 @@ async function saveExperiment(
   const saveButton = appContext.getByRole("button", { name: buttonName });
 
   await expect(saveButton).toBeVisible({ timeout: 10000 });
+  await expect(saveButton).toBeEnabled({ timeout: 5000 });
   await saveButton.click();
   console.log(`💾 Clicked ${publish ? "Publish" : "Save Draft"}`);
 
-  // Wait for save to complete
-  await page.waitForTimeout(3000);
+  // Wait for redirect to experiment detail page
+  // The route redirects to /app/experiments/{experimentId} after saving
+  try {
+    await page.waitForURL(/\/app\/experiments\/[a-zA-Z0-9]+/, { timeout: 15000 });
+    console.log(`📍 Redirected to: ${page.url()}`);
+  } catch {
+    console.log(`⚠️ No redirect detected, current URL: ${page.url()}`);
+  }
 
   // Extract experiment ID from URL
   const url = page.url();
@@ -464,6 +566,55 @@ test.describe("Admin A/B Experiment Creation", () => {
     console.log(`   - Name: ${experiment!.name}`);
     console.log(`   - Status: ${experiment!.status}`);
     console.log(`   - Variants: ${experiment!.campaigns.length}`);
+  });
+
+  test("can create A/B experiment with different template types (Spin-to-Win vs Scratch Card)", async ({ page, context }) => {
+    test.setTimeout(300000); // 5 minutes for full flow
+
+    if (!TEST_MODE) {
+      await loginToShopifyAdmin(page, context);
+    }
+
+    const appContext = await navigateToExperimentCreate(page);
+
+    // Fill experiment setup
+    const experimentName = `${TEST_PREFIX}Different-Templates-${Date.now()}`;
+    // Note: Both Spin-to-Win and Scratch Card have goal "ENGAGEMENT", so they can be compared
+    const hypothesis = "Testing Spin-to-Win wheel (Control) against Scratch Card to see which gamification converts better";
+    await fillExperimentSetup(appContext, experimentName, hypothesis, page);
+
+    // Configure Variant A (Control) with Spin-to-Win template
+    await configureVariant(appContext, "A", page, "SPIN_TO_WIN");
+
+    // Configure Variant B with Scratch Card template
+    await configureVariant(appContext, "B", page, "SCRATCH_CARD");
+
+    // Save as draft
+    const experimentId = await saveExperiment(appContext, page, false);
+    expect(experimentId).toBeTruthy();
+
+    // Verify experiment in database
+    const experiment = await prisma.experiment.findUnique({
+      where: { id: experimentId! },
+      include: { campaigns: true },
+    });
+
+    expect(experiment).toBeTruthy();
+    expect(experiment!.name).toBe(experimentName);
+    expect(experiment!.storeId).toBe(storeId);
+    expect(experiment!.campaigns.length).toBeGreaterThanOrEqual(2);
+
+    // Verify that variants have different template types
+    const templateTypes = experiment!.campaigns.map(c => c.templateType);
+    expect(templateTypes).toContain("SPIN_TO_WIN");
+    expect(templateTypes).toContain("SCRATCH_CARD");
+
+    console.log(`✅ Experiment with different templates verified:`);
+    console.log(`   - ID: ${experiment!.id}`);
+    console.log(`   - Name: ${experiment!.name}`);
+    console.log(`   - Status: ${experiment!.status}`);
+    console.log(`   - Variants: ${experiment!.campaigns.length}`);
+    console.log(`   - Template Types: ${templateTypes.join(", ")}`);
   });
 });
 

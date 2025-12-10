@@ -2,7 +2,8 @@
 export { default as PopupDesignEditor } from "./PopupDesignEditor";
 export { TemplateSelector } from "./TemplateSelector";
 export { StyleCustomizationPanel } from "./StyleCustomizationPanel";
-export { PopupPreview } from "./PopupPreview";
+// PopupPreview has been removed as it was legacy code.
+// Active preview components are TemplatePreview and LivePreviewPanel.
 export { CustomCSSEditor } from "./CustomCSSEditor";
 
 // Template Library
@@ -12,4 +13,3 @@ export { getTemplateById, getPopupTemplates, validatePopupTemplates } from "./Po
 export type { PopupDesignConfig } from "./PopupDesignEditor";
 export type { TemplateSelectorProps } from "./TemplateSelector";
 export type { StyleCustomizationPanelProps } from "./StyleCustomizationPanel";
-export type { PopupPreviewProps, PopupPreviewRef } from "./PopupPreview";

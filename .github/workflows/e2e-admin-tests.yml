@@ -1,4 +1,4 @@
-name: 🔧 E2E Admin Tests (Manual)
+name: 🔧 E2E Admin & Integration Tests (Manual)
 
 # =============================================================================
 # MANUAL ONLY - Admin E2E Tests with TEST_MODE
@@ -6,12 +6,22 @@ name: 🔧 E2E Admin Tests (Manual)
 # This workflow runs admin campaign creation tests using TEST_MODE.
 # It starts a local server with Shopify auth bypassed, allowing automated testing.
 #
-# To run: Go to Actions → "E2E Admin Tests (Manual)" → "Run workflow"
+# To run: Go to Actions → "E2E Admin & Integration Tests" → "Run workflow"
 # =============================================================================
 
 on:
   workflow_dispatch:
     inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - admin-only
+          - integration-only
+          - experiments-only
       test_filter:
         description: 'Test filter pattern (e.g., "newsletter" or leave empty for all)'
         required: false
@@ -73,14 +83,6 @@ jobs:
         env:
           BUILD_MODE: staging
 
-      - name: 🔐 Create environment file
-        run: |
-          cat > .env.staging.env << EOF
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          TEST_MODE=true
-          TEST_SHOP_DOMAIN=revenue-boost-staging.myshopify.com
-          EOF
-
       - name: 🚀 Start test server (port 3001)
         run: |
           # Start server on port 3001 with TEST_MODE
@@ -106,28 +108,54 @@ jobs:
             sleep 2
           done
 
-      - name: 🧪 Run Admin E2E Tests
+      - name: 🧪 Run E2E Tests
         run: |
           TEST_FILTER="${{ inputs.test_filter }}"
-          
-          if [ -n "$TEST_FILTER" ]; then
-            echo "🔍 Running tests matching: $TEST_FILTER"
-            TEST_MODE=true TEST_SERVER_URL=http://localhost:3001 \
-            npx playwright test --project=admin-ci -g "$TEST_FILTER" --retries=2
-          else
-            echo "🔍 Running all admin E2E tests"
-            TEST_MODE=true TEST_SERVER_URL=http://localhost:3001 \
-            npx playwright test --project=admin-ci --retries=2
-          fi
+          TEST_SUITE="${{ inputs.test_suite }}"
+
+          run_tests() {
+            local project=$1
+            local tests=$2
+            local label=$3
+
+            echo "🔍 Running $label..."
+            if [ -n "$TEST_FILTER" ]; then
+              TEST_MODE=true TEST_SERVER_URL=http://localhost:3001 \
+              npx playwright test --project=$project $tests -g "$TEST_FILTER" --retries=2
+            else
+              TEST_MODE=true TEST_SERVER_URL=http://localhost:3001 \
+              npx playwright test --project=$project $tests --retries=2
+            fi
+          }
+
+          case "$TEST_SUITE" in
+            "admin-only")
+              run_tests "admin-ci" "tests/e2e/staging/admin-campaign-templates.spec.ts" "Admin Campaign Templates Tests"
+              ;;
+            "integration-only")
+              run_tests "integration" "tests/e2e/staging/integration-admin-to-storefront.spec.ts" "Integration Tests (Admin → Storefront)"
+              ;;
+            "experiments-only")
+              run_tests "admin-ci" "tests/e2e/staging/admin-experiment-creation.spec.ts" "A/B Experiment Creation Tests"
+              ;;
+            "all"|*)
+              echo "🔍 Running all admin and integration E2E tests"
+              TEST_MODE=true TEST_SERVER_URL=http://localhost:3001 \
+              npx playwright test --project=admin-ci --project=integration tests/e2e/staging/admin-*.spec.ts tests/e2e/staging/integration-*.spec.ts --retries=2
+              ;;
+          esac
         env:
           CI: true
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          SHOPIFY_API_KEY: ${{ secrets.SHOPIFY_API_KEY }}
+          SHOPIFY_API_SECRET: ${{ secrets.SHOPIFY_API_SECRET }}
 
       - name: 📊 Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: e2e-admin-test-results
+          name: e2e-admin-integration-test-results
           path: |
             test-results/
             playwright-report/
@@ -136,8 +164,9 @@ jobs:
       - name: 📋 Test Summary
         if: always()
         run: |
-          echo "## 🔧 E2E Admin Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔧 E2E Admin & Integration Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Suite:** ${{ inputs.test_suite }}" >> $GITHUB_STEP_SUMMARY
           echo "Tests ran with TEST_MODE=true (Shopify auth bypassed)." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**📅 Run at:** $(date)" >> $GITHUB_STEP_SUMMARY

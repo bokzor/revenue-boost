@@ -9,7 +9,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Run setup after successful authentication (idempotent - safe to run multiple times)
   if (session) {
     // Run setup in background - don't block auth flow
-    setupAppOnInstall(admin, session.shop).catch((error) => {
+    // Pass accessToken for theme settings fetch (store record may not have it yet)
+    setupAppOnInstall(admin, session.shop, session.accessToken).catch((error) => {
       console.error("[Auth] Setup failed (non-blocking):", error);
     });
   }

@@ -131,17 +131,53 @@ export async function checkThemeExtensionEnabled({
     const settings = JSON.parse(settingsValue);
     const blocks = settings.current?.blocks || {};
 
+    // Log all blocks for debugging
+    // App embed block type format from Shopify docs:
+    // shopify://apps/{app_name}/blocks/{block_name}/{unique_ID}
+    const blockEntries = Object.entries(blocks);
+    logger.debug({
+      blockCount: blockEntries.length,
+      blockTypes: blockEntries.map(([key, b]) => ({
+        key,
+        type: (b as { type?: string }).type,
+        disabled: (b as { disabled?: boolean }).disabled
+      }))
+    }, "[Setup] Theme blocks found");
+
     // Check if our app embed is enabled
+    // App embeds appear in settings_data.json under current.blocks with format:
+    // "type": "shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}"
+    //
+    // Our extension details:
+    // - Block handle: popup-embed (from blocks/popup-embed.liquid)
+    // - App name variations: revenue-boost, revenue_boost
     const appEmbedEnabled = Object.values(blocks).some((block: unknown) => {
       const b = block as { type?: string; disabled?: boolean };
-      const isOurApp =
-        b.type?.includes("revenue-boost") ||
-        b.type?.includes("storefront-popup") ||
-        b.type?.includes("revenue_boost");
-      const isAppsBlock = b.type?.startsWith("shopify://apps/");
-      const notDisabled = b.disabled !== true;
+      const blockType = b.type || "";
 
-      return (isOurApp || isAppsBlock) && notDisabled;
+      // Match our app embed by looking for identifying patterns:
+      // 1. Our app name variations (revenue-boost, revenue_boost)
+      // 2. Our block handle (popup-embed) combined with apps path
+      const isOurApp =
+        blockType.includes("revenue-boost") ||
+        blockType.includes("revenue_boost") ||
+        // Match our block handle when combined with apps path
+        (blockType.includes("shopify://apps/") && blockType.includes("/blocks/popup-embed/"));
+
+      // An app embed is enabled when disabled is NOT true
+      // (disabled can be undefined, false, or true)
+      const isEnabled = b.disabled !== true;
+
+      if (blockType.includes("shopify://apps/")) {
+        logger.debug({
+          blockType,
+          disabled: b.disabled,
+          isOurApp,
+          isEnabled
+        }, "[Setup] Found app embed block");
+      }
+
+      return isOurApp && isEnabled;
     });
 
     logger.debug({ appEmbedEnabled }, "[Setup] App embed status");

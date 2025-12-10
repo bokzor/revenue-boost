@@ -22,6 +22,8 @@ import { CampaignService } from "~/domains/campaigns";
 import { CampaignIndexTable } from "~/domains/campaigns/components";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { getStoreCurrency } from "~/lib/currency.server";
+import { buildThemeEditorDeepLink } from "~/lib/app-setup.server";
+import { getSetupStatus } from "~/lib/setup-status.server";
 import { useState, useEffect } from "react";
 import type { ExperimentWithVariants } from "~/domains/campaigns/types/experiment";
 import type { CampaignStatus } from "~/domains/campaigns/types/campaign";
@@ -57,6 +59,9 @@ interface LoaderData {
     toPlan: string;
     createdAt: string;
   } | null;
+  // SSR setup status to prevent CLS from conditional banner rendering
+  initialSetupStatus: SetupStatusData | null;
+  initialSetupComplete: boolean | null;
 }
 
 // Setup status API response type
@@ -131,15 +136,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     }
   }
 
-  // Only fetch currency - setup status will be lazy loaded
-  const currency = await getStoreCurrency(admin);
-  const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?context=apps`;
+  // Fetch currency and setup status in parallel to prevent CLS
+  // Setup status is cached (5 min TTL) so subsequent navigations are fast
+  const [currency, setupResult] = await Promise.all([
+    getStoreCurrency(admin),
+    getSetupStatus(session.shop, session.accessToken || "", admin).catch((error) => {
+      console.error("[Dashboard] Error fetching setup status:", error);
+      return null;
+    }),
+  ]);
+
+  // Use deep link URL with activateAppId for auto-activation when merchant clicks
+  const themeEditorUrl = buildThemeEditorDeepLink(session.shop);
 
   return data<LoaderData>({
     currency,
     themeEditorUrl,
     chargeId,
     recentUpgrade,
+    // Include setup status in SSR to prevent CLS from conditional banner rendering
+    initialSetupStatus: setupResult?.status ?? null,
+    initialSetupComplete: setupResult?.setupComplete ?? null,
   });
 };
 
@@ -337,7 +354,8 @@ function GlobalMetricCard({
 }
 
 export default function Dashboard() {
-  const { currency, themeEditorUrl, chargeId, recentUpgrade } = useLoaderData<typeof loader>();
+  const { currency, themeEditorUrl, chargeId, recentUpgrade, initialSetupStatus, initialSetupComplete } =
+    useLoaderData<typeof loader>();
 
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -352,18 +370,18 @@ export default function Dashboard() {
   // Track which campaign is being toggled
   const [togglingCampaignId, setTogglingCampaignId] = useState<string | null>(null);
 
-  // Trigger all data fetches on mount
+  // Trigger metrics and campaigns fetches on mount (setup status comes from SSR)
   useEffect(() => {
     const params = `?timeRange=${timeRange}`;
     metricsFetcher.load(`/api/dashboard/metrics${params}`);
     campaignsFetcher.load(`/api/dashboard/campaigns${params}`);
-    setupFetcher.load("/api/setup/status");
+    // Note: Setup status is now SSR'd, only refetch on explicit user action
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
 
-  // Extract setup status from fetcher
-  const currentSetupStatus = setupFetcher.data?.status;
-  const currentSetupComplete = setupFetcher.data?.setupComplete;
+  // Use SSR data first, then fetcher data after refresh (prevents CLS from conditional banners)
+  const currentSetupStatus = setupFetcher.data?.status ?? initialSetupStatus;
+  const currentSetupComplete = setupFetcher.data?.setupComplete ?? initialSetupComplete;
   const isRefreshingSetup = setupFetcher.state === "loading";
 
   // Extract data from fetchers
@@ -607,59 +625,63 @@ export default function Dashboard() {
           </Layout.Section>
         )}
 
-        {/* Global Metrics */}
+        {/* Global Metrics - minHeight prevents CLS during skeleton→content transition */}
         <Layout.Section>
-          {isLoadingMetrics ? (
-            <GlobalMetricsSkeleton />
-          ) : (
-            <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
-              <GlobalMetricCard
-                title="Revenue attributed"
-                value={formatMoney(globalMetrics.revenue)}
-                subtext="Total revenue from campaigns"
-              />
-              <GlobalMetricCard
-                title="Leads captured"
-                value={globalMetrics.leads.toLocaleString()}
-                subtext="Total signups"
-              />
-              <GlobalMetricCard
-                title="Active campaigns"
-                value={globalMetrics.activeCampaigns.toString()}
-                subtext="Currently running"
-              />
-              <GlobalMetricCard
-                title="Conversion rate"
-                value={`${globalMetrics.conversionRate.toFixed(1)}%`}
-                subtext="Visits to conversions"
-              />
-            </InlineGrid>
-          )}
+          <Box minHeight="120px">
+            {isLoadingMetrics ? (
+              <GlobalMetricsSkeleton />
+            ) : (
+              <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
+                <GlobalMetricCard
+                  title="Revenue attributed"
+                  value={formatMoney(globalMetrics.revenue)}
+                  subtext="Total revenue from campaigns"
+                />
+                <GlobalMetricCard
+                  title="Leads captured"
+                  value={globalMetrics.leads.toLocaleString()}
+                  subtext="Total signups"
+                />
+                <GlobalMetricCard
+                  title="Active campaigns"
+                  value={globalMetrics.activeCampaigns.toString()}
+                  subtext="Currently running"
+                />
+                <GlobalMetricCard
+                  title="Conversion rate"
+                  value={`${globalMetrics.conversionRate.toFixed(1)}%`}
+                  subtext="Visits to conversions"
+                />
+              </InlineGrid>
+            )}
+          </Box>
         </Layout.Section>
 
-        {/* Active Campaigns Table */}
+        {/* Active Campaigns Table - minHeight prevents CLS during skeleton→content transition */}
         <Layout.Section>
-          {isLoadingCampaigns ? (
-            <CampaignTableSkeleton />
-          ) : (
-            <CampaignIndexTable
-              campaigns={campaigns}
-              experiments={experiments}
-              onCampaignClick={handleCampaignClick}
-              onEditClick={handleEditClick}
-              onAnalyticsClick={handleAnalyticsClick}
-              onToggleStatus={handleToggleStatus}
-              onDuplicateClick={handleDuplicateClick}
-              onBulkActivate={handleBulkActivate}
-              onBulkPause={handleBulkPause}
-              onBulkArchive={handleBulkArchive}
-              onBulkDelete={handleBulkDelete}
-              onBulkDuplicate={handleBulkDuplicate}
-              formatMoney={formatMoney}
-              showMetrics={true}
-              togglingCampaignId={togglingCampaignId}
-            />
-          )}
+          <Box minHeight="320px">
+            {isLoadingCampaigns ? (
+              <CampaignTableSkeleton />
+            ) : (
+              <CampaignIndexTable
+                campaigns={campaigns}
+                experiments={experiments}
+                onCampaignClick={handleCampaignClick}
+                onEditClick={handleEditClick}
+                onAnalyticsClick={handleAnalyticsClick}
+                onToggleStatus={handleToggleStatus}
+                onDuplicateClick={handleDuplicateClick}
+                onBulkActivate={handleBulkActivate}
+                onBulkPause={handleBulkPause}
+                onBulkArchive={handleBulkArchive}
+                onBulkDelete={handleBulkDelete}
+                onBulkDuplicate={handleBulkDuplicate}
+                formatMoney={formatMoney}
+                showMetrics={true}
+                togglingCampaignId={togglingCampaignId}
+              />
+            )}
+          </Box>
         </Layout.Section>
       </Layout>
     </Page>

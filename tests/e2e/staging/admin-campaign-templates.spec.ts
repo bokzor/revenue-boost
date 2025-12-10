@@ -32,10 +32,9 @@ import { test, expect, type Page, type FrameLocator, type BrowserContext } from 
 import { PrismaClient } from "@prisma/client";
 import path from "path";
 import fs from "fs";
-import * as dotenv from "dotenv";
 
-// Load staging environment
-dotenv.config({ path: path.resolve(process.cwd(), ".env.staging.env"), override: true });
+// Load E2E environment (supports .env.e2e, .env, or CI secrets)
+import "./helpers/load-staging-env";
 
 // =============================================================================
 // CI/TEST MODE DETECTION
