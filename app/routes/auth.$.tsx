@@ -1,19 +1,21 @@
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { setupAppOnInstall } from "~/lib/app-setup.server";
 
+/**
+ * Auth catch-all route
+ *
+ * This route handles Shopify OAuth callbacks and token exchange.
+ * The actual setup logic (creating store record, welcome campaign, etc.)
+ * is handled by the `afterAuth` hook in shopify.server.ts.
+ *
+ * With Shopify managed installation (use_legacy_install_flow = false):
+ * 1. Shopify installs the app without calling our app
+ * 2. When merchant opens the app, token exchange happens
+ * 3. afterAuth hook is called → setup runs
+ */
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
-
-  // Run setup after successful authentication (idempotent - safe to run multiple times)
-  if (session) {
-    // Run setup in background - don't block auth flow
-    setupAppOnInstall(admin, session.shop).catch((error) => {
-      console.error("[Auth] Setup failed (non-blocking):", error);
-    });
-  }
-
+  await authenticate.admin(request);
   return null;
 };
 

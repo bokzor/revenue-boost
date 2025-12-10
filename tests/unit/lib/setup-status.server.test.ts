@@ -89,12 +89,16 @@ describe("Setup Status Server Module", () => {
       expect(result).toBe(false);
     });
 
-    it("should return true when app embed is enabled", async () => {
+    it("should return true when app embed matches by block handle and app slug together", async () => {
+      // This test verifies that even without extension UID configured,
+      // we can still detect our app embed using block handle + app slug
+      // Note: The app slug is derived from "Revenue Boost - DEV" -> "revenue-boost-dev"
       const settingsData = {
         current: {
           blocks: {
             "block1": {
-              type: "shopify://apps/revenue-boost/blocks/popup",
+              // Matches by both block handle (popup-embed) and app slug (revenue-boost-dev)
+              type: "shopify://apps/revenue-boost-dev/blocks/popup-embed/any-extension-uid",
               disabled: false,
             },
           },
@@ -119,6 +123,198 @@ describe("Setup Status Server Module", () => {
       });
 
       expect(result).toBe(true);
+    });
+
+    it("should return false when block handle matches but app name does not (prevents false positives)", async () => {
+      // This test verifies that we DON'T match by block handle alone
+      // Another app could have a block called "popup-embed" - we should NOT detect it as ours
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              // Has our block handle but NOT our app name - should NOT match
+              type: "shopify://apps/some-other-app/blocks/popup-embed/some-uid",
+              disabled: false,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      // Should be FALSE - block handle alone is not enough to identify our app
+      expect(result).toBe(false);
+    });
+
+    it("should return true when app embed is enabled by app slug", async () => {
+      // Uses a different block handle (other-block) but still matches by app slug
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/revenue-boost-dev/blocks/other-block/some-uid",
+              disabled: false,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it("should return false when app embed is disabled", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/revenue-boost-dev/blocks/popup-embed/some-uid",
+              disabled: true,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it("should return true when disabled is undefined (default enabled state)", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/revenue-boost-dev/blocks/popup-embed/some-uid",
+              // disabled is undefined - means enabled per Shopify docs
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(true);
+    });
+
+    it("should return false when no blocks exist", async () => {
+      const settingsData = {
+        current: {
+          blocks: {},
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it("should return false when only other apps are enabled", async () => {
+      const settingsData = {
+        current: {
+          blocks: {
+            "block1": {
+              type: "shopify://apps/other-app/blocks/some-block/some-uid",
+              disabled: false,
+            },
+          },
+        },
+      };
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ themes: [{ id: "123", role: "main" }] }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            asset: { value: JSON.stringify(settingsData) },
+          }),
+        });
+
+      const result = await checkThemeExtensionEnabled({
+        shop: "test-shop.myshopify.com",
+        accessToken: "test-token",
+      });
+
+      expect(result).toBe(false);
     });
   });
 

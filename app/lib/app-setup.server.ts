@@ -12,6 +12,7 @@
  */
 
 import { logger } from "~/lib/logger.server";
+import { getEnv } from "~/lib/env.server";
 import prisma from "~/db.server";
 import { CampaignService } from "~/domains/campaigns/services/campaign.server";
 import { ShopService } from "~/domains/shops/services/shop.server";
@@ -24,14 +25,42 @@ import {
 } from "~/domains/store/types/settings";
 
 /**
+ * Build a deep link to the Shopify theme editor to activate our app embed
+ *
+ * Format from Shopify docs:
+ * https://<myshopifyDomain>/admin/themes/current/editor?context=apps&template=${template}&activateAppId={api_key}/{handle}
+ *
+ * - api_key: The client_id from shopify.app.toml (SHOPIFY_API_KEY env var)
+ * - handle: The filename of the block's Liquid file (without .liquid extension)
+ *
+ * @param shopDomain - The shop's myshopify.com domain
+ * @returns URL to open the theme editor with app embed activation
+ */
+export function buildThemeEditorDeepLink(shopDomain: string): string {
+  // Get API key from environment (same as client_id in shopify.app.toml)
+  const apiKey = getEnv().SHOPIFY_API_KEY;
+  // The block handle is the filename without .liquid extension
+  // Our block is at: extensions/storefront-popup/blocks/popup-embed.liquid
+  const blockHandle = "popup-embed";
+
+  // Use the activateAppId parameter to auto-activate the app embed
+  return `https://${shopDomain}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/${blockHandle}`;
+}
+
+/**
  * Setup app on installation
  * Auto-enables theme extension and creates welcome campaign
  * Zero-configuration setup for merchants
  *
  * This function ensures the store record exists before running setup steps.
+ *
+ * @param admin - Shopify Admin API context
+ * @param shopDomain - Shop domain (e.g., "store.myshopify.com")
+ * @param accessToken - Optional access token from session (used for theme settings fetch
+ *                      when store record doesn't have the token yet)
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin type varies by context
-export async function setupAppOnInstall(admin: any, shopDomain: string) {
+export async function setupAppOnInstall(admin: any, shopDomain: string, accessToken?: string) {
   try {
     logger.debug("[App Setup] Setting up app for ${shopDomain}");
 
@@ -43,7 +72,7 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
     // If store doesn't exist, create it now
     if (!store) {
       logger.debug("[App Setup] Store not found for ${shopDomain} - creating it now");
-      store = await createStoreRecord(admin, shopDomain);
+      store = await createStoreRecord(admin, shopDomain, accessToken);
       if (!store) {
         logger.error("[App Setup] Failed to create store record for ${shopDomain}");
         // Continue with what we can do (metafield setup)
@@ -78,8 +107,11 @@ export async function setupAppOnInstall(admin: any, shopDomain: string) {
     }
 
     // 4. Create "My Store Theme" preset from Shopify theme - only if store exists
+    // Use accessToken from session if available (more reliable than store.accessToken
+    // which may be empty for newly created stores)
     if (store) {
-      await createThemePresetFromShopifyTheme(store.id, shopDomain, store.accessToken);
+      const tokenForTheme = accessToken || store.accessToken;
+      await createThemePresetFromShopifyTheme(store.id, shopDomain, tokenForTheme);
     }
 
     // 5. Create welcome campaign (ACTIVE by default) - only if store exists
@@ -351,9 +383,13 @@ async function createThemePresetFromShopifyTheme(
 /**
  * Create store record using Admin API to fetch shop ID
  * Uses upsert to handle race conditions
+ *
+ * @param admin - Shopify Admin API context
+ * @param shopDomain - Shop domain
+ * @param accessToken - Optional access token from session to store
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin type varies by context
-async function createStoreRecord(admin: any, shopDomain: string) {
+async function createStoreRecord(admin: any, shopDomain: string, accessToken?: string) {
   try {
     // Fetch the shop ID via GraphQL
     const response = await admin.graphql(`query { shop { id } }`);
@@ -379,11 +415,13 @@ async function createStoreRecord(admin: any, shopDomain: string) {
       update: {
         // Store already exists, just ensure it's active
         isActive: true,
+        // Update access token if provided (ensures we have the latest)
+        ...(accessToken ? { accessToken } : {}),
       },
       create: {
         shopifyDomain: shopDomain,
         shopifyShopId: shopNumericId,
-        accessToken: "", // Will be updated by session management
+        accessToken: accessToken || "", // Use provided token or empty (will be updated by session management)
         isActive: true,
         settings: {
           // Popups: disabled by default, stricter limits when enabled

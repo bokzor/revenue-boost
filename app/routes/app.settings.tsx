@@ -23,6 +23,7 @@ import { ThemePresetsSettings } from "../domains/store/components/ThemePresetsSe
 import { StoreSettingsSchema, type StoreSettings } from "../domains/store/types/settings";
 import { SetupStatus } from "../domains/setup/components/SetupStatus";
 import { getSetupStatus } from "../lib/setup-status.server";
+import { buildThemeEditorDeepLink } from "../lib/app-setup.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const store = await prisma.store.findUnique({
@@ -41,7 +42,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     session.accessToken || "",
     admin
   );
-  const themeEditorUrl = `https://${session.shop}/admin/themes/current/editor?context=apps`;
+  // Use deep link URL with activateAppId for auto-activation when merchant clicks
+  const themeEditorUrl = buildThemeEditorDeepLink(session.shop);
 
   // Calculate usage
   const activeCampaignsCount = await prisma.campaign.count({

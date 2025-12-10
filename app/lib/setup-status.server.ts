@@ -5,6 +5,8 @@
  * Includes in-memory caching to avoid expensive API calls on every request.
  */
 
+import * as fs from "fs";
+import * as path from "path";
 import { logger } from "~/lib/logger.server";
 import type { SetupStatusData } from "~/domains/setup/components/SetupStatus";
 
@@ -77,9 +79,110 @@ export function clearSetupStatusCache(): void {
 // SETUP STATUS CHECKS
 // ============================================================================
 
+// Block handle from blocks/popup-embed.liquid filename
+// This is consistent across all environments (dev, staging, production)
+const BLOCK_HANDLE = "popup-embed";
+
+// Read extension UID from shopify.extension.toml at startup
+// This file is deployed with the app and contains the correct UID for each environment
+function getExtensionUid(): string {
+  // First check env var (useful for testing or override)
+  if (process.env.THEME_EXTENSION_UID) {
+    return process.env.THEME_EXTENSION_UID;
+  }
+
+  try {
+    // Read from the extension's toml file
+    const tomlPath = path.join(
+      process.cwd(),
+      "extensions",
+      "storefront-popup",
+      "shopify.extension.toml"
+    );
+    const tomlContent = fs.readFileSync(tomlPath, "utf-8");
+
+    // Parse the uid from the TOML file (simple regex since it's a basic format)
+    const uidMatch = tomlContent.match(/^uid\s*=\s*"([^"]+)"/m);
+    if (uidMatch && uidMatch[1]) {
+      logger.debug({ uid: uidMatch[1] }, "[Setup] Loaded extension UID from shopify.extension.toml");
+      return uidMatch[1];
+    }
+  } catch (error) {
+    logger.debug({ error }, "[Setup] Could not read shopify.extension.toml, falling back to block handle matching");
+  }
+
+  return "";
+}
+
+// Get the app slug used in Shopify block type URLs
+// Block types have format: shopify://apps/{app_slug}/blocks/{block_handle}/{uid}
+// The app slug is a URL-safe version of the app name
+function getAppSlug(): string {
+  // First check env var (explicit override - most reliable)
+  if (process.env.SHOPIFY_APP_SLUG) {
+    logger.debug({ appSlug: process.env.SHOPIFY_APP_SLUG }, "[Setup] Using SHOPIFY_APP_SLUG from env");
+    return process.env.SHOPIFY_APP_SLUG;
+  }
+
+  try {
+    // Try to read from the active shopify.app.toml or linked config
+    // The app config might be shopify.app.toml, shopify.app.staging.toml, etc.
+    const possibleConfigs = [
+      "shopify.app.toml",
+      "shopify.app.staging.toml",
+      "shopify.app.prod.toml",
+      "shopify.app.development.toml",
+    ];
+
+    for (const configFile of possibleConfigs) {
+      try {
+        const configPath = path.join(process.cwd(), configFile);
+        const configContent = fs.readFileSync(configPath, "utf-8");
+
+        // Parse the name from the TOML file
+        const nameMatch = configContent.match(/^name\s*=\s*"([^"]+)"/m);
+        if (nameMatch && nameMatch[1]) {
+          // Convert app name to slug format (how Shopify formats it in block URLs)
+          // "Revenue Boost - DEV" -> "revenue-boost-dev"
+          // "revenue-boost-staging" -> "revenue-boost-staging"
+          const slug = nameMatch[1]
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")  // Replace non-alphanumeric with hyphens
+            .replace(/^-|-$/g, "");        // Remove leading/trailing hyphens
+          logger.debug({ appName: nameMatch[1], appSlug: slug, configFile }, "[Setup] Derived app slug from config");
+          return slug;
+        }
+      } catch {
+        // Config file doesn't exist, try next one
+        continue;
+      }
+    }
+  } catch (error) {
+    logger.debug({ error }, "[Setup] Could not read app config, using default app slugs");
+  }
+
+  return "";
+}
+
+// Cache the extension UID and app slug (read once at module load)
+const EXTENSION_UID = getExtensionUid();
+const APP_SLUG = getAppSlug();
+
 /**
  * Check if theme extension is enabled using REST API
- * This is more reliable than the GraphQL appEmbed query
+ *
+ * According to Shopify documentation, app embed blocks appear in settings_data.json
+ * under current.blocks with the format:
+ * "type": "shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}"
+ *
+ * The extension_uid is the most reliable identifier since app names can vary
+ * across environments (dev, staging, production).
+ *
+ * When disabled is true, the embed is disabled.
+ * When disabled is false or undefined, it's enabled.
+ *
+ * Note: An app embed block is added to settings_data.json only AFTER it's enabled
+ * for the first time. If it's never been enabled, it won't appear at all.
  */
 export async function checkThemeExtensionEnabled({
   shop,
@@ -131,23 +234,101 @@ export async function checkThemeExtensionEnabled({
     const settings = JSON.parse(settingsValue);
     const blocks = settings.current?.blocks || {};
 
+    // Log all blocks for debugging
+    const blockEntries = Object.entries(blocks);
+    logger.info({
+      shop,
+      themeId: publishedTheme.id,
+      blockCount: blockEntries.length,
+      allBlocks: blockEntries.map(([key, b]) => ({
+        key,
+        type: (b as { type?: string }).type,
+        disabled: (b as { disabled?: boolean }).disabled
+      }))
+    }, "[Setup] Theme blocks found in settings_data.json");
+
     // Check if our app embed is enabled
+    // We match using multiple strategies for reliability:
+    // 1. Primary: Match by extension_uid (most reliable, unique per extension)
+    // 2. Secondary: Match by block_handle when combined with apps path
+    // 3. Fallback: Match by app name variations
     const appEmbedEnabled = Object.values(blocks).some((block: unknown) => {
       const b = block as { type?: string; disabled?: boolean };
-      const isOurApp =
-        b.type?.includes("revenue-boost") ||
-        b.type?.includes("storefront-popup") ||
-        b.type?.includes("revenue_boost");
-      const isAppsBlock = b.type?.startsWith("shopify://apps/");
-      const notDisabled = b.disabled !== true;
+      const blockType = b.type || "";
 
-      return (isOurApp || isAppsBlock) && notDisabled;
+      // Skip non-app blocks
+      if (!blockType.includes("shopify://apps/")) {
+        return false;
+      }
+
+      // Format: shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}
+      // Example: shopify://apps/revenue-boost-staging/blocks/popup-embed/725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80
+
+      // Strategy 1: Match by extension UID (most reliable - unique per app deployment)
+      // EXTENSION_UID varies per environment (dev/staging/prod)
+      const matchesByUid = EXTENSION_UID ? blockType.includes(EXTENSION_UID) : false;
+
+      // Strategy 2: Match EXACTLY by configured app slug
+      // IMPORTANT: We match the exact app slug path segment to avoid false positives
+      // e.g., "revenue-boost-staging" should NOT match blocks from "revenue-boost-dev"
+      // The format is shopify://apps/{app_slug}/blocks/... so we match /apps/{slug}/
+      let matchesByExactAppSlug = false;
+      if (APP_SLUG) {
+        // Match exactly: /apps/{APP_SLUG}/
+        matchesByExactAppSlug = blockType.includes(`/apps/${APP_SLUG}/`);
+      }
+
+      // Strategy 3: Fallback loose matching (only if no exact app slug is configured)
+      // This matches any app that contains our app name patterns - used when APP_SLUG is not set
+      // This is more permissive but needed when config files aren't available (e.g., in Docker)
+      // Note: This uses regex to match app slugs that START with our patterns to avoid
+      // matching unrelated apps that might have "revenue" in them
+      const matchesByLooseAppSlug = !APP_SLUG && (
+        // Match /apps/revenue-boost, /apps/revenue-boost-dev, /apps/revenue-boost-staging, etc.
+        /\/apps\/revenue-boost(-[a-z0-9]+)?\//.test(blockType) ||
+        /\/apps\/revenue_boost(_[a-z0-9]+)?\//.test(blockType) ||
+        /\/apps\/split-pop(-[a-z0-9]+)?\//.test(blockType) ||
+        /\/apps\/splitpop(-[a-z0-9]+)?\//.test(blockType)
+      );
+
+      // NOTE: We intentionally do NOT match by block handle alone!
+      // Block handle (popup-embed) is NOT unique - other apps could use the same handle.
+      const hasCorrectBlockHandle = blockType.includes(`/blocks/${BLOCK_HANDLE}/`);
+
+      // Final determination: must match by UID or exact app slug or loose fallback
+      const isOurApp = matchesByUid || matchesByExactAppSlug || matchesByLooseAppSlug;
+
+      // An app embed is enabled when disabled is NOT true
+      // Per Shopify docs: "disabled" is only set to true when merchant disables it.
+      // It can be false, undefined, or missing when enabled.
+      const isEnabled = b.disabled !== true;
+
+      logger.info({
+        blockType,
+        disabled: b.disabled,
+        matchesByUid,
+        matchesByExactAppSlug,
+        matchesByLooseAppSlug,
+        hasCorrectBlockHandle,
+        isOurApp,
+        isEnabled,
+        configuredAppSlug: APP_SLUG || "(not set)"
+      }, "[Setup] Checking app embed block");
+
+      return isOurApp && isEnabled;
     });
 
-    logger.debug({ appEmbedEnabled }, "[Setup] App embed status");
+    logger.info({
+      shop,
+      appEmbedEnabled,
+      extensionUid: EXTENSION_UID,
+      appSlug: APP_SLUG,
+      blockHandle: BLOCK_HANDLE
+    }, "[Setup] App embed status result");
+
     return appEmbedEnabled;
   } catch (error) {
-    logger.error({ error }, "[Setup] Error checking theme extension:");
+    logger.error({ error, shop }, "[Setup] Error checking theme extension");
     return false;
   }
 }

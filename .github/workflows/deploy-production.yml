@@ -12,13 +12,24 @@ on:
       - '.github/workflows/deploy-staging.yml'
       - '.github/workflows/deploy-extensions-staging.yml'
       - '.github/workflows/deploy-website.yml'
+
+  # Manual trigger with safety confirmations
   workflow_dispatch:
     inputs:
+      confirm_deploy:
+        description: '⚠️ Type "DEPLOY-PRODUCTION" to confirm manual deployment'
+        required: true
+        type: string
       skip_tests:
         description: 'Skip tests (emergency deployments only)'
         required: false
         default: false
         type: boolean
+      reason:
+        description: 'Reason for manual deployment (optional, for your own reference)'
+        required: false
+        default: ''
+        type: string
 
 # Only one production deployment at a time
 concurrency:
@@ -33,10 +44,52 @@ env:
   NODE_VERSION: '24'
 
 jobs:
+  # =============================================================================
+  # MANUAL DEPLOYMENT SAFETY CHECK
+  # =============================================================================
+  # Validates confirmation input for manual deployments to prevent accidents.
+  # Skipped for automatic deployments triggered by push to main.
+  # =============================================================================
+  validate-manual-deploy:
+    name: 🛡️ Validate Manual Deploy
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [[ "${{ inputs.confirm_deploy }}" != "DEPLOY-PRODUCTION" ]]; then
+            echo "❌ ERROR: Invalid confirmation!"
+            echo ""
+            echo "You entered: '${{ inputs.confirm_deploy }}'"
+            echo "Expected: 'DEPLOY-PRODUCTION'"
+            echo ""
+            echo "This safety check prevents accidental production deployments."
+            echo "Please run the workflow again and type 'DEPLOY-PRODUCTION' exactly."
+            exit 1
+          fi
+
+          echo "✅ Confirmation validated: DEPLOY-PRODUCTION"
+          echo ""
+          echo "📋 Manual Deployment Details:"
+          echo "  Triggered by: ${{ github.actor }}"
+          echo "  Reason: ${{ inputs.reason }}"
+          echo "  Skip tests: ${{ inputs.skip_tests }}"
+          echo "  Commit: ${{ github.sha }}"
+
+      - name: Log deployment reason
+        run: |
+          echo "## 🚀 Manual Production Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Reason:** ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Skip tests:** ${{ inputs.skip_tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+
   # Check if self-hosted runner is available for tests
   check-runner:
     name: 🔍 Check Runner
-    if: ${{ !inputs.skip_tests }}
+    needs: [validate-manual-deploy]
+    if: ${{ always() && !inputs.skip_tests && (needs.validate-manual-deploy.result == 'success' || needs.validate-manual-deploy.result == 'skipped') }}
     uses: ./.github/workflows/check-runner.yml
     with:
       runner_labels: 'self-hosted'
@@ -44,8 +97,8 @@ jobs:
   # Run tests using reusable workflow
   tests:
     name: 🧪 Tests
-    needs: check-runner
-    if: ${{ !inputs.skip_tests }}
+    needs: [validate-manual-deploy, check-runner]
+    if: ${{ always() && !inputs.skip_tests && (needs.validate-manual-deploy.result == 'success' || needs.validate-manual-deploy.result == 'skipped') && needs.check-runner.result == 'success' }}
     uses: ./.github/workflows/reusable-tests.yml
     with:
       runner: ${{ needs.check-runner.outputs.runner }}
@@ -57,8 +110,11 @@ jobs:
 
   deploy:
     name: 🚀 Deploy to Production
-    needs: [tests]
-    if: always() && (needs.tests.result == 'success' || needs.tests.result == 'skipped')
+    needs: [validate-manual-deploy, tests]
+    if: |
+      always() &&
+      (needs.validate-manual-deploy.result == 'success' || needs.validate-manual-deploy.result == 'skipped') &&
+      (needs.tests.result == 'success' || needs.tests.result == 'skipped')
     runs-on: ubuntu-latest
     environment: prod
     permissions:

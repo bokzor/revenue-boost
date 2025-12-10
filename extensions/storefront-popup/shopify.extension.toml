@@ -2,6 +2,6 @@ name = "Revenue Boost Popups"
 type = "theme"
 uid = "725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80"
 
-# Note: This extension uses an App Block (blocks/popup-embed.liquid)
-# Merchants must manually add the block to their theme.
-# Shopify does not allow automatic script injection via app embeds for security reasons.
+# Note: This extension uses an App Embed (blocks/popup-embed.liquid with target="body")
+# Merchants must manually enable the embed in Theme Settings > App Embeds.
+# App embeds are enabled/disabled globally, not per-page like app blocks.

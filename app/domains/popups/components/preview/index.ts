@@ -2,5 +2,5 @@
  * Preview Components - Real-time preview system
  */
 
-export { RealTimePreviewPanel } from "./RealTimePreviewPanel";
-export type { DeviceType, DeviceConfig, RealTimePreviewPanelProps } from "./RealTimePreviewPanel";
+// RealTimePreviewPanel has been removed as it was legacy code.
+// Active preview components are TemplatePreview and LivePreviewPanel.
