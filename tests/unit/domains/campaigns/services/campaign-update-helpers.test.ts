@@ -91,7 +91,11 @@ describe("buildConfigUpdates", () => {
   });
 
   it("should include targetRules when provided", () => {
-    const result = buildConfigUpdates({ targetRules: { geoTargeting: { enabled: true } } });
+    const result = buildConfigUpdates({
+      targetRules: {
+        geoTargeting: { enabled: true, mode: "include", countries: [] },
+      },
+    });
     expect(result.targetRules).toBeDefined();
   });
 
@@ -120,7 +124,9 @@ describe("buildExperimentUpdates", () => {
   });
 
   it("should disconnect experiment when experimentId is null", () => {
-    const result = buildExperimentUpdates({ experimentId: null });
+    const result = buildExperimentUpdates({
+      experimentId: null as unknown as CampaignUpdateData["experimentId"],
+    });
     expect(result.experiment).toEqual({ disconnect: true });
   });
 

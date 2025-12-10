@@ -116,6 +116,10 @@ const validCreateData = {
   templateId: "template-123",
   templateType: "NEWSLETTER" as const,
   contentConfig: { headline: "Subscribe Now" },
+  experimentId: undefined,
+  startDate: undefined,
+  endDate: undefined,
+  status: "DRAFT" as const,
   // designConfig is optional, omit to avoid type errors
 };
 
@@ -367,4 +371,3 @@ describe("CampaignMutationService.delete", () => {
     expect(prisma.experiment.update).not.toHaveBeenCalled();
   });
 });
-

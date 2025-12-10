@@ -11,7 +11,7 @@ import {
   validateCampaignCreateData,
   validateContentConfig,
 } from "~/domains/campaigns/validation/campaign-validation";
-import type { CampaignCreateData } from "~/domains/campaigns/types/campaign";
+import { DesignConfigSchema, DiscountConfigSchema, type CampaignCreateData } from "~/domains/campaigns/types/campaign";
 import type { StyledRecipe } from "~/domains/campaigns/recipes/styled-recipe-types";
 
 /**
@@ -22,10 +22,16 @@ function recipeToCreateData(recipe: StyledRecipe): Partial<CampaignCreateData> {
     name: recipe.name,
     goal: recipe.goal,
     templateType: recipe.templateType,
+    templateId: undefined,
+    experimentId: undefined,
+    startDate: undefined,
+    endDate: undefined,
     contentConfig: recipe.defaults.contentConfig as Record<string, unknown>,
-    designConfig: recipe.defaults.designConfig as Record<string, unknown>,
+    designConfig: DesignConfigSchema.parse(recipe.defaults.designConfig || {}),
     targetRules: recipe.defaults.targetRules as Record<string, unknown>,
-    discountConfig: recipe.defaults.discountConfig as Record<string, unknown>,
+    discountConfig: recipe.defaults.discountConfig
+      ? DiscountConfigSchema.parse(recipe.defaults.discountConfig)
+      : undefined,
   };
 }
 
@@ -252,7 +258,8 @@ describe("Campaign Validation with Recipe Data", () => {
       );
 
       for (const recipe of relevantRecipes) {
-        expect(recipe.defaults.contentConfig.headline).toBeDefined();
+        const content = recipe.defaults.contentConfig as { headline?: unknown };
+        expect(content.headline).toBeDefined();
       }
     });
 
@@ -262,9 +269,9 @@ describe("Campaign Validation with Recipe Data", () => {
       );
 
       for (const recipe of newsletterRecipes) {
-        expect(recipe.defaults.contentConfig.emailPlaceholder).toBeDefined();
+        const content = recipe.defaults.contentConfig as { emailPlaceholder?: unknown };
+        expect(content.emailPlaceholder).toBeDefined();
       }
     });
   });
 });
-

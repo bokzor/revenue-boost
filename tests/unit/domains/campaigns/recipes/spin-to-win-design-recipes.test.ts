@@ -33,16 +33,17 @@ describe("SPIN_TO_WIN_DESIGN_RECIPES", () => {
   it("should have valid content config with wheel segments", () => {
     for (const recipe of SPIN_TO_WIN_DESIGN_RECIPES) {
       const content = recipe.defaults.contentConfig;
+      const segments = content.wheelSegments ?? [];
       expect(content.headline).toBeDefined();
-      expect(content.wheelSegments).toBeDefined();
-      expect(Array.isArray(content.wheelSegments)).toBe(true);
-      expect(content.wheelSegments.length).toBeGreaterThan(0);
+      expect(Array.isArray(segments)).toBe(true);
+      expect(segments.length).toBeGreaterThan(0);
     }
   });
 
   it("should have valid wheel segments with required properties", () => {
     for (const recipe of SPIN_TO_WIN_DESIGN_RECIPES) {
-      for (const segment of recipe.defaults.contentConfig.wheelSegments) {
+      const segments = recipe.defaults.contentConfig.wheelSegments ?? [];
+      for (const segment of segments) {
         expect(segment.label).toBeDefined();
         expect(typeof segment.probability).toBe("number");
         // Probabilities are stored as decimals (0.0 to 1.0)
@@ -54,7 +55,8 @@ describe("SPIN_TO_WIN_DESIGN_RECIPES", () => {
 
   it("should have wheel segment probabilities that sum to 1 (100%)", () => {
     for (const recipe of SPIN_TO_WIN_DESIGN_RECIPES) {
-      const totalProbability = recipe.defaults.contentConfig.wheelSegments.reduce(
+      const segments = recipe.defaults.contentConfig.wheelSegments ?? [];
+      const totalProbability = segments.reduce(
         (sum, segment) => sum + segment.probability,
         0
       );
@@ -63,4 +65,3 @@ describe("SPIN_TO_WIN_DESIGN_RECIPES", () => {
     }
   });
 });
-

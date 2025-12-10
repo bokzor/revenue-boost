@@ -99,7 +99,7 @@ test.describe.serial('Social Proof Template', () => {
         await page.waitForTimeout(3000);
 
         // Check if notifications were returned by the API
-        const notifications = notificationsResponse?.notifications;
+        const notifications = (notificationsResponse as { notifications?: unknown[] } | null)?.notifications;
         const hasNotifications =
           Array.isArray(notifications) && notifications.length > 0;
 
@@ -154,7 +154,7 @@ test.describe.serial('Social Proof Template', () => {
         // Wait for API call to complete
         await page.waitForTimeout(3000);
 
-        const notifications = notificationsResponse?.notifications;
+        const notifications = (notificationsResponse as { notifications?: unknown[] } | null)?.notifications;
         const hasNotifications =
           Array.isArray(notifications) && notifications.length > 0;
 

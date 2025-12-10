@@ -216,8 +216,10 @@ async function navigateToExperimentCreate(page: Page): Promise<AppContext> {
     await experimentCard.click();
     console.log("📋 Clicked A/B Experiment card");
 
-    // Wait for experiment setup page
-    await expect(page.getByText(/Experiment Name/i)).toBeVisible({ timeout: 15000 });
+    // Wait for experiment setup page - look for "Create A/B Experiment" header or Name field
+    await expect(
+      page.getByText(/Create A\/B Experiment/i).or(page.getByText("EXPERIMENT DETAILS"))
+    ).toBeVisible({ timeout: 15000 });
     console.log("✅ Experiment setup page loaded");
     return page;
   }
@@ -239,7 +241,9 @@ async function navigateToExperimentCreate(page: Page): Promise<AppContext> {
   console.log("📋 Clicked A/B Experiment card");
 
   // Wait for experiment setup page
-  await expect(appFrame.getByText(/Experiment Name/i)).toBeVisible({ timeout: 15000 });
+  await expect(
+    appFrame.getByText(/Create A\/B Experiment/i).or(appFrame.getByText("EXPERIMENT DETAILS"))
+  ).toBeVisible({ timeout: 15000 });
   console.log("✅ Experiment setup page loaded");
   return appFrame;
 }
@@ -255,8 +259,8 @@ async function fillExperimentSetup(
 ): Promise<void> {
   console.log(`📝 Setting up experiment: ${experimentName}`);
 
-  // Fill experiment name
-  const nameInput = appContext.getByLabel(/Experiment Name/i);
+  // Fill experiment name - the label is just "Name" in the ExperimentSetupView
+  const nameInput = appContext.getByLabel(/^Name$/i);
   await expect(nameInput).toBeVisible({ timeout: 10000 });
   await nameInput.fill(experimentName);
   console.log(`📝 Filled experiment name: ${experimentName}`);
@@ -415,8 +419,8 @@ test.describe("Admin A/B Experiment Creation", () => {
 
     const appContext = await navigateToExperimentCreate(page);
 
-    // Verify experiment setup form is visible
-    await expect(appContext.getByLabel(/Experiment Name/i)).toBeVisible();
+    // Verify experiment setup form is visible - label is just "Name"
+    await expect(appContext.getByLabel(/^Name$/i)).toBeVisible();
     console.log("✅ Experiment creation page accessible!");
   });
 

@@ -88,9 +88,9 @@ describe("Recipe to Campaign Transformation", () => {
       if (newsletterRecipe) {
         const result = transformRecipeToCampaignData(newsletterRecipe);
 
-        expect(result.contentConfig.headline).toBe(
-          newsletterRecipe.defaults.contentConfig.headline
-        );
+        const content = result.contentConfig as Record<string, unknown>;
+        const expectedHeadline = (newsletterRecipe.defaults.contentConfig as { headline?: string }).headline;
+        expect(content.headline).toBe(expectedHeadline);
       }
     });
 
@@ -98,7 +98,8 @@ describe("Recipe to Campaign Transformation", () => {
       const recipe = STYLED_RECIPES[0];
       const result = transformRecipeToCampaignData(recipe);
 
-      expect(result.designConfig.layout).toBe(recipe.layout);
+      const design = result.designConfig as Record<string, unknown>;
+      expect(design.layout).toBe(recipe.layout);
     });
   });
 
@@ -241,4 +242,3 @@ describe("Recipe to Campaign Transformation", () => {
     });
   });
 });
-

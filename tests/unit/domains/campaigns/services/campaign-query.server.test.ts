@@ -70,7 +70,7 @@ function createMockCampaign(overrides: Partial<Record<string, unknown>> = {}) {
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
-  };
+  } as any;
 }
 
 // ==========================================================================
@@ -306,4 +306,3 @@ describe("CampaignQueryService.getByExperiment", () => {
     ).rejects.toThrow("Failed to fetch campaigns by experiment");
   });
 });
-

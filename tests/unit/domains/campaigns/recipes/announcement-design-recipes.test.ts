@@ -69,19 +69,18 @@ describe("getFeaturedAnnouncementRecipes", () => {
   });
 });
 
-describe("getAnnouncementRecipesByTag", () => {
-  it("should filter recipes by tag", () => {
-    const saleRecipes = getAnnouncementRecipesByTag("sale");
+  describe("getAnnouncementRecipesByTag", () => {
+    it("should filter recipes by tag", () => {
+      const discountRecipes = getAnnouncementRecipesByTag("discount");
 
-    expect(Array.isArray(saleRecipes)).toBe(true);
-    for (const recipe of saleRecipes) {
-      expect(recipe.tags).toContain("sale");
-    }
-  });
+      expect(Array.isArray(discountRecipes)).toBe(true);
+      for (const recipe of discountRecipes) {
+        expect(recipe.tags).toContain("discount");
+      }
+    });
 
   it("should return empty array for non-existent tag", () => {
     const recipes = getAnnouncementRecipesByTag("non_existent" as any);
     expect(recipes).toEqual([]);
   });
 });
-
