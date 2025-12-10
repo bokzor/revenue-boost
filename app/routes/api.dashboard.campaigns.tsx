@@ -13,6 +13,12 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { CampaignService, ExperimentService } from "~/domains/campaigns";
 import { CampaignAnalyticsService } from "~/domains/campaigns/services/campaign-analytics.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
+import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
+import {
+  GAMIFICATION_TEMPLATE_TYPES,
+  SOCIAL_PROOF_TEMPLATE_TYPES,
+  PLAN_DEFINITIONS,
+} from "~/domains/billing/types/plan";
 
 interface CampaignDashboardRow {
   id: string;
@@ -100,11 +106,37 @@ export async function loader({ request }: LoaderFunctionArgs) {
       };
     });
 
+    // Check for grandfathered campaigns (using locked template types)
+    const planContext = await PlanGuardService.getPlanContext(storeId);
+    const features = planContext.definition.features;
+
+    // Determine which template types are locked for this plan
+    const lockedTemplateTypes: string[] = [];
+    if (!features.gamificationTemplates) {
+      lockedTemplateTypes.push(...GAMIFICATION_TEMPLATE_TYPES);
+    }
+    if (!features.socialProofTemplates) {
+      lockedTemplateTypes.push(...SOCIAL_PROOF_TEMPLATE_TYPES);
+    }
+
+    // Find active campaigns using locked templates (grandfathered)
+    const grandfatheredCampaigns = allCampaigns
+      .filter((c) => c.status === "ACTIVE" && lockedTemplateTypes.includes(c.templateType))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        templateType: c.templateType,
+        requiredPlan: (GAMIFICATION_TEMPLATE_TYPES as readonly string[]).includes(c.templateType)
+          ? PLAN_DEFINITIONS.GROWTH.name
+          : PLAN_DEFINITIONS.STARTER.name,
+      }));
+
     return data({
       success: true,
       data: {
         campaigns: campaignsData,
         experiments,
+        grandfatheredCampaigns,
       },
       timeRange,
     });

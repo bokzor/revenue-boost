@@ -9,10 +9,11 @@
 
 export {
   getCampaignDiscountCode,
-  parseDiscountConfig,
   requiresEmailRestriction,
   shouldAutoApply,
 } from "~/domains/commerce/services/discount.server";
+
+export { parseDiscountConfig } from "~/domains/campaigns/utils/json-helpers";
 
 export type {
   DiscountConfig,

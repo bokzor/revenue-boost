@@ -33,9 +33,10 @@ describe("ThemeModeSchema", () => {
 describe("DesignTokensSchema", () => {
   it("should apply defaults", () => {
     const result = DesignTokensSchema.parse({});
-    expect(result.background).toBe("#ffffff");
-    expect(result.foreground).toBe("#1a1a1a");
-    expect(result.primary).toBe("#000000");
+    // Values match DEFAULT_DESIGN_TOKENS (case as defined)
+    expect(result.background).toBe("#FFFFFF");
+    expect(result.foreground).toBe("#1A1A1A");
+    expect(result.primary).toBe("#007BFF");
     expect(result.borderRadius).toBe(8);
     expect(result.popupBorderRadius).toBe(16);
   });

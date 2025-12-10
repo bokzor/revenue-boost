@@ -7,7 +7,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { data, type LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
-import { Frame, Toast, Modal, Text } from "@shopify/polaris";
+import { Frame, Toast, Modal, Text, Banner, Box, Link } from "@shopify/polaris";
 
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
@@ -51,6 +51,10 @@ interface LoaderData {
   experimentsEnabled: boolean;
   backgroundsByLayout?: Record<string, import("~/config/background-presets").BackgroundPreset[]>;
   defaultThemeTokens?: DesignTokens;
+  /** True if campaign uses a template type the user's plan doesn't support (grandfathered) */
+  isTemplateLocked?: boolean;
+  /** Required plan name if template is locked */
+  requiredPlanName?: string;
 }
 
 // ============================================================================
@@ -103,6 +107,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
     console.log("[Campaign Edit Loader] Campaign fetched:", campaign ? campaign.id : "null");
 
+    // Check if campaign uses a template type the user's plan doesn't support (grandfathered)
+    let isTemplateLocked = false;
+    let requiredPlanName: string | undefined;
+    if (campaign) {
+      const canUseTemplate = await PlanGuardService.canUseTemplateType(storeId, campaign.templateType);
+      if (!canUseTemplate) {
+        isTemplateLocked = true;
+        // Determine required plan name
+        const { GAMIFICATION_TEMPLATE_TYPES, SOCIAL_PROOF_TEMPLATE_TYPES, PLAN_DEFINITIONS } = await import(
+          "~/domains/billing/types/plan"
+        );
+        if ((GAMIFICATION_TEMPLATE_TYPES as readonly string[]).includes(campaign.templateType)) {
+          requiredPlanName = PLAN_DEFINITIONS.GROWTH.name;
+        } else if ((SOCIAL_PROOF_TEMPLATE_TYPES as readonly string[]).includes(campaign.templateType)) {
+          requiredPlanName = PLAN_DEFINITIONS.STARTER.name;
+        }
+      }
+    }
+
     // Lazy-load background presets by layout from recipe service
     const { getBackgroundsByLayoutMap } = await import(
       "~/domains/campaigns/recipes/recipe-service.server"
@@ -148,6 +171,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       experimentsEnabled,
       backgroundsByLayout,
       defaultThemeTokens,
+      isTemplateLocked,
+      requiredPlanName,
     });
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
@@ -283,6 +308,8 @@ export default function CampaignEditPage() {
     advancedTargetingEnabled,
     backgroundsByLayout,
     defaultThemeTokens,
+    isTemplateLocked,
+    requiredPlanName,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
@@ -487,6 +514,20 @@ export default function CampaignEditPage() {
 
   return (
     <Frame>
+      {/* Grandfathered campaign warning banner */}
+      {isTemplateLocked && requiredPlanName && (
+        <Box padding="400" paddingBlockEnd="0">
+          <Banner tone="warning">
+            <Text as="p" variant="bodyMd">
+              This campaign uses a template that requires the {requiredPlanName} plan.
+              It will continue running, but you cannot create new campaigns with this template.{" "}
+              <Link url="/app/billing">Upgrade to {requiredPlanName}</Link> to unlock full editing and
+              create new campaigns with this template type.
+            </Text>
+          </Banner>
+        </Box>
+      )}
+
       <CampaignErrorBoundary context="CampaignEdit">
         <SingleCampaignFlow
           onBack={handleBack}

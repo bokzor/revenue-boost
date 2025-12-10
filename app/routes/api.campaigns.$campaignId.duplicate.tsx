@@ -5,6 +5,7 @@ import { handleApiError } from "~/lib/api-error-handler.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { withWriteRateLimit } from "~/lib/rate-limit-middleware.server";
 import { authenticate } from "~/shopify.server";
+import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 
 export async function action(args: ActionFunctionArgs) {
     return withWriteRateLimit({ ...args, context: args.context as unknown }, async ({ request, params }) => {
@@ -20,6 +21,13 @@ export async function action(args: ActionFunctionArgs) {
             if (request.method !== "POST") {
                 throw new Error(`Method ${request.method} not allowed`);
             }
+
+            // Get the original campaign to check template type
+            const originalCampaign = await CampaignService.getCampaignById(campaignId, storeId);
+            validateResourceExists(originalCampaign, "Campaign");
+
+            // Check if template type is allowed on user's plan (blocks duplicating locked templates)
+            await PlanGuardService.assertCanUseTemplateType(storeId, originalCampaign.templateType);
 
             const newCampaign = await CampaignService.duplicateCampaign(campaignId, storeId, admin);
             validateResourceExists(newCampaign, "Campaign");

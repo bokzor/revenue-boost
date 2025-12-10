@@ -81,51 +81,57 @@ describe("resolveDesignTokens", () => {
     });
   });
 
-  describe("themeMode: preset", () => {
-    it("should use preset tokens when presetId is valid", () => {
+  describe("themeMode: preset (deprecated - now uses defaultTokens)", () => {
+    // NOTE: themeMode: "preset" is deprecated. The resolveDesignTokens function
+    // now ignores themeMode and presetId - it uses defaultTokens instead.
+    // Preset lookup is now handled by getPresetDesign() separately.
+
+    it("should return DEFAULT_DESIGN_TOKENS when no defaultTokens provided", () => {
       const design: CampaignDesignInput = {
         themeMode: "preset",
         presetId: "bold-energy",
       };
       const tokens = resolveDesignTokens(design);
 
-      expect(tokens.background).toBe("#1a1a2e");
-      expect(tokens.foreground).toBe("#ffffff");
-      expect(tokens.primary).toBe("#ff6b35");
+      // Preset is NOT looked up - returns default tokens
+      expect(tokens).toEqual(DEFAULT_DESIGN_TOKENS);
     });
 
-    it("should use Black Friday preset tokens", () => {
+    it("should merge custom tokens with defaults when presetId set", () => {
       const design: CampaignDesignInput = {
         themeMode: "preset",
         presetId: "black-friday",
+        tokens: { primary: "#ff0000" },
       };
       const tokens = resolveDesignTokens(design);
 
-      expect(tokens.background).toBe("#000000");
-      expect(tokens.foreground).toBe("#ffffff");
-      expect(tokens.primary).toBe("#ff0000");
-      expect(tokens.fontFamily).toBe("'Bebas Neue', sans-serif");
+      // Tokens are merged with defaults, not preset
+      expect(tokens.background).toBe(DEFAULT_DESIGN_TOKENS.background);
+      expect(tokens.primary).toBe("#ff0000"); // Override
     });
 
-    it("should fall back to defaults for invalid presetId", () => {
+    it("should use defaultTokens when provided", () => {
       const design: CampaignDesignInput = {
         themeMode: "preset",
         presetId: "non-existent-preset",
       };
-      const tokens = resolveDesignTokens(design);
+      const customDefaults = { background: "#123456", primary: "#abcdef" };
+      const tokens = resolveDesignTokens(design, customDefaults);
 
-      expect(tokens).toEqual(DEFAULT_DESIGN_TOKENS);
+      expect(tokens.background).toBe("#123456");
+      expect(tokens.primary).toBe("#abcdef");
     });
 
-    it("should allow custom token overrides on preset", () => {
+    it("should allow custom token overrides on defaultTokens", () => {
       const design: CampaignDesignInput = {
         themeMode: "preset",
         presetId: "bold-energy",
         tokens: { primary: "#00ff00" },
       };
-      const tokens = resolveDesignTokens(design);
+      const customDefaults = { background: "#1a1a2e" };
+      const tokens = resolveDesignTokens(design, customDefaults);
 
-      expect(tokens.background).toBe("#1a1a2e"); // From preset
+      expect(tokens.background).toBe("#1a1a2e"); // From defaultTokens
       expect(tokens.primary).toBe("#00ff00"); // Override
     });
   });
@@ -168,10 +174,11 @@ describe("tokensToCSSString", () => {
   it("should generate CSS custom properties string", () => {
     const cssString = tokensToCSSString(DEFAULT_DESIGN_TOKENS);
 
-    expect(cssString).toContain("--rb-background: #ffffff");
-    expect(cssString).toContain("--rb-foreground: #1a1a1a");
-    expect(cssString).toContain("--rb-primary: #000000");
-    expect(cssString).toContain("--rb-primary-foreground: #ffffff");
+    // Values match DEFAULT_DESIGN_TOKENS (case as defined)
+    expect(cssString).toContain("--rb-background: #FFFFFF");
+    expect(cssString).toContain("--rb-foreground: #1A1A1A");
+    expect(cssString).toContain("--rb-primary: #007BFF");
+    expect(cssString).toContain("--rb-primary-foreground: #FFFFFF");
     expect(cssString).toContain("--rb-success: #10B981");
     expect(cssString).toContain("--rb-radius: 8px");
     expect(cssString).toContain("--rb-popup-radius: 16px");

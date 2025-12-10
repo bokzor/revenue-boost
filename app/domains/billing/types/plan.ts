@@ -199,8 +199,13 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
 
 export const PLAN_ORDER: PlanTier[] = ["FREE", "STARTER", "GROWTH", "PRO", "ENTERPRISE"];
 
-// Only enabled plans for UI display
+// Only enabled plans for logic (upgrade/downgrade detection)
 export const ENABLED_PLAN_ORDER: PlanTier[] = PLAN_ORDER.filter(
+  (tier) => PLAN_DEFINITIONS[tier].isEnabled
+);
+
+// Display order for pricing page: lead with popular, paid plans first, free last
+export const DISPLAY_PLAN_ORDER: PlanTier[] = (["GROWTH", "PRO", "STARTER", "FREE"] as PlanTier[]).filter(
   (tier) => PLAN_DEFINITIONS[tier].isEnabled
 );
 

@@ -5,11 +5,14 @@
  * Shows recipe icon, name, tagline, and badges for featured/new/seasonal.
  * Includes an info tooltip with the recipe description.
  * On hover, shows a larger desktop preview of the popup.
+ *
+ * Premium templates (gamification, social proof) are gated by plan tier
+ * and show a locked state with upgrade messaging.
  */
 
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Text, InlineStack, Tooltip, Icon, Portal, Button } from "@shopify/polaris";
-import { ViewIcon } from "@shopify/polaris-icons";
+import { ViewIcon, LockIcon } from "@shopify/polaris-icons";
 import type { StyledRecipe } from "../../recipes/styled-recipe-types";
 import { RECIPE_TAG_LABELS } from "../../recipes/styled-recipe-types";
 import type { DesignTokens } from "../../types/design-tokens";
@@ -21,6 +24,47 @@ import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-prese
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
 import { usePreviewContext } from "./PreviewContext";
 import { LazyLoad } from "~/components/LazyLoad";
+import { useBilling } from "~/routes/app";
+import {
+  GAMIFICATION_TEMPLATE_TYPES,
+  SOCIAL_PROOF_TEMPLATE_TYPES,
+  PLAN_DEFINITIONS,
+} from "~/domains/billing/types/plan";
+import type { PlanFeatures, PlanTier } from "~/domains/billing/types/plan";
+
+// =============================================================================
+// TEMPLATE GATING HELPERS
+// =============================================================================
+
+/**
+ * Check if a template type requires a specific plan feature
+ * Returns the required feature and minimum plan tier, or null if no gating
+ */
+function getTemplateGatingInfo(templateType: string): {
+  feature: keyof PlanFeatures;
+  minimumPlan: PlanTier;
+  featureName: string;
+} | null {
+  // Check gamification templates (Growth+ required)
+  if ((GAMIFICATION_TEMPLATE_TYPES as readonly string[]).includes(templateType)) {
+    return {
+      feature: "gamificationTemplates",
+      minimumPlan: "GROWTH",
+      featureName: "Gamification popups",
+    };
+  }
+
+  // Check social proof templates (Starter+ required)
+  if ((SOCIAL_PROOF_TEMPLATE_TYPES as readonly string[]).includes(templateType)) {
+    return {
+      feature: "socialProofTemplates",
+      minimumPlan: "STARTER",
+      featureName: "Social proof popups",
+    };
+  }
+
+  return null;
+}
 
 // =============================================================================
 // TYPES
@@ -488,6 +532,14 @@ export function RecipeCard({
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Check plan-based template gating
+  const billing = useBilling();
+  const gatingInfo = getTemplateGatingInfo(recipe.templateType);
+  const isLocked = gatingInfo ? !billing.canAccessFeature(gatingInfo.feature) : false;
+  const lockMessage = gatingInfo
+    ? `${gatingInfo.featureName} require ${PLAN_DEFINITIONS[gatingInfo.minimumPlan].name} plan`
+    : "";
+
   // Use context if available (ensures only one preview at a time)
   const previewContext = usePreviewContext();
 
@@ -756,6 +808,25 @@ export function RecipeCard({
             </div>
           )}
 
+          {/* Premium Badge - shown for locked templates */}
+          {isLocked && gatingInfo && (
+            <div style={{ marginTop: "4px" }}>
+              <span style={{
+                fontSize: "10px",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                backgroundColor: "var(--p-color-bg-fill-warning)",
+                color: "#FFFFFF",
+                fontWeight: 500,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}>
+                🔒 {PLAN_DEFINITIONS[gatingInfo.minimumPlan].name}+ Plan
+              </span>
+            </div>
+          )}
+
           {/* Tags (max 3) */}
           {recipe.tags && recipe.tags.length > 0 && (
             <div style={tagsContainerStyle}>
@@ -769,13 +840,28 @@ export function RecipeCard({
 
           {/* Select Button - pushed to bottom with marginTop: auto */}
           <div style={{ marginTop: "auto", paddingTop: "12px" }}>
-            <Button
-              variant={isSelected ? "primary" : "secondary"}
-              fullWidth
-              onClick={() => onSelect()}
-            >
-              {isSelected ? "Selected" : "Select"}
-            </Button>
+            {isLocked ? (
+              <Tooltip content={lockMessage} preferredPosition="above">
+                <div>
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    disabled
+                    icon={LockIcon}
+                  >
+                    Upgrade to Unlock
+                  </Button>
+                </div>
+              </Tooltip>
+            ) : (
+              <Button
+                variant={isSelected ? "primary" : "secondary"}
+                fullWidth
+                onClick={() => onSelect()}
+              >
+                {isSelected ? "Selected" : "Select"}
+              </Button>
+            )}
           </div>
         </div>
       </div>

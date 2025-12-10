@@ -13,6 +13,8 @@ import {
   Select,
   SkeletonBodyText,
   SkeletonDisplayText,
+  Banner,
+  Link,
 } from "@shopify/polaris";
 import { PlusIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
@@ -75,11 +77,19 @@ interface MetricsApiResponse {
   hasCampaigns: boolean;
 }
 
+interface GrandfatheredCampaign {
+  id: string;
+  name: string;
+  templateType: string;
+  requiredPlan: string;
+}
+
 interface CampaignsApiResponse {
   success: boolean;
   data: {
     campaigns: CampaignDashboardRow[];
     experiments: ExperimentWithVariants[];
+    grandfatheredCampaigns?: GrandfatheredCampaign[];
   };
 }
 
@@ -513,6 +523,7 @@ export default function Dashboard() {
 
   const campaigns = campaignsData?.data?.campaigns ?? [];
   const experiments = campaignsData?.data?.experiments ?? [];
+  const grandfatheredCampaigns = campaignsData?.data?.grandfatheredCampaigns ?? [];
 
   // --- Main Dashboard ---
   return (
@@ -557,6 +568,21 @@ export default function Dashboard() {
               />
             </Layout.Section>
           )}
+
+        {/* Grandfathered Campaigns Banner - Show when user has active campaigns using locked templates */}
+        {grandfatheredCampaigns.length > 0 && (
+          <Layout.Section>
+            <Banner tone="warning">
+              <Text as="p" variant="bodyMd">
+                You have {grandfatheredCampaigns.length} active campaign
+                {grandfatheredCampaigns.length > 1 ? "s" : ""} using premium features (
+                {grandfatheredCampaigns.map((c) => c.name).join(", ")}). These will continue running,
+                but you cannot create new campaigns with these templates.{" "}
+                <Link url="/app/billing">Upgrade your plan</Link> to unlock full access.
+              </Text>
+            </Banner>
+          </Layout.Section>
+        )}
 
         {/* Global Metrics */}
         <Layout.Section>

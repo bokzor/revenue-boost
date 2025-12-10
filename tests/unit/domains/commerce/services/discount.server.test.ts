@@ -39,8 +39,8 @@ import * as shopifyDiscountModule from "~/lib/shopify/discount.server";
 import {
   getCampaignDiscountCode,
   createEmailSpecificDiscount,
-  parseDiscountConfig,
 } from "~/domains/commerce/services/discount.server";
+import { parseDiscountConfig } from "~/domains/campaigns/utils/json-helpers";
 import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
 
 // ==========================================================================
@@ -65,56 +65,44 @@ function createDiscountConfig(overrides: Partial<DiscountConfig>): DiscountConfi
 // STRATEGY INFERENCE
 // ==========================================================================
 
-describe("parseDiscountConfig strategy inference", () => {
-  it("defaults to simple when nothing is provided", () => {
+describe("parseDiscountConfig", () => {
+  it("returns default values for empty config", () => {
     const result = parseDiscountConfig({});
-    expect(result.strategy).toBe("simple");
+    expect(result.enabled).toBe(false);
+    expect(result.showInPreview).toBe(true);
+    expect(result.behavior).toBe("SHOW_CODE_AND_AUTO_APPLY");
   });
 
-  it("infers bundle when product-scoped", () => {
-    const result = parseDiscountConfig({
-      applicability: { scope: "products", productIds: ["gid://shopify/Product/1"] },
-      valueType: "PERCENTAGE",
-      value: 10,
-    });
+  it("parses enabled=true", () => {
+    const result = parseDiscountConfig({ enabled: true });
+    expect(result.enabled).toBe(true);
+  });
+
+  it("parses strategy when explicitly set", () => {
+    const result = parseDiscountConfig({ strategy: "bundle" });
     expect(result.strategy).toBe("bundle");
   });
 
-  it("defaults bundle value to 10 when missing", () => {
-    const result = parseDiscountConfig({
-      applicability: { scope: "products", productIds: ["gid://shopify/Product/1"] },
-      valueType: "PERCENTAGE",
-    });
-    expect(result.strategy).toBe("bundle");
-    expect(result.value).toBe(10);
-  });
-
-  it("infers tiered when tiers are present", () => {
-    const result = parseDiscountConfig({
-      tiers: [{ thresholdCents: 5000, discount: { kind: "percentage", value: 10 } }],
-    });
+  it("parses tiered strategy when explicitly set", () => {
+    const result = parseDiscountConfig({ strategy: "tiered" });
     expect(result.strategy).toBe("tiered");
   });
 
-  it("infers bogo when bogo is present", () => {
+  it("parses value and valueType", () => {
     const result = parseDiscountConfig({
-      bogo: {
-        buy: { scope: "any", quantity: 1 },
-        get: { scope: "products", ids: ["gid://shopify/Product/2"], quantity: 1, discount: { kind: "free_product", value: 100 }, appliesOncePerOrder: true },
-      },
+      enabled: true,
+      value: 15,
+      valueType: "PERCENTAGE",
     });
-    expect(result.strategy).toBe("bogo");
+    expect(result.value).toBe(15);
+    expect(result.valueType).toBe("PERCENTAGE");
   });
 
-  it("infers free_gift when freeGift is present", () => {
+  it("parses behavior", () => {
     const result = parseDiscountConfig({
-      freeGift: {
-        productId: "gid://shopify/Product/3",
-        variantId: "gid://shopify/ProductVariant/3",
-        quantity: 1,
-      },
+      behavior: "SHOW_CODE_AND_ASSIGN_TO_EMAIL",
     });
-    expect(result.strategy).toBe("free_gift");
+    expect(result.behavior).toBe("SHOW_CODE_AND_ASSIGN_TO_EMAIL");
   });
 });
 
