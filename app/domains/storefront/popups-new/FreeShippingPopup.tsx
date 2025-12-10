@@ -477,7 +477,7 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
   const getProgressColor = () => {
     if (state === "unlocked") return config.accentColor || "var(--rb-success, #10B981)";
     if (state === "near-miss") return "#F59E0B"; // Warning color
-    return config.accentColor || "#3B82F6"; // Primary color
+    return config.accentColor || "var(--rb-primary, #007BFF)"; // Primary color
   };
 
   // Get icon based on state
@@ -533,13 +533,13 @@ export const FreeShippingPopup: React.FC<FreeShippingPopupProps> = ({
           border-radius: inherit;
           border: 2px solid transparent;
           background:
-            linear-gradient(${config.backgroundColor || "#ffffff"}, ${config.backgroundColor || "#ffffff"}) padding-box,
+            linear-gradient(${config.backgroundColor || "var(--rb-background, #FFFFFF)"}, ${config.backgroundColor || "var(--rb-background, #FFFFFF)"}) padding-box,
             conic-gradient(
               from var(--rb-border-angle),
-              ${config.accentColor || "#3B82F6"},
+              ${config.accentColor || "var(--rb-primary, #007BFF)"},
               var(--rb-success, #22c55e),
               #facc15,
-              ${config.accentColor || "#3B82F6"}
+              ${config.accentColor || "var(--rb-primary, #007BFF)"}
             ) border-box;
           opacity: 0;
           pointer-events: none;

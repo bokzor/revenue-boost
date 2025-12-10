@@ -65,7 +65,7 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
     }
   };
 
-  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)";
   const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
   const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
   // Use adaptive muted color based on background for proper contrast
@@ -166,7 +166,8 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
               <ProductImage
                 src={mainProduct.imageUrl}
                 alt={mainProduct.title}
-                aspectRatio="square"
+                aspectRatio="auto"
+                height="100%"
                 priority={true}
               />
             </div>
@@ -184,7 +185,8 @@ export const BundleDealPopup: React.FC<BundleDealPopupProps> = ({
                 <ProductImage
                   src={product.imageUrl}
                   alt={product.title}
-                  aspectRatio="square"
+                  aspectRatio="auto"
+                  height="100%"
                   priority={index < 2}
                 />
               </div>

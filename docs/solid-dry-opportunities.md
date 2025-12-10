@@ -8,7 +8,7 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 - Risk: Any change to error handling, logging, or status mapping must be copied 5 times.
 - Suggested refactor: Introduce an intent → handler map (e.g., `runBulkAction(intent, updater, successCopy)`) or a tiny `BulkCampaignActions` helper that encapsulates the shared flow, leaving only the intent-specific mutation functions inline.
 
-## 2) Campaign duplication rules diverge
+## 2) Campaign duplication rules diverge **[COMPLETED]**
 - Where:
   - Bulk duplicate: `app/routes/app._index.tsx:208-244`
   - Single duplicate (same file): `app/routes/app._index.tsx:246-270`
@@ -17,7 +17,7 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 - Risk: Copies can drift (status resets, experiment detach, date handling). Bugs will be subtle because copies succeed but differ.
 - Suggested refactor: Add `CampaignDuplicator` in the domain that accepts a campaign and returns sanitized `CampaignCreateData` (resets status, removes experiment/variant keys, resets dates). All callers use it; UI POST becomes a thin wrapper.
 
-## 3) API mutation paths are split and only partially sanitized
+## 3) API mutation paths are split and only partially sanitized **[PARTIALLY COMPLETED - Security Fix Applied]**
 - Where:
   - Query-param route: `app/routes/api.campaigns.tsx` (POST/PUT/DELETE via `?id=...`)
   - Path-param route: `app/routes/api.campaigns.$campaignId.tsx` (PUT/DELETE `/api/campaigns/:campaignId`)
@@ -38,7 +38,7 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 - Risk: Validation and initial state can drift from route loaders, causing “required” warnings in one flow but not another.
 - Suggested refactor: Centralize targeting/frequency default objects in a small `targeting-defaults.ts` module and reuse in both loaders and `SingleCampaignFlow`.
 
-## 6) Discount strategy inference duplicated
+## 6) Discount strategy inference duplicated **[COMPLETED]**
 - Where:
   - `inferStrategy` and `normalizeDiscountConfig` in `app/routes/api.discounts.issue.tsx:1-74`
   - Strategy selection also lives in `domains/commerce/services/discount.server.ts` (strategy list and application)
@@ -150,7 +150,7 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 - Risk: Brand color or typography adjustments need to be replicated; inconsistent look and feel across surfaces.
 - Suggested refactor: Extend `PopupStyles` (or a shared design-tokens-to-style adapter) to cover slide-ins and banners so all surfaces derive from the same token set.
 
-## 22) Discount config normalization/inference split
+## 22) Discount config normalization/inference split **[COMPLETED]**
 - Where: `api.discounts.issue.tsx` normalizes and infers strategy; `commerce/services/discount.server.ts` implements strategy application; legacy popups discount service re-exports logic.
 - Pattern: Cross-layer duplication of discount config shaping.
 - Risk: Adding fields or changing defaults requires edits in multiple layers; inference may diverge from execution.
@@ -170,7 +170,7 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 - Risk: Validation rules can drift; error messages differ. Client may block while server would allow (or vice versa).
 - Suggested refactor: Centralize validation helpers that can run isomorphically (e.g., shared `validateCampaignCreateData` exporting a pure function) and have the UI import the same module for sync with server validation messages.
 
-## 25) Campaign duplication logic bypasses domain rules
+## 25) Campaign duplication logic bypasses domain rules **[COMPLETED]**
 - Where:
   - UI duplicate posts full campaign object to `/api/campaigns` (detail page).
   - Bulk/single duplicate in dashboard routes construct payloads manually.
@@ -353,14 +353,14 @@ Quick inventory of duplicated logic and SOLID violations that are currently acti
 # Prioritized Backlog (high → medium → lower)
 
 ## High Priority
-1) **Campaign duplication consistency** (Items 2, 25): Central `CampaignDuplicator` service + domain-level duplicate API; swap all callers. Prevents silent drift and data bugs when copying campaigns.  
+1) **Campaign duplication consistency** (Items 2, 25) **[COMPLETED]**: Central `CampaignDuplicator` service + domain-level duplicate API; swap all callers. Prevents silent drift and data bugs when copying campaigns.  
 2) **Bulk campaign actions abstraction** (Item 1): Shared bulk handler for activate/pause/archive/delete/duplicate; reduces 5x duplication and future intent bugs.  
 3) **Unified campaign mutation pipeline** (Items 3, 7, 29): Single mutation entrypoint (PUT/POST/DELETE) with shared hooks (sanitize custom CSS, segment sync, plan guards). Retire duplicate routes or proxy them.  
 4) **Shared campaign mapper/defaults** (Items 4, 10): One `campaignToFormData` mapper with centralized targeting/frequency defaults; used by both edit and experiment flows + SingleCampaignFlow. Prevents UI inconsistency.  
-5) **Design/custom CSS sanitization + preview parity** (Items 3, 9, 15, 33): Central CSS sanitizer, shared Custom CSS field component, and admin preview using the same design tokens/styles as storefront. Avoids XSS issues and preview/prod drift.
+5) **Design/custom CSS sanitization + preview parity** (Items 3, 9, 15, 33): Central CSS sanitizer (Done), shared Custom CSS field component, and admin preview using the same design tokens/styles as storefront. Avoids XSS issues and preview/prod drift.
 
 ## Medium Priority
-6) **Discount normalization/strategy single source** (Items 6, 22, 39): Move normalization + strategy inference + caching/idempotency into commerce discount service; routes thin.  
+6) **Discount normalization/strategy single source** (Items 6, 22, 39) **[COMPLETED]**: Move normalization + strategy inference + caching/idempotency into commerce discount service; routes thin.  
 7) **Portal/rendering/animation unification** (Items 12, 35, 36): Base portal/visibility + shared animations/CSS scoping; apply to popups, banners, slide-ins, social-proof.  
 8) **Lead capture single source** (Items 14, 31, 40): One module exporting schema, type, defaults, and field descriptors; admin/storefront render from it; lead submission validation shared.  
 9) **Plan guard/state machine for status** (Items 37, 44): Centralize plan checks in mutation service and enforce status transitions via a state machine.  

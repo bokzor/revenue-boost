@@ -51,11 +51,11 @@ export type ThemeMode = z.infer<typeof ThemeModeSchema>;
 export const DesignTokensSchema = z.object({
   // === TIER 1: Essential Colors (Simple Mode - 5 tokens) ===
   /** Primary background color */
-  background: z.string().default("#ffffff"),
+  background: z.string().default("#FFFFFF"),
   /** Primary text color */
-  foreground: z.string().default("#1a1a1a"),
-  /** Primary action color (buttons, links, accents) */
-  primary: z.string().default("#000000"),
+  foreground: z.string().default("#1A1A1A"),
+  /** Primary action color (buttons, links, accents) - Brand blue #007BFF */
+  primary: z.string().default("#007BFF"),
   /** Muted/secondary text color (descriptions, placeholders) */
   muted: z.string().optional(),
   /** Border radius for buttons and inputs (in pixels) */
@@ -356,19 +356,22 @@ export type CampaignDesign = z.infer<typeof CampaignDesignSchema>;
 
 /**
  * Default design tokens (used when no theme is available)
+ *
+ * IMPORTANT: These values MUST match the CSS fallbacks in design-tokens.css
+ * to ensure admin preview and storefront render identically.
  */
 export const DEFAULT_DESIGN_TOKENS: DesignTokens = {
-  // Tier 1: Essential
-  background: "#ffffff",
-  foreground: "#1a1a1a",
-  primary: "#000000",
+  // Tier 1: Essential - Primary brand color is #007BFF (blue)
+  background: "#FFFFFF",
+  foreground: "#1A1A1A",
+  primary: "#007BFF",
   muted: "rgba(26, 26, 26, 0.6)",
   borderRadius: 8,
 
   // Tier 2: Common
-  primaryForeground: "#ffffff",
-  surface: "#f5f5f5",
-  border: "rgba(26, 26, 26, 0.2)",
+  primaryForeground: "#FFFFFF",
+  surface: "#F5F5F5",
+  border: "rgba(26, 26, 26, 0.15)",
   overlay: "rgba(0, 0, 0, 0.6)",
   fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
 
@@ -487,61 +490,17 @@ export function resolveDesignTokens(
   design: CampaignDesignInput | undefined,
   defaultTokens?: Partial<DesignTokens>
 ): DesignTokens {
-  if (!design) {
-    return defaultTokens
-      ? { ...DEFAULT_DESIGN_TOKENS, ...defaultTokens }
-      : DEFAULT_DESIGN_TOKENS;
-  }
+  // SIMPLIFIED MODEL: Always use store's default theme tokens as the base.
+  // The themeMode field is deprecated - we always apply store defaults.
+  // Campaign-specific colors are handled by mergeTokensIntoDesignConfig.
 
-  let baseTokens: DesignTokens;
+  // Start with system defaults, overlay with store's custom theme tokens
+  const baseTokens = defaultTokens
+    ? { ...DEFAULT_DESIGN_TOKENS, ...defaultTokens }
+    : DEFAULT_DESIGN_TOKENS;
 
-  switch (design.themeMode) {
-    case "preset": {
-      const preset = design.presetId ? getPresetDesign(design.presetId) : undefined;
-      baseTokens = preset
-        ? {
-            // Tier 1: Essential
-            background: preset.background,
-            foreground: preset.foreground,
-            primary: preset.primary,
-            muted: preset.muted,
-            borderRadius: preset.borderRadius,
-            // Tier 2: Common
-            primaryForeground: preset.primaryForeground,
-            surface: preset.surface,
-            border: preset.border,
-            overlay: preset.overlay,
-            fontFamily: preset.fontFamily,
-            // Tier 3: Advanced
-            success: preset.success,
-            error: preset.error || DEFAULT_DESIGN_TOKENS.error,
-            ring: preset.ring,
-            headingFontFamily: preset.headingFontFamily,
-            // Structural
-            popupBorderRadius: preset.popupBorderRadius,
-          }
-        : DEFAULT_DESIGN_TOKENS;
-      break;
-    }
-
-    case "default":
-    case "shopify": {
-      // Both "default" and "shopify" use the store's default theme preset
-      baseTokens = defaultTokens
-        ? { ...DEFAULT_DESIGN_TOKENS, ...defaultTokens }
-        : DEFAULT_DESIGN_TOKENS;
-      break;
-    }
-
-    case "custom":
-    default: {
-      baseTokens = DEFAULT_DESIGN_TOKENS;
-      break;
-    }
-  }
-
-  // Merge any custom token overrides
-  if (design.tokens) {
+  // If campaign has custom token overrides, merge them
+  if (design?.tokens) {
     return { ...baseTokens, ...design.tokens };
   }
 

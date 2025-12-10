@@ -204,7 +204,8 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
   const _radius = wheelSize / 2;
   const segments = useMemo(() => config.wheelSegments || [], [config.wheelSegments]);
   const _segmentAngle = 360 / Math.max(1, segments.length);
-  const accentColor = config.accentColor || config.buttonColor || "#000000";
+  // Use CSS variable as fallback for accent color - defined in design-tokens.css
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)";
   const borderRadius =
     typeof config.borderRadius === "string"
       ? parseFloat(config.borderRadius) || 16

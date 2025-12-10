@@ -14,7 +14,7 @@ import { handleApiError } from "~/lib/api-error-handler.server";
 import prisma from "~/db.server";
 import {
   getCampaignDiscountCode,
-  parseDiscountConfig,
+  normalizeDiscountConfig,
   getSuccessMessage,
   shouldShowDiscountCode,
 } from "~/domains/commerce/services/discount.server";
@@ -144,7 +144,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Parse and validate discount config
-    const discountConfig = parseDiscountConfig(campaign.discountConfig);
+    const discountConfig = normalizeDiscountConfig(campaign.discountConfig);
 
     if (!discountConfig?.enabled) {
       return data<EmailRecoveryResponse>(

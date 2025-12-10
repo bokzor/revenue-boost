@@ -505,7 +505,7 @@ export const ScratchCardPopup: React.FC<ScratchCardPopupProps> = ({
       height: cardHeight,
       backgroundColor: config.scratchCardBackgroundColor,
       textColor: config.scratchCardTextColor || config.buttonTextColor || config.textColor,
-      accentColor: config.accentColor || config.buttonColor || "#4f46e5",
+      accentColor: config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)",
       buttonColor: config.buttonColor,
       overlayColor: config.scratchOverlayColor || "#C0C0C0",
       instruction: config.scratchInstruction || "Scratch to reveal!",

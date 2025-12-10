@@ -387,4 +387,47 @@ export class CampaignMutationService {
       throw new CampaignServiceError("DELETE_CAMPAIGN_FAILED", "Failed to delete campaign", error);
     }
   }
+  /**
+   * Duplicate a campaign
+   * Creates a clean copy detached from experiments and external syncing
+   */
+  static async duplicate(
+    id: string,
+    storeId: string,
+    admin?: AdminApiContext
+  ): Promise<CampaignWithConfigs> {
+    const original = await CampaignQueryService.getById(id, storeId);
+    if (!original) {
+      throw new CampaignServiceError("CAMPAIGN_NOT_FOUND", "Campaign not found");
+    }
+
+    // Create a copy of the data, explicitly excluding fields that shouldn't be copied
+    const duplicateData: CampaignCreateData = {
+      name: `${original.name} (Copy)`,
+      description: original.description || undefined,
+      goal: original.goal,
+      status: "DRAFT", // Always reset to DRAFT
+      priority: original.priority,
+      templateId: original.templateId || "", // Ensure string if null, though validation checks this
+      templateType: original.templateType,
+
+      // Copy configurations
+      contentConfig: original.contentConfig || {},
+      designConfig: original.designConfig || {},
+      targetRules: original.targetRules || {},
+      discountConfig: original.discountConfig,
+
+      // Explicitly set experiment fields to undefined/null
+      experimentId: undefined,
+      variantKey: undefined,
+      isControl: false,
+
+      // Reset dates
+      startDate: undefined,
+      endDate: undefined,
+    };
+
+    // We don't pass appUrl here because we don't want to sync DRAFT duplicates to Shopify Marketing Events yet
+    return this.create(storeId, duplicateData, admin);
+  }
 }

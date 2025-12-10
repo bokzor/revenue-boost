@@ -192,21 +192,25 @@ export interface TemplatePreviewEntry<TConfig = unknown> {
 
 /**
  * Build common config properties shared across all templates
+ *
+ * NOTE: Color defaults are handled by CSS variables in design-tokens.css.
+ * This function only passes through explicit values - if undefined, components
+ * will use var(--rb-primary), var(--rb-background), etc. with CSS fallbacks.
  */
 function buildCommonConfig(
   mergedConfig: Partial<PopupDesignConfig>,
   designConfig: Partial<PopupDesignConfig>
 ) {
   const result = {
-    // Main colors
-    backgroundColor: mergedConfig.backgroundColor || designConfig.backgroundColor || "#FFFFFF",
-    textColor: mergedConfig.textColor || designConfig.textColor || "#1A1A1A",
+    // Main colors - NO hardcoded fallbacks, CSS variables handle defaults
+    backgroundColor: mergedConfig.backgroundColor || designConfig.backgroundColor,
+    textColor: mergedConfig.textColor || designConfig.textColor,
     descriptionColor: mergedConfig.descriptionColor || designConfig.descriptionColor,
-    accentColor: mergedConfig.accentColor || designConfig.accentColor || "#007BFF",
+    accentColor: mergedConfig.accentColor || designConfig.accentColor,
 
-    // Button colors
-    buttonColor: mergedConfig.buttonColor || designConfig.buttonColor || "#007BFF",
-    buttonTextColor: mergedConfig.buttonTextColor || designConfig.buttonTextColor || "#FFFFFF",
+    // Button colors - NO hardcoded fallbacks, CSS variables handle defaults
+    buttonColor: mergedConfig.buttonColor || designConfig.buttonColor,
+    buttonTextColor: mergedConfig.buttonTextColor || designConfig.buttonTextColor,
 
     // Input colors
     inputBackgroundColor: mergedConfig.inputBackgroundColor || designConfig.inputBackgroundColor,
@@ -898,9 +902,9 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.CLASSIC_UPSELL] = {
       (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
       PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
     ...buildCommonConfig(mergedConfig, designConfig),
-    // Neutral color overrides for upsell templates
-    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
-    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+    // Upsell templates use foreground color for neutral professional look
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "var(--rb-foreground, #1A1A1A)",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "var(--rb-foreground, #1A1A1A)",
   }),
 };
 
@@ -926,9 +930,9 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.MINIMAL_SLIDE_UP] = {
       (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
       PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
     ...buildCommonConfig(mergedConfig, designConfig),
-    // Neutral color overrides for upsell templates
-    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
-    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+    // Upsell templates use foreground color for neutral professional look
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "var(--rb-foreground, #1A1A1A)",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "var(--rb-foreground, #1A1A1A)",
   }),
 };
 
@@ -963,9 +967,9 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.PREMIUM_FULLSCREEN] = {
       (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
       PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
     ...buildCommonConfig(mergedConfig, designConfig),
-    // Neutral color overrides for upsell templates
-    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
-    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+    // Upsell templates use foreground color for neutral professional look
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "var(--rb-foreground, #1A1A1A)",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "var(--rb-foreground, #1A1A1A)",
   }),
 };
 
@@ -996,9 +1000,9 @@ TEMPLATE_PREVIEW_REGISTRY[TemplateTypeEnum.COUNTDOWN_URGENCY] = {
       (mergedConfig.products as typeof PRODUCT_UPSELL_PREVIEW_PRODUCTS) ||
       PRODUCT_UPSELL_PREVIEW_PRODUCTS.slice(0, 1),
     ...buildCommonConfig(mergedConfig, designConfig),
-    // Neutral color overrides for upsell templates
-    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "#1A1A1A",
-    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "#1A1A1A",
+    // Upsell templates use foreground color for neutral professional look
+    buttonColor: (mergedConfig.buttonColor as string) || designConfig.buttonColor || "var(--rb-foreground, #1A1A1A)",
+    accentColor: (mergedConfig.accentColor as string) || designConfig.accentColor || "var(--rb-foreground, #1A1A1A)",
   }),
 };
 

@@ -45,6 +45,11 @@ export interface LayoutConfig {
  * PopupDesignConfig - Pure design/visual properties
  * Does NOT include content fields (headline, buttonText, etc.)
  * Those come from campaign content types
+ *
+ * COLOR ARCHITECTURE:
+ * All color properties are OPTIONAL. When not provided, components should use
+ * CSS variables (e.g., var(--rb-primary)) which have defaults in design-tokens.css.
+ * This enables a single source of truth for default colors.
  */
 export interface PopupDesignConfig {
   id: string;
@@ -54,12 +59,12 @@ export interface PopupDesignConfig {
   utmSource?: string | null;
   utmMedium?: string | null;
 
-  // Design/Visual Properties
-  backgroundColor: string;
-  textColor: string;
+  // Design/Visual Properties - All optional, CSS variables provide defaults
+  backgroundColor?: string;
+  textColor?: string;
   descriptionColor?: string; // Specific color for description/subheadline text
-  buttonColor: string;
-  buttonTextColor: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
   inputBackgroundColor?: string;
   inputTextColor?: string;
   inputBorderColor?: string;

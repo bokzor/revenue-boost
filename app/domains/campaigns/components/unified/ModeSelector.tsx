@@ -69,7 +69,6 @@ export function ModeSelector({ onModeSelect, experimentsEnabled = true }: ModeSe
               description="Launch a targeted popup with full design control and smart targeting rules"
               features={[
                 "30+ ready-to-use templates",
-                "Visual drag & drop editor",
                 "Advanced targeting rules",
                 "Real-time analytics",
               ]}

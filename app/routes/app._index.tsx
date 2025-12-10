@@ -209,30 +209,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const campaignIds = JSON.parse(formData.get("campaignIds") as string);
     const results = await Promise.allSettled(
       campaignIds.map(async (id: string) => {
-        const campaign = await CampaignService.getCampaignById(id, storeId);
-        if (!campaign) throw new Error(`Campaign ${id} not found`);
-
-        // Extract only the fields needed for CampaignCreateData
-        const createData = {
-          name: `${campaign.name} (Copy)`,
-          description: campaign.description || undefined,
-          goal: campaign.goal,
-          status: "DRAFT" as CampaignStatus,
-          priority: campaign.priority,
-          templateId: campaign.templateId || undefined,
-          templateType: campaign.templateType,
-          contentConfig: campaign.contentConfig,
-          designConfig: campaign.designConfig,
-          targetRules: campaign.targetRules,
-          discountConfig: campaign.discountConfig,
-          experimentId: undefined, // Don't copy experiment association
-          variantKey: undefined,
-          isControl: undefined,
-          startDate: campaign.startDate || undefined,
-          endDate: campaign.endDate || undefined,
-        };
-
-        return CampaignService.createCampaign(storeId, createData, admin);
+        return CampaignService.duplicateCampaign(id, storeId, admin);
       })
     );
     const failed = results.filter((r) => r.status === "rejected").length;
@@ -250,32 +227,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return data({ success: false, message: "Campaign ID is required" }, { status: 400 });
     }
 
-    const campaign = await CampaignService.getCampaignById(campaignId, storeId);
-    if (!campaign) {
-      return data({ success: false, message: "Campaign not found" }, { status: 404 });
-    }
-
-    // Extract only the fields needed for CampaignCreateData
-    const createData = {
-      name: `${campaign.name} (Copy)`,
-      description: campaign.description || undefined,
-      goal: campaign.goal,
-      status: "DRAFT" as CampaignStatus,
-      priority: campaign.priority,
-      templateId: campaign.templateId || undefined,
-      templateType: campaign.templateType,
-      contentConfig: campaign.contentConfig,
-      designConfig: campaign.designConfig,
-      targetRules: campaign.targetRules,
-      discountConfig: campaign.discountConfig,
-      experimentId: undefined, // Don't copy experiment association
-      variantKey: undefined,
-      isControl: undefined,
-      startDate: campaign.startDate || undefined,
-      endDate: campaign.endDate || undefined,
-    };
-
-    const newCampaign = await CampaignService.createCampaign(storeId, createData, admin);
+    const newCampaign = await CampaignService.duplicateCampaign(campaignId, storeId, admin);
     return data({ success: true, campaignId: newCampaign.id });
   }
 

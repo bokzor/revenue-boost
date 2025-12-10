@@ -151,17 +151,10 @@ const TemplatePreviewComponent = forwardRef<TemplatePreviewRef, TemplatePreviewP
         return { ...config, ...designConfig, globalCustomCSS };
       }
 
-      // Apply default theme tokens when designConfig doesn't have explicit colors
-      // Theme handling (simplified model):
-      // - If designConfig has colors (theme was copied into fields), use them
-      // - If designConfig doesn't have colors, apply store default tokens
-      // - themeMode is DEPRECATED but still supported for backward compatibility
-      const themeMode = designConfig.themeMode as string | undefined;
-      const shouldApplyDefaultTokens =
-        (themeMode === "default" || themeMode === "shopify" || !themeMode) && defaultThemeTokens;
-
-      // Map design tokens to popup config properties
-      const defaultTokenColors = shouldApplyDefaultTokens
+      // SIMPLIFIED MODEL: Always apply store default tokens as base.
+      // Campaign's explicit colors (in designConfig) override them.
+      // themeMode is deprecated - no more conditional logic.
+      const defaultTokenColors = defaultThemeTokens
         ? {
             backgroundColor: defaultThemeTokens.background,
             textColor: defaultThemeTokens.foreground,

@@ -25,7 +25,7 @@ import { getOrCreateVisitorId, createVisitorIdHeaders } from "~/lib/visitor-id.s
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 import prisma from "~/db.server";
 import { validateCustomCss } from "~/lib/css-guards";
-import type { StoreSettings } from "~/domains/store/types/settings";
+import { StoreSettingsSchema, type StoreSettings } from "~/domains/store/types/settings";
 import { PLAN_DEFINITIONS, type PlanTier } from "~/domains/billing/types/plan";
 import { parseContentConfig, parseDesignConfig } from "~/domains/campaigns/utils/json-helpers";
 import type { TemplateType } from "~/domains/campaigns/types/campaign";
@@ -68,18 +68,11 @@ interface ActiveCampaignsResponse {
  */
 function mergeTokensIntoDesignConfig(
   designConfig: Record<string, unknown>,
-  tokens: DesignTokens,
-  themeMode: string | undefined
+  tokens: DesignTokens
 ): Record<string, unknown> {
-  // Apply token values as fallbacks when designConfig doesn't have explicit colors
-  // This handles both:
-  // 1. New simplified model: theme=undefined means use store default
-  // 2. Legacy themeMode: "default" or "shopify" means use store default
-  const shouldApplyTokens = !themeMode || themeMode === "default" || themeMode === "shopify";
-
-  if (!shouldApplyTokens) {
-    return designConfig;
-  }
+  // SIMPLIFIED MODEL: Always apply store default tokens as the base.
+  // Campaign's explicit colors override them.
+  // No themeMode switching - themeMode is deprecated.
 
   // Map design tokens to popup config properties (used as defaults/fallbacks)
   const defaultTokenColors: Record<string, unknown> = {
@@ -106,7 +99,7 @@ function mergeTokensIntoDesignConfig(
   }
 
   // Merge: tokens as defaults FIRST, then defined designConfig values override
-  // This matches the admin preview behavior in TemplatePreview.tsx
+  // This ensures: store theme colors + campaign explicit colors = final result
   return {
     ...defaultTokenColors,
     ...definedDesignConfig,
@@ -172,13 +165,26 @@ export async function loader(args: LoaderFunctionArgs) {
         const { getDefaultPreset, presetToDesignTokens } = await import(
           "~/domains/store/types/theme-preset"
         );
-        const storeSettings = store?.settings as StoreSettings | undefined;
+        // Parse settings through schema to ensure correct structure (matches admin behavior)
+        const parsedSettings = StoreSettingsSchema.safeParse(store?.settings);
+        const storeSettings = parsedSettings.success ? parsedSettings.data : undefined;
         const customPresets = storeSettings?.customThemePresets || [];
+        console.log(`[Active Campaigns API] Store settings debug:`, {
+          hasStore: !!store,
+          rawSettingsType: typeof store?.settings,
+          parseSuccess: parsedSettings.success,
+          parseError: !parsedSettings.success ? parsedSettings.error?.message : undefined,
+          presetsCount: customPresets.length,
+          presetNames: customPresets.map(p => ({ name: p.name, isDefault: p.isDefault, primary: p.primary })),
+        });
         const defaultPreset = getDefaultPreset(customPresets);
 
         if (defaultPreset) {
           defaultTokens = presetToDesignTokens(defaultPreset);
-          console.log(`[Active Campaigns API] Using default theme preset: ${defaultPreset.name}`);
+          console.log(`[Active Campaigns API] Using default theme preset: ${defaultPreset.name}`, {
+            primary: defaultTokens.primary,
+            background: defaultTokens.background,
+          });
         } else {
           // Fallback: fetch from Shopify theme if no default preset exists
           const { fetchThemeSettings, themeSettingsToDesignTokens } = await import(
@@ -435,13 +441,24 @@ export async function loader(args: LoaderFunctionArgs) {
           const resolvedTokens = resolveDesignTokens(designForTokens, defaultTokens);
           designTokensCSS = tokensToCSSString(resolvedTokens);
 
+          // Log original designConfig colors BEFORE merging
+          console.log(`[Active Campaigns API] Campaign ${campaign.id} BEFORE merge:`, {
+            originalButtonColor: (parsedDesignConfig as Record<string, unknown>).buttonColor,
+            originalAccentColor: (parsedDesignConfig as Record<string, unknown>).accentColor,
+            originalBgColor: (parsedDesignConfig as Record<string, unknown>).backgroundColor,
+          });
+
           // Merge resolved tokens into designConfig so popups receive direct color values
-          // This ensures storefront popups show the correct theme colors
+          // SIMPLIFIED: Always apply store tokens as base, campaign colors override
           mergedDesignConfig = mergeTokensIntoDesignConfig(
             parsedDesignConfig,
-            resolvedTokens,
-            themeMode
+            resolvedTokens
           );
+          console.log(`[Active Campaigns API] Campaign ${campaign.id} AFTER merge:`, {
+            resolvedPrimary: resolvedTokens.primary,
+            mergedAccentColor: (mergedDesignConfig as Record<string, unknown>).accentColor,
+            mergedButtonColor: (mergedDesignConfig as Record<string, unknown>).buttonColor,
+          });
         } catch (tokenError) {
           console.warn(`[Active Campaigns API] Failed to resolve tokens for campaign ${campaign.id}:`, tokenError);
         }

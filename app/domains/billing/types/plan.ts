@@ -58,16 +58,16 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
   FREE: {
     name: "Free",
     price: 0,
-    monthlyImpressionCap: 5000,
+    monthlyImpressionCap: 3000,
     overageStrategy: "HARD_BLOCK",
-    isEnabled: false, // Disabled for launch
+    isEnabled: true, // Enabled to help acquire reviews
     limits: {
       maxActiveCampaigns: 1,
       maxExperiments: 0,
       maxVariantsPerExperiment: 0,
       maxCustomTemplates: 0,
       maxLeadsPerMonth: 100,
-      maxDiscountCodesGenerated: 10,
+      maxDiscountCodesGenerated: null, // Unlimited - not limiting discount codes
       maxDiscountPercentage: null,
     },
     features: {
@@ -86,7 +86,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
   STARTER: {
     name: "Starter",
     price: 9,
-    monthlyImpressionCap: 25000,
+    monthlyImpressionCap: 10000,
     overageStrategy: "SOFT_BLOCK",
     isEnabled: true,
     limits: {
@@ -95,7 +95,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       maxVariantsPerExperiment: 0,
       maxCustomTemplates: 1,
       maxLeadsPerMonth: 500,
-      maxDiscountCodesGenerated: 50,
+      maxDiscountCodesGenerated: null, // Unlimited - not limiting discount codes
       maxDiscountPercentage: null,
     },
     features: {
@@ -114,7 +114,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
   GROWTH: {
     name: "Growth",
     price: 29,
-    monthlyImpressionCap: 100000,
+    monthlyImpressionCap: 50000,
     overageStrategy: "SOFT_BLOCK",
     isEnabled: true,
     limits: {
@@ -123,7 +123,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       maxVariantsPerExperiment: 2,
       maxCustomTemplates: 5,
       maxLeadsPerMonth: 2500,
-      maxDiscountCodesGenerated: 250,
+      maxDiscountCodesGenerated: null, // Unlimited - not limiting discount codes
       maxDiscountPercentage: null,
     },
     features: {
@@ -142,7 +142,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
   PRO: {
     name: "Pro",
     price: 79,
-    monthlyImpressionCap: 400000,
+    monthlyImpressionCap: 200000,
     overageStrategy: "NOTIFY_ONLY",
     isEnabled: true,
     limits: {
@@ -151,7 +151,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       maxVariantsPerExperiment: 4,
       maxCustomTemplates: null,
       maxLeadsPerMonth: 10000,
-      maxDiscountCodesGenerated: null,
+      maxDiscountCodesGenerated: null, // Unlimited - not limiting discount codes
       maxDiscountPercentage: null,
     },
     features: {
@@ -170,7 +170,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
   ENTERPRISE: {
     name: "Enterprise",
     price: 149,
-    monthlyImpressionCap: 1000000,
+    monthlyImpressionCap: 500000,
     overageStrategy: "NOTIFY_ONLY",
     isEnabled: false, // Disabled for launch
     limits: {
@@ -179,7 +179,7 @@ export const PLAN_DEFINITIONS: Record<PlanTier, PlanDefinition> = {
       maxVariantsPerExperiment: 8,
       maxCustomTemplates: null,
       maxLeadsPerMonth: null,
-      maxDiscountCodesGenerated: null,
+      maxDiscountCodesGenerated: null, // Unlimited - not limiting discount codes
       maxDiscountPercentage: null,
     },
     features: {

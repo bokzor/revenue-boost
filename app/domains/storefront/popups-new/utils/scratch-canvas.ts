@@ -376,7 +376,8 @@ export class ScratchCardRenderer {
       ctx.fillRect(0, 0, width, height);
     } else {
       const gradient = ctx.createLinearGradient(0, 0, width, height);
-      gradient.addColorStop(0, accentColor || buttonColor || "#4f46e5");
+      // Use primary color with pink gradient for scratch card reveal
+      gradient.addColorStop(0, accentColor || buttonColor || "#007BFF");
       gradient.addColorStop(1, buttonColor || accentColor || "#ec4899");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, width, height);

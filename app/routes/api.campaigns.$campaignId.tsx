@@ -12,7 +12,8 @@ import {
   CampaignUpdateDataSchema,
   type TargetRulesConfig,
 } from "~/domains/campaigns/index.server";
-import { validateData } from "~/lib/validation-helpers";
+import { validateCustomCss } from "~/lib/css-guards";
+import { validateData, ValidationError } from "~/lib/validation-helpers";
 import {
   getResourceById,
   createMethodRouter,
@@ -47,6 +48,23 @@ export const action = createMethodRouter({
       const storeId = await getStoreId(request);
       const rawData = await request.json();
       const validatedData = validateData(CampaignUpdateDataSchema, rawData, "Campaign Update Data");
+
+      // Sanitize Custom CSS to prevent XSS
+      try {
+        const designConfig = validatedData.designConfig as { customCSS?: unknown } | undefined;
+        if (designConfig) {
+          const safeCss = validateCustomCss(designConfig.customCSS, "designConfig.customCSS");
+          if (safeCss !== undefined) {
+            designConfig.customCSS = safeCss;
+          } else if ("customCSS" in designConfig) {
+            delete designConfig.customCSS;
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Invalid custom CSS";
+        throw new ValidationError(message, [message], "designConfig.customCSS");
+      }
+
       const campaign = await CampaignService.updateCampaign(
         campaignId,
         storeId,

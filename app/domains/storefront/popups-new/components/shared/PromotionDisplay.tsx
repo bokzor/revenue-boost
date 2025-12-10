@@ -572,9 +572,10 @@ export const PromotionDisplay: React.FC<PromotionDisplayProps> = ({
   discountAmountCents,
   currentCartTotalCents = 0,
   currency = "USD",
-  accentColor = "#ef4444",
-  textColor = "#111827",
-  backgroundColor = "#ffffff",
+  // Colors use CSS variables as fallbacks - defaults defined in design-tokens.css
+  accentColor = "var(--rb-error, #EF4444)", // Error/urgency red for promotions
+  textColor = "var(--rb-foreground, #1A1A1A)",
+  backgroundColor = "var(--rb-background, #FFFFFF)",
   size = "md",
   className,
 }) => {

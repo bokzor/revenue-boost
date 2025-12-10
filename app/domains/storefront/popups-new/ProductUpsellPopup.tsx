@@ -438,7 +438,7 @@ export const ProductUpsellPopup: React.FC<ProductUpsellPopupProps> = ({
   }, [triggerHaptic]);
 
   // Design tokens - use config values with --rb-* fallbacks
-  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #6366F1)";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)";
   const borderRadius =
     typeof config.borderRadius === "string"
       ? parseFloat(config.borderRadius) || 12

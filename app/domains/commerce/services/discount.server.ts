@@ -23,6 +23,7 @@ import {
   DiscountConfigSchema,
   type DiscountConfig,
   type DiscountBehavior,
+  type DiscountStrategy,
 } from "~/domains/campaigns/types/campaign";
 import { z } from "zod";
 
@@ -144,13 +145,13 @@ interface DiscountStrategyContext {
   cartSubtotalCents?: number;
 }
 
-interface DiscountStrategy {
+interface DiscountStrategyImpl {
   name: string;
   canHandle: (ctx: DiscountStrategyContext) => boolean;
   apply: (ctx: DiscountStrategyContext) => Promise<CampaignDiscountResult>;
 }
 
-const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
+const DISCOUNT_STRATEGIES: DiscountStrategyImpl[] = [
   {
     name: "emailAuthorized",
     canHandle: (ctx) =>
@@ -194,11 +195,11 @@ const DISCOUNT_STRATEGIES: DiscountStrategy[] = [
 
 type DiscountServiceStrategyName = (typeof DISCOUNT_STRATEGIES)[number]["name"];
 
-function orderStrategies(config: DiscountConfig): DiscountStrategy[] {
-  const strategyByName: Record<DiscountServiceStrategyName, DiscountStrategy> =
+function orderStrategies(config: DiscountConfig): DiscountStrategyImpl[] {
+  const strategyByName: Record<DiscountServiceStrategyName, DiscountStrategyImpl> =
     DISCOUNT_STRATEGIES.reduce(
       (acc, strategy) => ({ ...acc, [strategy.name]: strategy }),
-      {} as Record<DiscountServiceStrategyName, DiscountStrategy>
+      {} as Record<DiscountServiceStrategyName, DiscountStrategyImpl>
     );
 
   const requested = config.strategy;
@@ -272,7 +273,22 @@ export function getSuccessMessage(behavior: DiscountBehavior): string {
 /**
  * Parse discount config from JSON string or JsonValue
  */
-export function parseDiscountConfig(configString: unknown): DiscountConfig {
+/**
+ * Infer strategy from config
+ */
+export function inferStrategy(config: Partial<DiscountConfig>): DiscountStrategy {
+  if (config.strategy && config.strategy !== "simple") return config.strategy;
+  if (config.tiers?.length) return "tiered";
+  if (config.bogo) return "bogo";
+  if (config.freeGift) return "free_gift";
+  if (config.applicability?.scope === "products") return "bundle";
+  return "simple";
+}
+
+/**
+ * Parse and normalize discount config
+ */
+export function normalizeDiscountConfig(configString: unknown): DiscountConfig {
   try {
     const parsedConfig = DiscountConfigSchema.partial().parse(
       typeof configString === "string" && configString.length > 0
@@ -284,24 +300,7 @@ export function parseDiscountConfig(configString: unknown): DiscountConfig {
     const usageType: "shared" | "single_use" =
       parsedConfig.type === "single_use" ? "single_use" : "shared";
 
-    // Infer strategy from config if not explicitly set or if set to default "simple"
-    // This allows strategy to be auto-detected from bogo, freeGift, tiers, etc.
-    const inferredStrategy =
-      parsedConfig.tiers && parsedConfig.tiers.length > 0
-        ? "tiered"
-        : parsedConfig.bogo
-          ? "bogo"
-          : parsedConfig.freeGift
-            ? "free_gift"
-            : parsedConfig.applicability?.scope === "products"
-              ? "bundle"
-              : "simple";
-
-    // Use explicit strategy if set and not "simple", otherwise use inferred
-    const strategy =
-      parsedConfig.strategy && parsedConfig.strategy !== "simple"
-        ? parsedConfig.strategy
-        : inferredStrategy;
+    const strategy = inferStrategy(parsedConfig);
 
     const result: DiscountConfig = {
       enabled: parsedConfig.enabled ?? true,
@@ -499,8 +498,8 @@ async function getOrCreateSharedDiscount(
     usageLimit: config.usageLimit,
     minimumRequirement: config.minimumAmount
       ? {
-          greaterThanOrEqualToSubtotal: config.minimumAmount,
-        }
+        greaterThanOrEqualToSubtotal: config.minimumAmount,
+      }
       : undefined,
     endsAt: config.expiryDays
       ? new Date(Date.now() + config.expiryDays * 24 * 60 * 60 * 1000).toISOString()
@@ -598,8 +597,8 @@ export async function createEmailSpecificDiscount(
       usageLimit: 1,
       minimumRequirement: config.minimumAmount
         ? {
-            greaterThanOrEqualToSubtotal: config.minimumAmount,
-          }
+          greaterThanOrEqualToSubtotal: config.minimumAmount,
+        }
         : undefined,
       endsAt: config.expiryDays
         ? new Date(Date.now() + config.expiryDays * 24 * 60 * 60 * 1000).toISOString()
@@ -663,8 +662,8 @@ async function createSingleUseDiscount(
     usageLimit: 1,
     minimumRequirement: config.minimumAmount
       ? {
-          greaterThanOrEqualToSubtotal: config.minimumAmount,
-        }
+        greaterThanOrEqualToSubtotal: config.minimumAmount,
+      }
       : undefined,
     endsAt: config.expiryDays
       ? new Date(Date.now() + config.expiryDays * 24 * 60 * 60 * 1000).toISOString()
@@ -773,10 +772,10 @@ function generateDiscountCode(
 function generateUniqueDiscountCode(prefix: string, email?: string): string {
   const emailHash = email
     ? email
-        .split("@")[0]
-        .replace(/[^a-zA-Z0-9]/g, "")
-        .toUpperCase()
-        .substring(0, DISCOUNT_CODE_CONFIG.EMAIL_HASH_LENGTH)
+      .split("@")[0]
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase()
+      .substring(0, DISCOUNT_CODE_CONFIG.EMAIL_HASH_LENGTH)
     : "ANON";
 
   const randomSuffix = Math.random()

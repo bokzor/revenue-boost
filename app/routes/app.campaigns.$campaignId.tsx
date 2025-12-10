@@ -265,16 +265,8 @@ export default function CampaignDetailPage() {
     if (!campaign) return;
 
     try {
-      // Create duplicate with modified name
-      const duplicateData = {
-        ...campaign,
-        name: `${campaign.name} (Copy)`,
-        status: "DRAFT",
-      };
-
       const response = await apiClient.post<{ campaign: CampaignWithConfigs }>(
-        "/api/campaigns",
-        duplicateData
+        `/api/campaigns/${campaign.id}/duplicate`
       );
 
       const newCampaign = response.data?.campaign;

@@ -116,7 +116,6 @@ describe("ModeSelector", () => {
       renderWithPolaris(<ModeSelector onModeSelect={vi.fn()} />);
 
       expect(screen.getByText("30+ ready-to-use templates")).toBeTruthy();
-      expect(screen.getByText("Visual drag & drop editor")).toBeTruthy();
       expect(screen.getByText("Advanced targeting rules")).toBeTruthy();
       expect(screen.getByText("Real-time analytics")).toBeTruthy();
     });

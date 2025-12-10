@@ -256,12 +256,12 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
   emailRequired = true,
   labels,
   placeholders,
-  // NOTE: These defaults MUST match buildCommonConfig() in template-preview-registry.tsx
-  accentColor = "#007BFF",
+  // Colors are optional - CSS variables provide defaults via design-tokens.css
+  accentColor,
   buttonColor,
-  textColor = "#1A1A1A",
-  backgroundColor = "#FFFFFF",
-  buttonTextColor = "#FFFFFF",
+  textColor,
+  backgroundColor,
+  buttonTextColor,
   inputTextColor,
   inputBorderColor,
   inputPlaceholderColor,
@@ -271,7 +271,7 @@ export const LeadCaptureForm: React.FC<LeadCaptureFormProps> = ({
   layout = "vertical",
   privacyPolicyUrl,
 }) => {
-  // Use buttonColor if provided, otherwise fall back to accentColor
+  // Use buttonColor if provided, otherwise fall back to accentColor, then CSS variable
   const effectiveButtonColor = buttonColor || accentColor;
   const isInline = layout === "inline";
 

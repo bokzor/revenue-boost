@@ -57,7 +57,7 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
     }
   };
 
-  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #000)";
+  const accentColor = config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)";
   const textColor = config.textColor || "var(--rb-foreground, #1f2937)";
   const mutedColor = config.descriptionColor || "var(--rb-muted, #6b7280)";
   const bgColor = config.backgroundColor || "var(--rb-background, #ffffff)";
@@ -160,7 +160,8 @@ export const MinimalSlideUpPopup: React.FC<MinimalSlideUpPopupProps> = ({
               <ProductImage
                 src={product.imageUrl}
                 alt={product.title}
-                aspectRatio="square"
+                aspectRatio="auto"
+                height="100%"
                 priority={true}
               />
               {product.savingsPercent && (

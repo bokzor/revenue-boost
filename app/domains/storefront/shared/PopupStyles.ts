@@ -128,7 +128,7 @@ export const getPopupButtonStyles = (
   switch (buttonType) {
     case "secondary":
       backgroundColor = extendedConfig.secondaryColor || extendedConfig.accentColor || "#f8f9fa";
-      textColor = config.textColor;
+      textColor = config.textColor || "var(--rb-foreground, #1A1A1A)";
       borderColor = extendedConfig.borderColor || "#dee2e6";
       break;
     case "add-to-cart":

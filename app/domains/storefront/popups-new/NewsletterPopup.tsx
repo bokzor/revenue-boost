@@ -293,7 +293,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
         .email-popup-confetti:nth-child(3) { width: 10px; height: 10px; background: #8b5cf6; left: 80%; top: 12%; animation: confettiDrop 1.4s ease-out 0.15s forwards; }
         .email-popup-confetti:nth-child(4) { width: 7px; height: 7px; background: #06b6d4; left: 90%; top: 18%; animation: confettiDrop 1.6s ease-out 0.08s forwards; border-radius: 50%; }
         .email-popup-confetti:nth-child(5) { width: 9px; height: 9px; background: var(--rb-success, #10b981); left: 50%; top: 8%; animation: confettiDrop 1.35s ease-out 0.2s forwards; }
-        .email-popup-confetti:nth-child(6) { width: 8px; height: 8px; background: ${config.accentColor || config.buttonColor || "#3b82f6"}; left: 65%; top: 20%; animation: confettiDrop 1.45s ease-out 0.12s forwards; border-radius: 50%; }
+        .email-popup-confetti:nth-child(6) { width: 8px; height: 8px; background: ${config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)"}; left: 65%; top: 20%; animation: confettiDrop 1.45s ease-out 0.12s forwards; border-radius: 50%; }
 
         /* Form field focus glow */
         .email-popup-input:focus {
@@ -308,7 +308,7 @@ export const NewsletterPopup: React.FC<NewsletterPopupProps> = ({
 
         /* Hover effect on input */
         .email-popup-input:not(:focus):hover {
-          border-color: ${config.accentColor || config.buttonColor || "#3b82f6"}80;
+          border-color: ${config.accentColor || config.buttonColor || "var(--rb-primary, #007BFF)"}80;
         }
 
         @media (prefers-reduced-motion: reduce) {

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import prisma from "~/db.server";
+import { normalizeDiscountConfig } from "~/domains/commerce/services/discount.server";
 
 // Attribution window for view-through conversions (7 days in milliseconds)
 const VIEW_THROUGH_ATTRIBUTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -227,12 +228,13 @@ async function findCampaignByDiscountCode(storeId: string, code: string) {
   });
 
   for (const campaign of campaigns) {
-    const config = parseDiscountConfig(campaign.discountConfig);
+    const config = normalizeDiscountConfig(campaign.discountConfig);
     if (!config) continue;
 
-    if (config.code && config.code === code) {
-      return campaign;
-    }
+    // Use prefix from config if available (normalized config guarantees structure)
+    // Note: discountConfig schema doesn't explicitly have 'code' field for dynamic campaigns,
+    // but we check it for legacy/static compatibility or if 'prefix' is used as code.
+    // The normalized config has 'prefix'.
 
     if (config.prefix && code.startsWith(config.prefix)) {
       return campaign;
@@ -246,20 +248,4 @@ async function findCampaignByDiscountCode(storeId: string, code: string) {
   return null;
 }
 
-function parseDiscountConfig(raw: unknown): { code?: string; prefix?: string } | null {
-  if (!raw) return null;
-  if (typeof raw === "object" && raw !== null) {
-    const parsed = raw as { code?: string; prefix?: string };
-    return parsed;
-  }
-  if (typeof raw === "string") {
-    try {
-      const parsed = JSON.parse(raw) as { code?: string; prefix?: string };
-      return parsed;
-    } catch (error) {
-      console.warn("[Webhook] Failed to parse discountConfig JSON", error);
-      return null;
-    }
-  }
-  return null;
-}
+

@@ -8,7 +8,6 @@
  * Phase 1: Foundation Components
  * - Icon components (CloseIcon, CheckmarkIcon, SpinnerIcon, ChevronIcon)
  * - LoadingSpinner component
- * - usePopupTheme hook
  * - Animation styles (animations.css)
  *
  * Phase 2: Core Components
@@ -80,11 +79,6 @@ export {
 // PRODUCT IMAGE COMPONENT
 // ============================================
 export { ProductImage, type ProductImageProps } from "./ProductImage";
-
-// ============================================
-// HOOKS
-// ============================================
-export { usePopupTheme, type PopupTheme } from "./usePopupTheme";
 
 // ============================================
 // STYLES

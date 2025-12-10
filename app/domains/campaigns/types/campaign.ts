@@ -1102,24 +1102,8 @@ export const DesignConfigSchema = z.object({
   // When set: indicates which theme colors were copied from
   // When undefined: indicates custom colors or store default was used
   // Note: themeMode is DEPRECATED - use theme instead
-  theme: z
-    .enum([
-      // Generic themes
-      "modern",
-      "minimal",
-      "dark",
-      "gradient",
-      "luxury",
-      "neon",
-      "ocean",
-      // Seasonal themes (for styled recipes)
-      "summer",
-      "black-friday",
-      "holiday",
-      "valentine",
-      "spring",
-    ])
-    .optional(),
+  // Accepts any string to support recipe themes like "bold-energy", "minimal-zen", etc.
+  theme: z.string().optional(),
   customThemePresetId: z.string().optional(), // ID of the applied custom theme preset
 
   // DEPRECATED: themeMode is no longer used - kept for backward compatibility

@@ -98,4 +98,15 @@ export class CampaignService {
   ): Promise<boolean> {
     return CampaignMutationService.delete(id, storeId, admin);
   }
+
+  /**
+   * Duplicate a campaign
+   */
+  static async duplicateCampaign(
+    id: string,
+    storeId: string,
+    admin?: AdminApiContext
+  ): Promise<CampaignWithConfigs> {
+    return CampaignMutationService.duplicate(id, storeId, admin);
+  }
 }

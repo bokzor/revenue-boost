@@ -16,13 +16,17 @@ import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
-import { getCampaignDiscountCode } from "~/domains/commerce/services/discount.server";
-import { generatePreviewDiscountCode } from "~/lib/preview-discount.server";
 import {
   DiscountConfigSchema,
   type DiscountConfig,
   type DiscountStrategy,
 } from "~/domains/campaigns/types/campaign";
+import {
+  getCampaignDiscountCode,
+  inferStrategy,
+  normalizeDiscountConfig,
+} from "~/domains/commerce/services/discount.server";
+import { generatePreviewDiscountCode } from "~/lib/preview-discount.server";
 
 // Request validation schema
 const IssueDiscountRequestSchema = z.object({
@@ -50,28 +54,7 @@ const IssueDiscountRequestSchema = z.object({
   honeypot: z.string().optional(),
 });
 
-function inferStrategy(config: Partial<DiscountConfig>, bundleDiscount?: number): DiscountStrategy {
-  if (config.strategy) return config.strategy;
-  if (config.tiers?.length) return "tiered";
-  if (config.bogo) return "bogo";
-  if (config.freeGift) return "free_gift";
-  if (bundleDiscount || config.applicability?.scope === "products") return "bundle";
-  return "simple";
-}
 
-function normalizeDiscountConfig(raw: unknown, bundleDiscount?: number): DiscountConfig {
-  const parsed = DiscountConfigSchema.partial().parse(raw || {}) as Partial<DiscountConfig>;
-  const valueType = parsed.valueType || (parsed.value ? "PERCENTAGE" : undefined);
-
-  return {
-    ...parsed,
-    enabled: parsed.enabled ?? false,
-    showInPreview: parsed.showInPreview ?? true,
-    strategy: inferStrategy(parsed, bundleDiscount),
-    valueType,
-    behavior: parsed.behavior || "SHOW_CODE_AND_AUTO_APPLY",
-  } as DiscountConfig;
-}
 
 // Response types
 interface DiscountIssueResponse {
@@ -306,7 +289,7 @@ export async function action({ request }: ActionFunctionArgs) {
         ? JSON.parse(campaign.discountConfig)
         : campaign.discountConfig || {};
 
-    const discountConfig = normalizeDiscountConfig(rawDiscountConfig, undefined);
+    const discountConfig = normalizeDiscountConfig(rawDiscountConfig);
 
     if (!discountConfig?.enabled) {
       return data(
@@ -317,7 +300,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     let discountConfigWithStrategy = {
       ...discountConfig,
-      strategy: inferStrategy(discountConfig, undefined),
+      strategy: inferStrategy(discountConfig),
     };
 
     // BUNDLE DISCOUNT (Product Upsell):

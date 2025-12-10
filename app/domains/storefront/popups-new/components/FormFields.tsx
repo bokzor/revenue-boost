@@ -276,12 +276,15 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
   error,
   required = false,
   disabled = false,
-  // NOTE: These defaults MUST match buildCommonConfig() in template-preview-registry.tsx
-  accentColor = "#007BFF",
-  textColor = "#1A1A1A",
+  // Colors are optional - CSS variables provide defaults via design-tokens.css
+  accentColor,
+  textColor,
   privacyPolicyUrl,
   privacyPolicyLinkText = "Privacy Policy",
 }) => {
+  // Use CSS variables if no props provided
+  const effectiveAccentColor = accentColor || "var(--rb-primary)";
+  const effectiveTextColor = textColor || "var(--rb-foreground)";
   // Build the display text with optional privacy policy link
   const renderConsentText = () => {
     if (!privacyPolicyUrl) {
@@ -299,7 +302,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              color: accentColor,
+              color: effectiveAccentColor,
               textDecoration: "underline",
             }}
             onClick={(e) => e.stopPropagation()}
@@ -320,7 +323,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            color: accentColor,
+            color: effectiveAccentColor,
             textDecoration: "underline",
           }}
           onClick={(e) => e.stopPropagation()}
@@ -347,7 +350,7 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
             onChange={onChange}
             required={required}
             disabled={disabled}
-            accentColor={accentColor}
+            accentColor={effectiveAccentColor}
             hasError={!!error}
             ariaLabel={text}
           />
@@ -355,12 +358,12 @@ export const GdprCheckbox: React.FC<GdprCheckboxProps> = ({
         <span
           style={{
             fontSize: "0.875rem",
-            color: textColor,
+            color: effectiveTextColor,
             lineHeight: "1.5",
           }}
         >
           {renderConsentText()}
-          {required && <span style={{ color: accentColor, marginLeft: "0.25rem" }}>*</span>}
+          {required && <span style={{ color: effectiveAccentColor, marginLeft: "0.25rem" }}>*</span>}
         </span>
       </label>
       {error && (
