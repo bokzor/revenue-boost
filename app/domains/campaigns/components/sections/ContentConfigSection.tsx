@@ -6,7 +6,7 @@
  * Follows Strategy Pattern - different content strategies for different templates
  */
 
-import type { TemplateType, ContentConfig, DesignConfig } from "../../types/campaign";
+import type { TemplateType, ContentConfig, DesignConfig , DiscountConfig } from "../../types/campaign";
 import { NewsletterContentSection } from "./NewsletterContentSection";
 import type { NewsletterContent } from "./NewsletterContentSection";
 import { SpinToWinContentSection } from "./SpinToWinContentSection";
@@ -26,7 +26,6 @@ import { SocialProofContentSection } from "./SocialProofContentSection";
 import type { SocialProofContent as SPC } from "./SocialProofContentSection";
 import { AnnouncementContentSection } from "./AnnouncementContentSection";
 import type { AnnouncementContent } from "./AnnouncementContentSection";
-import type { DiscountConfig } from "../../types/campaign";
 
 export interface ContentConfigSectionProps {
   templateType: TemplateType;

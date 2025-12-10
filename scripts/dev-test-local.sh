@@ -4,10 +4,14 @@
 
 set -e
 
-# Load staging environment
+# Load staging environment to get DATABASE_URL
 set -a
 source .env.staging.env
 set +a
+
+# Set STAGING_DATABASE_URL so Prisma uses it even when Vite loads .env
+# This is picked up by app/db.server.ts
+export STAGING_DATABASE_URL="$DATABASE_URL"
 
 # Override with test mode settings
 export TEST_MODE=true

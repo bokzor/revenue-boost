@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
-import * as dotenv from 'dotenv';
+// Environment loaded via helpers/load-staging-env
 import { CampaignFactory } from './factories/campaign-factory';
 import {
     STORE_URL,
@@ -13,7 +13,6 @@ import {
     MAX_TEST_PRIORITY
 } from './helpers/test-helpers';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.staging.env'), override: true });
 
 const TEST_PREFIX = getTestPrefix('storefront-free-shipping.spec.ts');
 

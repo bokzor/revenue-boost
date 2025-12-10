@@ -47,7 +47,12 @@ if (host === "localhost") {
   };
 }
 
-	export default defineConfig({
+	// Use staging env directory when TEST_MODE is enabled
+const envDir = process.env.TEST_MODE === "true" ? "./env-staging" : undefined;
+
+export default defineConfig({
+  // When TEST_MODE is set, load env from env-staging directory instead of root
+  envDir,
   server: {
     allowedHosts: [host],
     cors: {

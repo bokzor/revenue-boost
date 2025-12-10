@@ -13,9 +13,9 @@ test.describe('Staging Storefront E2E', () => {
     let storeId: string;
 
     test.beforeAll(async () => {
-        // Ensure DATABASE_URL is set
+        // Ensure DATABASE_URL is set (loaded by helpers/load-staging-env)
         if (!process.env.DATABASE_URL) {
-            throw new Error('DATABASE_URL is not defined. Run with dotenv -e .env.staging.env');
+            throw new Error('DATABASE_URL is not defined. Create .env.e2e or export DATABASE_URL');
         }
         prisma = new PrismaClient();
 

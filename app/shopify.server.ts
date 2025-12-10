@@ -10,6 +10,7 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 import { validateEnv } from "./lib/env.server";
+import { setupAppOnInstall } from "./lib/app-setup.server";
 
 // Validate environment variables at startup
 const env = validateEnv();
@@ -103,6 +104,34 @@ const shopify = shopifyApp({
     APP_SUBSCRIPTIONS_UPDATE: {
       deliveryMethod: DeliveryMethod.Http,
       callbackUrl: "/webhooks/app/subscriptions/update",
+    },
+  },
+  // =============================================================================
+  // HOOKS CONFIGURATION
+  // =============================================================================
+  // afterAuth is called after a merchant installs the app OR when access token expires.
+  // This is the Shopify-recommended place to run first-install setup.
+  // With Shopify managed installation (use_legacy_install_flow = false), this hook
+  // is called when the merchant first opens the app after installation.
+  // =============================================================================
+  hooks: {
+    afterAuth: async ({ session, admin }) => {
+      logger.info(`[afterAuth] Hook triggered for shop: ${session.shop}`);
+
+      // Run setup (idempotent - safe to run multiple times)
+      // This handles:
+      // - Creating store record if it doesn't exist
+      // - Setting app URL metafield
+      // - Creating welcome campaign
+      // - Fetching shop timezone
+      // - Creating theme preset from Shopify theme
+      try {
+        await setupAppOnInstall(admin, session.shop, session.accessToken);
+        logger.info(`[afterAuth] Setup completed for shop: ${session.shop}`);
+      } catch (error) {
+        logger.error({ error, shop: session.shop }, "[afterAuth] Setup failed (non-blocking)");
+        // Don't throw - we want auth to succeed even if setup fails
+      }
     },
   },
   ...(env.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [env.SHOP_CUSTOM_DOMAIN] } : {}),

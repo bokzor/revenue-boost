@@ -1,11 +1,35 @@
 import { defineConfig, devices } from "@playwright/test";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 
-dotenv.config({
-  path: path.resolve(process.cwd(), ".env.staging.env"),
-  override: true,
-});
+/**
+ * Load environment variables for E2E tests.
+ *
+ * Priority (first found wins):
+ * 1. CI mode: Use environment variables from GitHub secrets
+ * 2. E2E_ENV_FILE: Custom env file path
+ * 3. .env.e2e: E2E-specific config file
+ * 4. .env.staging.env: Legacy support
+ * 5. .env: Default fallback
+ */
+const isCI = process.env.CI === "true";
+
+if (!isCI) {
+  const envFileCandidates = [
+    process.env.E2E_ENV_FILE,
+    path.resolve(process.cwd(), ".env.e2e"),
+    path.resolve(process.cwd(), ".env.staging.env"),
+    path.resolve(process.cwd(), ".env"),
+  ].filter(Boolean) as string[];
+
+  for (const envFile of envFileCandidates) {
+    if (fs.existsSync(envFile)) {
+      dotenv.config({ path: envFile, override: true });
+      break;
+    }
+  }
+}
 
 /**
  * Playwright Configuration for E2E Tests
@@ -149,12 +173,29 @@ export default defineConfig({
         // Storefront tests don't use baseURL - they use STORE_URL directly
       },
     },
+
+    // =========================================================================
+    // INTEGRATION TESTS - Admin to Storefront Full Flow
+    // =========================================================================
+    // Tests that create campaigns in admin and verify them on storefront.
+    // Requires TEST_MODE=true for admin access without Shopify login.
+    // Usage: TEST_MODE=true npm run test:e2e -- --project=integration
+    {
+      name: "integration",
+      testMatch: "**/integration-*.spec.ts",
+      fullyParallel: false,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.TEST_SERVER_URL || "http://localhost:3001",
+      },
+    },
   ],
 
   // ===========================================================================
   // WEB SERVER CONFIGURATION (for CI)
   // ===========================================================================
-  // In CI, we start a local server with TEST_MODE before running admin tests.
+  // In CI, Playwright starts the server with TEST_MODE before running tests.
+  // All required environment variables are passed through from CI secrets.
   // Your local dev server (npm run dev) is NOT affected.
   // ===========================================================================
   webServer: process.env.CI && process.env.TEST_MODE === "true"
@@ -164,9 +205,16 @@ export default defineConfig({
         reuseExistingServer: false,
         timeout: 120 * 1000,
         env: {
+          PORT: "3001",
           TEST_MODE: "true",
           TEST_SHOP_DOMAIN: process.env.TEST_SHOP_DOMAIN || "revenue-boost-staging.myshopify.com",
-          PORT: "3001",
+          DATABASE_URL: process.env.DATABASE_URL || "",
+          SHOPIFY_API_KEY: process.env.SHOPIFY_API_KEY || "",
+          SHOPIFY_API_SECRET: process.env.SHOPIFY_API_SECRET || "",
+          SHOPIFY_APP_URL: "http://localhost:3001",
+          SCOPES: "read_products,write_products",
+          SESSION_SECRET: "test-session-secret-for-ci-testing-minimum-32-chars",
+          INTERNAL_API_SECRET: "test-internal-api-secret-for-ci-testing-min-32",
         },
       }
     : undefined,
