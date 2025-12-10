@@ -31,6 +31,32 @@ vi.mock("~/db.server", () => ({
   },
 }));
 
+// Mock normalizeDiscountConfig to return the config with prefix
+vi.mock("~/domains/commerce/services/discount.server", () => ({
+  normalizeDiscountConfig: vi.fn((cfg: any) => {
+    if (!cfg) return null;
+    // Handle JSON string input (as stored in DB)
+    let parsed = cfg;
+    if (typeof cfg === "string") {
+      try {
+        parsed = JSON.parse(cfg);
+      } catch {
+        return null;
+      }
+    }
+    return {
+      enabled: parsed.enabled ?? false,
+      type: parsed.type ?? "single_use",
+      valueType: parsed.valueType ?? "PERCENTAGE",
+      value: parsed.value ?? 10,
+      prefix: parsed.prefix ?? parsed.code ?? null, // Use code as prefix for static codes
+      behavior: parsed.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
+      showInPreview: parsed.showInPreview ?? true,
+      ...parsed,
+    };
+  }),
+}));
+
 import prisma from "~/db.server";
 import { handleOrderCreate, type OrderPayload } from "~/webhooks/orders.create";
 

@@ -18,56 +18,10 @@ export default function App() {
     initSentryClient();
   }, []);
 
-  // Load App Bridge script on client-side only to avoid hydration mismatch
-  useEffect(() => {
-    // Always load the real Shopify App Bridge in production
-    // Mock bridge is only for local development testing
-    const isDevelopment = process.env.NODE_ENV === "development";
-
-    if (isDevelopment) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const isEmbedded = urlParams.get("embedded") === "1";
-      const host = urlParams.get("host");
-
-      let isMockEnvironment = false;
-
-      // Detect mock environment (only in development)
-      if (isEmbedded && host) {
-        try {
-          const decodedHost = atob(host);
-          if (
-            decodedHost.includes("localhost") ||
-            decodedHost.includes("mock") ||
-            window.location.hostname === "localhost"
-          ) {
-            isMockEnvironment = true;
-          }
-        } catch (e) {
-          // Ignore decode errors
-        }
-      }
-
-      // Load Mock App Bridge only in development
-      if (isMockEnvironment) {
-        console.log("[Mock-Bridge] Loading Mock App Bridge from http://localhost:3080/app-bridge.js");
-        const script = document.createElement("script");
-        script.src = "http://localhost:3080/app-bridge.js";
-        script.onerror = () => {
-          console.warn("[Mock-Bridge] Failed to load mock App Bridge, falling back to real");
-          const fallback = document.createElement("script");
-          fallback.src = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
-          document.head.appendChild(fallback);
-        };
-        document.head.appendChild(script);
-        return;
-      }
-    }
-
-    // Load real Shopify App Bridge (production and non-mock development)
-    const script = document.createElement("script");
-    script.src = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
-    document.head.appendChild(script);
-  }, []);
+  // Note: App Bridge is automatically loaded by the <AppProvider> component
+  // from @shopify/shopify-app-react-router/react in app/routes/app.tsx
+  // The AppProvider handles injecting the App Bridge script with the correct
+  // meta tag and CDN script, which automatically uses session token authentication.
 
   return (
     <html lang="en">

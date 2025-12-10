@@ -109,6 +109,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Check for grandfathered campaigns (using locked template types)
     const planContext = await PlanGuardService.getPlanContext(storeId);
     const features = planContext.definition.features;
+    const limits = planContext.definition.limits;
 
     // Determine which template types are locked for this plan
     const lockedTemplateTypes: string[] = [];
@@ -131,12 +132,23 @@ export async function loader({ request }: LoaderFunctionArgs) {
           : PLAN_DEFINITIONS.STARTER.name,
       }));
 
+    // Check campaign limit status
+    const activeCampaignsCount = allCampaigns.filter((c) => c.status === "ACTIVE").length;
+    const maxCampaigns = limits.maxActiveCampaigns;
+    const campaignLimitStatus = {
+      current: activeCampaignsCount,
+      max: maxCampaigns,
+      isOverLimit: maxCampaigns !== null && activeCampaignsCount > maxCampaigns,
+      planName: planContext.definition.name,
+    };
+
     return data({
       success: true,
       data: {
         campaigns: campaignsData,
         experiments,
         grandfatheredCampaigns,
+        campaignLimitStatus,
       },
       timeRange,
     });

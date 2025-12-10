@@ -1,6 +1,5 @@
 import { logger } from "~/lib/logger.server";
 import prisma, { Prisma } from "~/db.server";
-import { logger } from "~/lib/logger.server";
 import {
   PLAN_DEFINITIONS,
   GAMIFICATION_TEMPLATE_TYPES,
@@ -155,6 +154,35 @@ export class PlanGuardService {
         }
       );
     }
+  }
+
+  /**
+   * Check if user is over their active campaign limit.
+   * Returns limit info if over, null if within limit.
+   * Used to enforce editing restrictions on active campaigns when over limit.
+   */
+  static async getCampaignLimitStatus(storeId: string): Promise<{
+    isOverLimit: boolean;
+    current: number;
+    max: number | null;
+    planName: string;
+  }> {
+    const { definition } = await this.getPlanContext(storeId);
+    const limit = definition.limits.maxActiveCampaigns;
+
+    const activeCampaignsCount = await prisma.campaign.count({
+      where: {
+        storeId,
+        status: "ACTIVE",
+      },
+    });
+
+    return {
+      isOverLimit: limit !== null && activeCampaignsCount > limit,
+      current: activeCampaignsCount,
+      max: limit,
+      planName: definition.name,
+    };
   }
 
   static async assertCanCreateExperiment(storeId: string) {

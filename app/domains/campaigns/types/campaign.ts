@@ -660,6 +660,9 @@ export const CartAbandonmentContentSchema = BaseContentConfigSchema.extend({
   emailErrorMessage: z.string().optional(),
   emailButtonText: z.string().optional(),
   requireEmailBeforeCheckout: z.boolean().default(false),
+
+  // Loading state text for the CTA button
+  loadingText: z.string().optional(),
 });
 
 /**

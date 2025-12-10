@@ -84,12 +84,20 @@ interface GrandfatheredCampaign {
   requiredPlan: string;
 }
 
+interface CampaignLimitStatus {
+  current: number;
+  max: number | null;
+  isOverLimit: boolean;
+  planName: string;
+}
+
 interface CampaignsApiResponse {
   success: boolean;
   data: {
     campaigns: CampaignDashboardRow[];
     experiments: ExperimentWithVariants[];
     grandfatheredCampaigns?: GrandfatheredCampaign[];
+    campaignLimitStatus?: CampaignLimitStatus;
   };
 }
 
@@ -524,6 +532,7 @@ export default function Dashboard() {
   const campaigns = campaignsData?.data?.campaigns ?? [];
   const experiments = campaignsData?.data?.experiments ?? [];
   const grandfatheredCampaigns = campaignsData?.data?.grandfatheredCampaigns ?? [];
+  const campaignLimitStatus = campaignsData?.data?.campaignLimitStatus;
 
   // --- Main Dashboard ---
   return (
@@ -568,6 +577,20 @@ export default function Dashboard() {
               />
             </Layout.Section>
           )}
+
+        {/* Campaign Limit Exceeded Banner - Show when user has more active campaigns than plan allows */}
+        {campaignLimitStatus?.isOverLimit && campaignLimitStatus.max !== null && (
+          <Layout.Section>
+            <Banner tone="critical" title="Campaign Limit Exceeded">
+              <Text as="p" variant="bodyMd">
+                You have <strong>{campaignLimitStatus.current} active campaigns</strong>, but your{" "}
+                {campaignLimitStatus.planName} plan only allows <strong>{campaignLimitStatus.max}</strong>.
+                Your campaigns will continue running, but you cannot edit active campaigns or activate new ones.{" "}
+                <Link url="/app/billing">Upgrade your plan</Link> to unlock full access, or pause some campaigns.
+              </Text>
+            </Banner>
+          </Layout.Section>
+        )}
 
         {/* Grandfathered Campaigns Banner - Show when user has active campaigns using locked templates */}
         {grandfatheredCampaigns.length > 0 && (

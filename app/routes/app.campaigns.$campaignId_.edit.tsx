@@ -55,6 +55,14 @@ interface LoaderData {
   isTemplateLocked?: boolean;
   /** Required plan name if template is locked */
   requiredPlanName?: string;
+  /** True if user is over their campaign limit and campaign is ACTIVE (blocks editing) */
+  isOverCampaignLimit?: boolean;
+  /** Campaign limit info when over limit */
+  campaignLimitInfo?: {
+    current: number;
+    max: number;
+    planName: string;
+  };
 }
 
 // ============================================================================
@@ -126,6 +134,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     }
 
+    // Check if user is over campaign limit (blocks editing ACTIVE campaigns)
+    let isOverCampaignLimit = false;
+    let campaignLimitInfo: { current: number; max: number; planName: string } | undefined;
+    if (campaign && campaign.status === "ACTIVE") {
+      const limitStatus = await PlanGuardService.getCampaignLimitStatus(storeId);
+      if (limitStatus.isOverLimit && limitStatus.max !== null) {
+        isOverCampaignLimit = true;
+        campaignLimitInfo = {
+          current: limitStatus.current,
+          max: limitStatus.max,
+          planName: limitStatus.planName,
+        };
+      }
+    }
+
     // Lazy-load background presets by layout from recipe service
     const { getBackgroundsByLayoutMap } = await import(
       "~/domains/campaigns/recipes/recipe-service.server"
@@ -173,6 +196,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       defaultThemeTokens,
       isTemplateLocked,
       requiredPlanName,
+      isOverCampaignLimit,
+      campaignLimitInfo,
     });
   } catch (error) {
     console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
@@ -310,6 +335,8 @@ export default function CampaignEditPage() {
     defaultThemeTokens,
     isTemplateLocked,
     requiredPlanName,
+    isOverCampaignLimit,
+    campaignLimitInfo,
   } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
@@ -508,6 +535,43 @@ export default function CampaignEditPage() {
 
   if (!campaign) {
     return null;
+  }
+
+  // Block editing ACTIVE campaigns when over campaign limit
+  if (isOverCampaignLimit && campaignLimitInfo) {
+    return (
+      <Frame>
+        <Box padding="600">
+          <Banner tone="critical" title="Campaign Limit Exceeded">
+            <Box paddingBlockStart="200">
+              <Text as="p" variant="bodyMd">
+                You have <strong>{campaignLimitInfo.current} active campaigns</strong>, but your{" "}
+                {campaignLimitInfo.planName} plan only allows <strong>{campaignLimitInfo.max}</strong>.
+              </Text>
+              <Box paddingBlockStart="300">
+                <Text as="p" variant="bodyMd">
+                  To edit this campaign, you need to either:
+                </Text>
+                <Box paddingBlockStart="200" paddingInlineStart="400">
+                  <Text as="p" variant="bodyMd">
+                    • <Link url="/app/billing">Upgrade your plan</Link> to support more campaigns
+                  </Text>
+                  <Text as="p" variant="bodyMd">
+                    • <Link url="/app">Pause some campaigns</Link> to free up slots
+                  </Text>
+                </Box>
+              </Box>
+              <Box paddingBlockStart="400">
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  Your existing active campaigns will continue running, but you cannot edit them until
+                  you&apos;re within your plan&apos;s limit.
+                </Text>
+              </Box>
+            </Box>
+          </Banner>
+        </Box>
+      </Frame>
+    );
   }
 
   const initialData = campaignToCampaignData(campaign, advancedTargetingEnabled);

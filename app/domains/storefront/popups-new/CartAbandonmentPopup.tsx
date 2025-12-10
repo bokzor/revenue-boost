@@ -190,6 +190,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
 
   // Component-specific state
   const [emailSuccessMessage, setEmailSuccessMessage] = useState<string | null>(null);
+  const [isResumeProcessing, setIsResumeProcessing] = useState(false);
 
   const discountBehavior = config.discount?.behavior || "SHOW_CODE_AND_AUTO_APPLY";
 
@@ -204,10 +205,16 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
   // Timer is now handled by useCountdownTimer hook
 
   const handleResumeCheckout = useCallback(async () => {
+    // Prevent double-clicks
+    if (isResumeProcessing) return;
+
     let shouldRedirect = true;
 
     try {
       if (config.discount?.enabled && typeof issueDiscount === "function" && !discountCode) {
+        // Start loading state before async operation
+        setIsResumeProcessing(true);
+
         let numericTotal: number | undefined;
         if (typeof cartTotal === "number") {
           numericTotal = cartTotal;
@@ -242,6 +249,8 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
       }
     } catch (err) {
       console.error("[CartAbandonmentPopup] Failed to issue discount on resume:", err);
+    } finally {
+      setIsResumeProcessing(false);
     }
 
     if (shouldRedirect) {
@@ -267,6 +276,7 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
     cartTotal,
     discountCode,
     discountBehavior,
+    isResumeProcessing,
     issueDiscount,
     onResumeCheckout,
     setDiscountCode,
@@ -865,6 +875,34 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
           outline-offset: 2px;
         }
 
+        .cart-ab-primary-button:disabled {
+          cursor: not-allowed;
+          opacity: 0.7;
+        }
+
+        .cart-ab-primary-button--loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+
+        .cart-ab-button-spinner {
+          display: inline-block;
+          width: 1em;
+          height: 1em;
+          border: 2px solid currentColor;
+          border-right-color: transparent;
+          border-radius: 50%;
+          animation: cart-ab-spin 0.75s linear infinite;
+        }
+
+        @keyframes cart-ab-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
         /* Secondary CTA Button */
         .cart-ab-secondary-button {
           width: 100%;
@@ -1250,10 +1288,18 @@ export const CartAbandonmentPopup: React.FC<CartAbandonmentPopupProps> = ({
             {!isEmailGateActive && (
               <button
                 onClick={handleResumeCheckout}
-                className="cart-ab-primary-button"
+                className={`cart-ab-primary-button${isResumeProcessing ? " cart-ab-primary-button--loading" : ""}`}
                 type="button"
+                disabled={isResumeProcessing}
               >
-                {config.buttonText || config.ctaText || "Resume Checkout"}
+                {isResumeProcessing ? (
+                  <>
+                    <span className="cart-ab-button-spinner" aria-hidden="true" />
+                    {config.loadingText || "Processing..."}
+                  </>
+                ) : (
+                  config.buttonText || config.ctaText || "Resume Checkout"
+                )}
               </button>
             )}
 

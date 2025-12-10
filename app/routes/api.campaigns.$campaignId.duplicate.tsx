@@ -29,6 +29,9 @@ export async function action(args: ActionFunctionArgs) {
             // Check if template type is allowed on user's plan (blocks duplicating locked templates)
             await PlanGuardService.assertCanUseTemplateType(storeId, originalCampaign.templateType);
 
+            // Check campaign limit (blocks duplicating when at/over limit)
+            await PlanGuardService.assertCanCreateCampaign(storeId);
+
             const newCampaign = await CampaignService.duplicateCampaign(campaignId, storeId, admin);
             validateResourceExists(newCampaign, "Campaign");
 

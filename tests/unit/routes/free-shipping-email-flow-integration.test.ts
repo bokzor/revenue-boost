@@ -56,6 +56,17 @@ vi.mock("~/domains/security/services/submission-validator.server", () => ({
 
 vi.mock("~/domains/commerce/services/discount.server", () => ({
   getCampaignDiscountCode: vi.fn(),
+  normalizeDiscountConfig: vi.fn((cfg: any) => ({
+    enabled: cfg?.enabled ?? false,
+    type: cfg?.type ?? "single_use",
+    valueType: cfg?.valueType ?? "PERCENTAGE",
+    value: cfg?.value ?? 10,
+    prefix: cfg?.prefix ?? "DISCOUNT",
+    behavior: cfg?.behavior ?? "SHOW_CODE_AND_AUTO_APPLY",
+    showInPreview: cfg?.showInPreview ?? true,
+    ...cfg,
+  })),
+  inferStrategy: vi.fn(() => "basic"),
 }));
 
 vi.mock("~/domains/analytics/popup-events.server", () => ({
