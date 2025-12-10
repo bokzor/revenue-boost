@@ -115,7 +115,7 @@ export function processTemplate(template: UnifiedTemplate): ProcessedTemplate {
     position: getStringField(design, "position", "center"),
     size: getStringField(design, "size", "medium"),
     showCloseButton: getBooleanField(design, "showCloseButton", true),
-    overlayOpacity: getNumberField(design, "overlayOpacity", 0.6),
+    overlayOpacity: getNumberField(design, "overlayOpacity", 0.5),
   };
 }
 
