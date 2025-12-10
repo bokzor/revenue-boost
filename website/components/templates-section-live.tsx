@@ -1,39 +1,72 @@
-"use client"
+"use client";
 
-import { useState, Suspense, lazy, useEffect } from "react"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { useState, Suspense, lazy, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
-  Mail, Gift, Timer, Ticket,
-  Smartphone, Tablet, Monitor,
-  ArrowRight, Sparkles
-} from "lucide-react"
+  Mail,
+  Gift,
+  Timer,
+  Ticket,
+  Smartphone,
+  Tablet,
+  Monitor,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 
-// Brand gradient: #AEE5AB → #0E7768
-const BRAND_GRADIENT = "from-[#AEE5AB] to-[#0E7768]"
-
-// Featured recipes to showcase (subset of the 75+)
+// Featured recipes to showcase (subset of the 75+) - each with unique color theme
 const featuredRecipes = [
-  { id: "NEWSLETTER", name: "Newsletter", icon: Mail, color: BRAND_GRADIENT, description: "Email signup forms" },
-  { id: "SPIN_TO_WIN", name: "Spin to Win", icon: Gift, color: BRAND_GRADIENT, description: "Gamified wheel" },
-  { id: "SCRATCH_CARD", name: "Scratch Card", icon: Ticket, color: BRAND_GRADIENT, description: "Interactive scratch" },
-  { id: "FLASH_SALE", name: "Flash Sale", icon: Timer, color: BRAND_GRADIENT, description: "Urgency timers" },
-] as const
+  {
+    id: "NEWSLETTER",
+    name: "Newsletter",
+    icon: Mail,
+    color: "from-blue-500 to-cyan-500",
+    description: "Email signup forms",
+  },
+  {
+    id: "SPIN_TO_WIN",
+    name: "Spin to Win",
+    icon: Gift,
+    color: "from-purple-500 to-pink-500",
+    description: "Gamified wheel",
+  },
+  {
+    id: "SCRATCH_CARD",
+    name: "Scratch Card",
+    icon: Ticket,
+    color: "from-yellow-500 to-orange-500",
+    description: "Interactive scratch",
+  },
+  {
+    id: "FLASH_SALE",
+    name: "Flash Sale",
+    icon: Timer,
+    color: "from-orange-500 to-red-500",
+    description: "Urgency timers",
+  },
+] as const;
 
-type TemplateType = typeof featuredRecipes[number]["id"]
-type DeviceType = "mobile" | "tablet" | "desktop"
+type TemplateType = (typeof featuredRecipes)[number]["id"];
+type DeviceType = "mobile" | "tablet" | "desktop";
 
 // Device configurations
-const devices: { id: DeviceType; name: string; icon: typeof Smartphone; minViewportWidth: number; frameWidth: number }[] = [
+const devices: {
+  id: DeviceType;
+  name: string;
+  icon: typeof Smartphone;
+  minViewportWidth: number;
+  frameWidth: number;
+}[] = [
   { id: "mobile", name: "Mobile", icon: Smartphone, minViewportWidth: 0, frameWidth: 390 },
   { id: "tablet", name: "Tablet", icon: Tablet, minViewportWidth: 768, frameWidth: 768 },
   { id: "desktop", name: "Desktop", icon: Monitor, minViewportWidth: 1024, frameWidth: 1024 },
-]
+];
 
 // Lazy load the preview component
-const LivePopupPreview = lazy(() => import("./live-popup-preview"))
+const LivePopupPreview = lazy(() => import("./live-popup-preview"));
 
 const PreviewSkeleton = () => (
   <div className="flex items-center justify-center h-[500px]">
@@ -43,33 +76,33 @@ const PreviewSkeleton = () => (
       <div className="w-32 h-4 bg-white/10 rounded" />
     </div>
   </div>
-)
+);
 
 function useViewportWidth() {
-  const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024)
+  const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
 
   useEffect(() => {
-    const handleResize = () => setWidth(window.innerWidth)
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  return width
+  return width;
 }
 
 export function TemplatesSectionLive() {
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>("NEWSLETTER")
-  const [selectedDevice, setSelectedDevice] = useState<DeviceType>("mobile")
-  const selected = featuredRecipes.find(t => t.id === selectedTemplate) || featuredRecipes[0]
-  const viewportWidth = useViewportWidth()
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>("NEWSLETTER");
+  const [selectedDevice, setSelectedDevice] = useState<DeviceType>("mobile");
+  const selected = featuredRecipes.find((t) => t.id === selectedTemplate) || featuredRecipes[0];
+  const viewportWidth = useViewportWidth();
 
-  const availableDevices = devices.filter(d => viewportWidth >= d.minViewportWidth + 100)
+  const availableDevices = devices.filter((d) => viewportWidth >= d.minViewportWidth + 100);
 
   useEffect(() => {
-    if (!availableDevices.find(d => d.id === selectedDevice)) {
-      setSelectedDevice("mobile")
+    if (!availableDevices.find((d) => d.id === selectedDevice)) {
+      setSelectedDevice("mobile");
     }
-  }, [availableDevices, selectedDevice])
+  }, [availableDevices, selectedDevice]);
 
   return (
     <section id="templates" className="bg-secondary/30 px-4 py-20 md:py-32">
@@ -79,11 +112,10 @@ export function TemplatesSectionLive() {
             <Sparkles className="h-4 w-4 text-primary" />
             Interactive Preview
           </Badge>
-          <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
-            See It in Action
-          </h2>
+          <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">See It in Action</h2>
           <p className="text-lg text-muted-foreground">
-            Try our popups before you install. Click, spin, and interact — just like your customers will.
+            Try our popups before you install. Click, spin, and interact — just like your customers
+            will.
           </p>
         </div>
 
@@ -92,14 +124,14 @@ export function TemplatesSectionLive() {
             {availableDevices.length > 1 && (
               <div className="flex items-center justify-center gap-2 border-b border-border/50 bg-slate-800/50 px-4 py-3">
                 {availableDevices.map((device) => {
-                  const IconComponent = device.icon
+                  const IconComponent = device.icon;
                   return (
                     <button
                       key={device.id}
                       onClick={() => setSelectedDevice(device.id)}
                       className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                         selectedDevice === device.id
-                          ? "bg-gradient-to-r from-[#AEE5AB] to-[#0E7768] text-white"
+                          ? "bg-primary text-primary-foreground"
                           : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
                       }`}
                       title={`Preview on ${device.name}`}
@@ -107,17 +139,14 @@ export function TemplatesSectionLive() {
                       <IconComponent className="h-4 w-4" />
                       <span className="hidden sm:inline">{device.name}</span>
                     </button>
-                  )
+                  );
                 })}
               </div>
             )}
 
             <div className="flex justify-center p-4 sm:p-6 w-full">
               <Suspense fallback={<PreviewSkeleton />}>
-                <LivePopupPreview
-                  templateType={selectedTemplate}
-                  device={selectedDevice}
-                />
+                <LivePopupPreview templateType={selectedTemplate} device={selectedDevice} />
               </Suspense>
             </div>
 
@@ -126,23 +155,21 @@ export function TemplatesSectionLive() {
                 <selected.icon className="h-4 w-4" />
                 {selected.name}
               </Badge>
-              <span className="text-sm text-muted-foreground">
-                ✨ Try it — it's interactive!
-              </span>
+              <span className="text-sm text-muted-foreground">✨ Try it — it's interactive!</span>
             </div>
           </Card>
 
           {/* Template Selector */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
             {featuredRecipes.map((template) => {
-              const IconComponent = template.icon
+              const IconComponent = template.icon;
               return (
                 <button
                   key={template.id}
                   onClick={() => setSelectedTemplate(template.id)}
                   className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
                     selectedTemplate === template.id
-                      ? "bg-gradient-to-r from-[#AEE5AB] to-[#0E7768] text-white"
+                      ? `bg-gradient-to-r ${template.color} text-white`
                       : "bg-card text-foreground hover:bg-muted"
                   }`}
                   title={template.description}
@@ -150,7 +177,7 @@ export function TemplatesSectionLive() {
                   <IconComponent className="h-4 w-4" />
                   <span>{template.name}</span>
                 </button>
-              )
+              );
             })}
           </div>
 
@@ -166,6 +193,5 @@ export function TemplatesSectionLive() {
         </div>
       </div>
     </section>
-  )
+  );
 }
-

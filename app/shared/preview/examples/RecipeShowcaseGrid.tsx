@@ -27,7 +27,7 @@ import {
   type MarketingCategory,
   type MarketingRecipe,
 } from "../recipe-marketing-data";
-import { MarketingRecipePreview } from "../MarketingRecipePreview";
+import { MarketingRecipePreview, type PreviewDevice } from "../MarketingRecipePreview";
 import { RECIPE_TAG_LABELS, type RecipeTag } from "~/domains/campaigns/recipes/styled-recipe-types";
 
 // =============================================================================
@@ -96,7 +96,6 @@ const filterContainerStyles: React.CSSProperties = {
   display: "flex",
   gap: "12px",
   flexWrap: "wrap",
-  marginBottom: "24px",
 };
 
 const filterButtonStyles = (isActive: boolean): React.CSSProperties => ({
@@ -127,6 +126,7 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<MarketingCategory | "all">(initialCategory);
   const [hoveredRecipe, setHoveredRecipe] = useState<string | null>(null);
+  const [device, setDevice] = useState<PreviewDevice>("mobile");
 
   // Filter recipes by category
   const filteredRecipes = useMemo(() => {
@@ -152,26 +152,82 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
 
   return (
     <div>
-      {/* Category Filters */}
+      {/* Filters Row */}
       {showFilters && (
-        <div style={filterContainerStyles}>
-          <button
-            style={filterButtonStyles(activeCategory === "all")}
-            onClick={() => setActiveCategory("all")}
-          >
-            All Designs
-            <span style={{ opacity: 0.7 }}>({categoryCounts.all})</span>
-          </button>
-          {Object.values(MARKETING_CATEGORIES).map((cat) => (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", marginBottom: "24px", flexWrap: "wrap" }}>
+          {/* Category Filters */}
+          <div style={filterContainerStyles}>
             <button
-              key={cat.id}
-              style={filterButtonStyles(activeCategory === cat.id)}
-              onClick={() => setActiveCategory(cat.id)}
+              style={filterButtonStyles(activeCategory === "all")}
+              onClick={() => setActiveCategory("all")}
             >
-              {cat.icon} {cat.label}
-              <span style={{ opacity: 0.7 }}>({categoryCounts[cat.id]})</span>
+              All Designs
+              <span style={{ opacity: 0.7 }}>({categoryCounts.all})</span>
             </button>
-          ))}
+            {Object.values(MARKETING_CATEGORIES).map((cat) => (
+              <button
+                key={cat.id}
+                style={filterButtonStyles(activeCategory === cat.id)}
+                onClick={() => setActiveCategory(cat.id)}
+              >
+                {cat.icon} {cat.label}
+                <span style={{ opacity: 0.7 }}>({categoryCounts[cat.id]})</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Device Toggle */}
+          <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+            <button
+              style={{
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                background: device === "mobile" ? "#6366F1" : "#FFFFFF",
+                color: device === "mobile" ? "#FFFFFF" : "#374151",
+                fontSize: "14px",
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+              onClick={() => setDevice("mobile")}
+              aria-label="Mobile preview"
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14.1667 2.5H5.83333C4.91286 2.5 4.16667 3.24619 4.16667 4.16667V15.8333C4.16667 16.7538 4.91286 17.5 5.83333 17.5H14.1667C15.0871 17.5 15.8333 16.7538 15.8333 15.8333V4.16667C15.8333 3.24619 15.0871 2.5 14.1667 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 14.1667H10.0083" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Mobile
+            </button>
+            <button
+              style={{
+                padding: "8px 16px",
+                borderRadius: "8px",
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                background: device === "desktop" ? "#6366F1" : "#FFFFFF",
+                color: device === "desktop" ? "#FFFFFF" : "#374151",
+                fontSize: "14px",
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+              onClick={() => setDevice("desktop")}
+              aria-label="Desktop preview"
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16.6667 3.33333H3.33333C2.41286 3.33333 1.66667 4.07953 1.66667 5V12.5C1.66667 13.4205 2.41286 14.1667 3.33333 14.1667H16.6667C17.5871 14.1667 18.3333 13.4205 18.3333 12.5V5C18.3333 4.07953 17.5871 3.33333 16.6667 3.33333Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6.66667 17.5H13.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 14.1667V17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Desktop
+            </button>
+          </div>
         </div>
       )}
 
@@ -189,7 +245,11 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
             onKeyDown={(e) => e.key === "Enter" && onRecipeClick?.(recipe)}
           >
             {/* Preview - matching admin's structure */}
-            <div style={previewContainerStyles}>
+            <div style={{
+              ...previewContainerStyles,
+              // Desktop needs a different aspect ratio
+              aspectRatio: device === "desktop" ? "16 / 10" : "9 / 16",
+            }}>
               <div style={{
                 position: "absolute",
                 inset: "8px",
@@ -198,6 +258,7 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
                   recipe={recipe}
                   width="100%"
                   height="100%"
+                  device={device}
                 />
               </div>
             </div>

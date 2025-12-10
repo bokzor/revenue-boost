@@ -28,14 +28,26 @@ import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePre
 import { DeviceFrame } from "./DeviceFrame";
 import { ShadowDomWrapper } from "~/domains/campaigns/components/recipes/ShadowDomWrapper";
 
+// Device type for preview
+export type PreviewDevice = "mobile" | "desktop";
+
 // iPhone 14 dimensions (same as admin's MiniPopupPreview)
 const IPHONE_14_WIDTH = 390;
 const IPHONE_14_HEIGHT = 844;
 const DEVICE_FRAME_BORDER = 24;
 
+// Desktop browser dimensions
+const DESKTOP_WIDTH = 1280;
+const DESKTOP_HEIGHT = 800;
+const DESKTOP_CHROME_HEIGHT = 40;
+
 // Virtual viewport: iPhone + device frame border
-const VIRTUAL_WIDTH = IPHONE_14_WIDTH + DEVICE_FRAME_BORDER;
-const VIRTUAL_HEIGHT = IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER;
+const MOBILE_VIRTUAL_WIDTH = IPHONE_14_WIDTH + DEVICE_FRAME_BORDER;
+const MOBILE_VIRTUAL_HEIGHT = IPHONE_14_HEIGHT + DEVICE_FRAME_BORDER;
+
+// Desktop uses the full browser dimensions
+const DESKTOP_VIRTUAL_WIDTH = DESKTOP_WIDTH;
+const DESKTOP_VIRTUAL_HEIGHT = DESKTOP_HEIGHT + DESKTOP_CHROME_HEIGHT;
 
 export interface MarketingRecipePreviewProps {
   /** The recipe ID or MarketingRecipe object */
@@ -50,6 +62,9 @@ export interface MarketingRecipePreviewProps {
   /** Whether to show recipe info below the preview */
   showInfo?: boolean;
 
+  /** Device mode - mobile or desktop */
+  device?: PreviewDevice;
+
   /** Custom class name */
   className?: string;
 
@@ -62,6 +77,7 @@ export const MarketingRecipePreview: React.FC<MarketingRecipePreviewProps> = ({
   width = "100%",
   height = 280,
   showInfo = false,
+  device = "mobile",
   className,
   style,
 }) => {
@@ -71,6 +87,10 @@ export const MarketingRecipePreview: React.FC<MarketingRecipePreviewProps> = ({
   // Get the full recipe data
   const recipeId = typeof recipe === "string" ? recipe : recipe.id;
   const fullRecipe = useMemo(() => getStyledRecipeForMarketing(recipeId), [recipeId]);
+
+  // Determine virtual dimensions based on device
+  const VIRTUAL_WIDTH = device === "desktop" ? DESKTOP_VIRTUAL_WIDTH : MOBILE_VIRTUAL_WIDTH;
+  const VIRTUAL_HEIGHT = device === "desktop" ? DESKTOP_VIRTUAL_HEIGHT : MOBILE_VIRTUAL_HEIGHT;
 
   // Measure container on mount and resize
   useLayoutEffect(() => {
@@ -121,12 +141,9 @@ export const MarketingRecipePreview: React.FC<MarketingRecipePreviewProps> = ({
   }
 
   // Build content config from recipe defaults
-  // Override colorScheme to "custom" so our brand colors from designConfig are used
   const contentConfig = useMemo(
     () => ({
       ...fullRecipe.defaults.contentConfig,
-      // Force "custom" colorScheme so brand colors from designConfig are applied
-      colorScheme: "custom",
       discountConfig: fullRecipe.defaults.discountConfig,
       previewMode: true,
     }),
@@ -182,8 +199,8 @@ export const MarketingRecipePreview: React.FC<MarketingRecipePreviewProps> = ({
               containerName: "popup-viewport",
             } as React.CSSProperties}
           >
-            {/* iPhone frame for consistent preview (same as admin) */}
-            <DeviceFrame device="mobile">
+            {/* Device frame for consistent preview (same as admin) */}
+            <DeviceFrame device={device}>
               <TemplatePreview
                 templateType={fullRecipe.templateType}
                 config={contentConfig}
@@ -236,12 +253,111 @@ const RecipeInfo: React.FC<{ recipe: StyledRecipe }> = ({ recipe }) => (
 );
 
 // =============================================================================
-// BRAND COLORS & HELPER FUNCTIONS
+// THEME DATA & HELPER FUNCTIONS
 // =============================================================================
 
 /**
+ * Theme colors for marketing preview.
+ * Matches NEWSLETTER_THEMES from ~/config/color-presets.ts
+ */
+const MARKETING_THEMES: Record<string, {
+  background: string;
+  text: string;
+  primary: string;
+  ctaBg?: string;
+  ctaText?: string;
+}> = {
+  // Generic themes
+  modern: {
+    background: "#ffffff",
+    text: "#111827",
+    primary: "#3b82f6",
+    ctaBg: "#3b82f6",
+    ctaText: "#ffffff",
+  },
+  minimal: {
+    background: "#fafafa",
+    text: "#18181b",
+    primary: "#18181b",
+    ctaBg: "#18181b",
+    ctaText: "#ffffff",
+  },
+  dark: {
+    background: "#111827",
+    text: "#f9fafb",
+    primary: "#3b82f6",
+    ctaBg: "#3b82f6",
+    ctaText: "#ffffff",
+  },
+  gradient: {
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    text: "#ffffff",
+    primary: "#e0e7ff",
+    ctaBg: "#ffffff",
+    ctaText: "#667eea",
+  },
+  luxury: {
+    background: "#1a1a0a",
+    text: "#d4af37",
+    primary: "#d4af37",
+    ctaBg: "#d4af37",
+    ctaText: "#1a1a0a",
+  },
+  neon: {
+    background: "#0a0a0a",
+    text: "#00ff88",
+    primary: "#00ff88",
+    ctaBg: "#00ff88",
+    ctaText: "#0a0a0a",
+  },
+  ocean: {
+    background: "#0c4a6e",
+    text: "#f0f9ff",
+    primary: "#38bdf8",
+    ctaBg: "#38bdf8",
+    ctaText: "#0c4a6e",
+  },
+  // Seasonal themes
+  summer: {
+    background: "#fef3c7",
+    text: "#92400e",
+    primary: "#f59e0b",
+    ctaBg: "#f59e0b",
+    ctaText: "#ffffff",
+  },
+  "black-friday": {
+    background: "#000000",
+    text: "#ffffff",
+    primary: "#ef4444",
+    ctaBg: "#ef4444",
+    ctaText: "#ffffff",
+  },
+  holiday: {
+    background: "#14532d",
+    text: "#ffffff",
+    primary: "#ef4444",
+    ctaBg: "#ef4444",
+    ctaText: "#ffffff",
+  },
+  valentine: {
+    background: "#fdf2f8",
+    text: "#831843",
+    primary: "#ec4899",
+    ctaBg: "#ec4899",
+    ctaText: "#ffffff",
+  },
+  spring: {
+    background: "#f0fdf4",
+    text: "#166534",
+    primary: "#22c55e",
+    ctaBg: "#22c55e",
+    ctaText: "#ffffff",
+  },
+};
+
+/**
  * Revenue Boost brand colors (greenish teal).
- * Used for ALL recipe previews on the marketing website to maintain consistent branding.
+ * Used as fallback for recipes without a specific theme.
  */
 const BRAND_COLORS = {
   primary: "#0E7768",      // Teal - main brand color
@@ -253,12 +369,14 @@ const BRAND_COLORS = {
 };
 
 /**
- * Build design config from recipe, applying Revenue Boost brand colors.
- *
- * For the marketing website, we ALWAYS use brand colors (greenish teal)
- * to maintain consistent branding. Recipe-specific colors are ignored.
+ * Build design config from recipe, applying theme colors.
+ * Preserves original recipe themes while using brand colors as fallback.
  */
 function buildDesignConfig(recipe: StyledRecipe): Record<string, unknown> {
+  // Get theme colors if recipe has a theme
+  const theme = recipe.theme;
+  const themeColors = theme && MARKETING_THEMES[theme] ? MARKETING_THEMES[theme] : null;
+
   // Determine image position based on layout
   const imagePosition =
     recipe.defaults.designConfig?.imagePosition ||
@@ -283,51 +401,50 @@ function buildDesignConfig(recipe: StyledRecipe): Record<string, unknown> {
   // Then check for background preset - build URL directly
   else if (recipe.backgroundPresetId) {
     backgroundImagePresetKey = recipe.backgroundPresetId;
-    // Background images are served from /apps/revenue-boost/backgrounds/
-    // The preset ID maps to the image filename
     imageUrl = `/apps/revenue-boost/backgrounds/${recipe.backgroundPresetId}.webp`;
     backgroundImageMode = "preset";
   }
 
-  // Extract non-color properties from recipe's designConfig
-  // We want to keep layout/position/size but override all colors with brand colors
+  // Build color config: use theme colors if available, recipe colors if defined,
+  // or brand colors as final fallback
   const recipeDesign = recipe.defaults.designConfig || {};
-  const nonColorProps: Record<string, unknown> = {};
-  const colorKeys = [
-    "backgroundColor",
-    "textColor",
-    "primaryColor",
-    "accentColor",
-    "buttonColor",
-    "buttonTextColor",
-    "descriptionColor",
-    "inputBackgroundColor",
-    "inputTextColor",
-    "inputBorderColor",
-    "overlayColor",
-    "secondaryButtonColor",
-    "secondaryButtonTextColor",
-  ];
 
-  // Copy only non-color properties from recipe's designConfig
-  for (const [key, value] of Object.entries(recipeDesign)) {
-    if (!colorKeys.includes(key)) {
-      nonColorProps[key] = value;
-    }
-  }
-
-  // Always use Revenue Boost brand colors for marketing website
-  const brandColorConfig = {
+  // Start with brand colors as base fallback
+  let colorConfig = {
     backgroundColor: BRAND_COLORS.background,
     textColor: BRAND_COLORS.text,
     primaryColor: BRAND_COLORS.primary,
-    accentColor: BRAND_COLORS.primary,
+    accentColor: BRAND_COLORS.secondary,
     buttonColor: BRAND_COLORS.buttonBg,
     buttonTextColor: BRAND_COLORS.buttonText,
-    descriptionColor: "#6B7280", // Gray-500 for descriptions
   };
 
+  // If recipe has a theme, use theme colors
+  if (themeColors) {
+    colorConfig = {
+      backgroundColor: themeColors.background,
+      textColor: themeColors.text,
+      primaryColor: themeColors.primary,
+      accentColor: themeColors.primary,
+      buttonColor: themeColors.ctaBg || themeColors.primary,
+      buttonTextColor: themeColors.ctaText || "#FFFFFF",
+    };
+  }
+  // Otherwise, use recipe's own colors if they exist
+  else if (recipeDesign.backgroundColor || recipeDesign.buttonColor) {
+    colorConfig = {
+      backgroundColor: recipeDesign.backgroundColor || colorConfig.backgroundColor,
+      textColor: recipeDesign.textColor || colorConfig.textColor,
+      primaryColor: recipeDesign.primaryColor || colorConfig.primaryColor,
+      accentColor: recipeDesign.accentColor || colorConfig.accentColor,
+      buttonColor: recipeDesign.buttonColor || colorConfig.buttonColor,
+      buttonTextColor: recipeDesign.buttonTextColor || colorConfig.buttonTextColor,
+    };
+  }
+
   return {
+    // Only set theme if recipe has one
+    ...(theme ? { theme } : {}),
     layout: recipe.layout,
     position: recipeDesign.position || "center",
     size: recipeDesign.size || "medium",
@@ -340,10 +457,10 @@ function buildDesignConfig(recipe: StyledRecipe): Record<string, unknown> {
     // Preview mode settings
     previewMode: true,
     disablePortal: true,
-    // Apply non-color properties from recipe
-    ...nonColorProps,
-    // Always apply brand colors (overrides any recipe colors)
-    ...brandColorConfig,
+    // Spread all recipe design config first
+    ...recipeDesign,
+    // Then apply the resolved color config (theme > recipe > brand fallback)
+    ...colorConfig,
   };
 }
 
