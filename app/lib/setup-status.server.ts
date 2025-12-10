@@ -212,13 +212,14 @@ export async function checkThemeExtensionEnabled({
 
       // Strategy 1: Match by extension UID (most reliable, but only if configured)
       // Format: shopify://apps/{app_name}/blocks/{block_handle}/{extension_uid}
-      // EXTENSION_UID varies per environment (dev/staging/prod), so it's optional
+      // Example: shopify://apps/revenue-boost/blocks/popup-embed/725cd6d8-2f2b-91cb-b1be-3983c340fe6376935e80
+
+      // Strategy 1: Match by extension UID (most reliable - unique per app deployment)
+      // EXTENSION_UID varies per environment (dev/staging/prod)
       const matchesByUid = EXTENSION_UID ? blockType.includes(EXTENSION_UID) : false;
 
-      // Strategy 2: Match by block handle
-      const matchesByBlockHandle = blockType.includes(`/blocks/${BLOCK_HANDLE}/`);
-
-      // Strategy 3: Match by app name variations (fallback for different environments)
+      // Strategy 2: Match by app name variations
+      // This is the primary fallback when UID is not available
       const matchesByAppName =
         blockType.includes("revenue-boost") ||
         blockType.includes("revenue_boost") ||
@@ -226,7 +227,15 @@ export async function checkThemeExtensionEnabled({
         blockType.includes("split-pop") || // Alternative app name
         blockType.includes("splitpop");
 
-      const isOurApp = matchesByUid || matchesByBlockHandle || matchesByAppName;
+      // NOTE: We intentionally do NOT match by block handle alone!
+      // Block handle (popup-embed) is NOT unique - other apps could use the same handle.
+      // This was causing false positives where other apps' blocks were being detected as ours.
+      // We only match by UID (unique per deployment) or app name (unique per app).
+      const hasCorrectBlockHandle = blockType.includes(`/blocks/${BLOCK_HANDLE}/`);
+
+      // Final determination: must match by UID or app name
+      // Block handle is logged for debugging but not used for matching
+      const isOurApp = matchesByUid || matchesByAppName;
 
       // An app embed is enabled when disabled is NOT true
       // Per Shopify docs: "disabled" is only set to true when merchant disables it.
@@ -237,8 +246,8 @@ export async function checkThemeExtensionEnabled({
         blockType,
         disabled: b.disabled,
         matchesByUid,
-        matchesByBlockHandle,
         matchesByAppName,
+        hasCorrectBlockHandle,
         isOurApp,
         isEnabled
       }, "[Setup] Checking app embed block");

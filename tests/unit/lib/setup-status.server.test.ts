@@ -124,12 +124,15 @@ describe("Setup Status Server Module", () => {
       expect(result).toBe(true);
     });
 
-    it("should return true when app embed is enabled by block handle", async () => {
+    it("should return false when block handle matches but app name does not (prevents false positives)", async () => {
+      // This test verifies that we DON'T match by block handle alone
+      // Another app could have a block called "popup-embed" - we should NOT detect it as ours
       const settingsData = {
         current: {
           blocks: {
             "block1": {
-              type: "shopify://apps/some-app-name/blocks/popup-embed/some-uid",
+              // Has our block handle but NOT our app name - should NOT match
+              type: "shopify://apps/some-other-app/blocks/popup-embed/some-uid",
               disabled: false,
             },
           },
@@ -153,7 +156,8 @@ describe("Setup Status Server Module", () => {
         accessToken: "test-token",
       });
 
-      expect(result).toBe(true);
+      // Should be FALSE - block handle alone is not enough to identify our app
+      expect(result).toBe(false);
     });
 
     it("should return true when app embed is enabled by app name", async () => {
