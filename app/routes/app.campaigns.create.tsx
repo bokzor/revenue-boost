@@ -20,6 +20,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 import { PlanLimitError } from "~/domains/billing/errors";
 import { ServiceError } from "~/lib/errors.server";
+import { logger } from "~/lib/logger.server";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import {
   ModeSelector,
@@ -79,7 +80,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       success: true,
     });
   } catch (error) {
-    console.error("Error loading campaign create page:", error);
+    logger.error({ error }, "Error loading campaign create page");
     return data({
       storeId: "",
       shopDomain: "",
@@ -154,7 +155,7 @@ export async function action({ request }: ActionFunctionArgs) {
         isControl: undefined,
       };
 
-      console.log("[create campaign] Transformed data:", JSON.stringify(createData, null, 2));
+      logger.debug({ createData }, "[create campaign] Transformed data");
 
       // Create campaign using service directly
       const campaign = await CampaignService.createCampaign(
@@ -164,7 +165,7 @@ export async function action({ request }: ActionFunctionArgs) {
       );
       return redirect(`/app/campaigns/${campaign.id}`);
     } catch (error) {
-      console.error("[create campaign] Error:", error);
+      logger.error({ error }, "[create campaign] Error");
 
       // Handle plan limit errors with specific details
       if (error instanceof PlanLimitError) {
@@ -243,7 +244,7 @@ export async function action({ request }: ActionFunctionArgs) {
         },
       };
 
-      console.log("[create experiment] Experiment data:", JSON.stringify(experimentCreateData, null, 2));
+      logger.debug({ experimentCreateData }, "[create experiment] Experiment data");
 
       // 1. Create the experiment first
       const experiment = await ExperimentService.createExperiment(storeId, experimentCreateData);
@@ -288,14 +289,14 @@ export async function action({ request }: ActionFunctionArgs) {
           isControl: variant.isControl || i === 0,
         };
 
-        console.log(`[create experiment] Creating variant ${variantKey}:`, JSON.stringify(variantCampaignData, null, 2));
+        logger.debug({ variantKey, variantCampaignData }, "[create experiment] Creating variant");
 
         await CampaignService.createCampaign(storeId, variantCampaignData, admin);
       }
 
       return redirect(`/app/experiments/${experiment.id}`);
     } catch (error) {
-      console.error("[create experiment] Error:", error);
+      logger.error({ error }, "[create experiment] Error");
 
       // Handle plan limit errors with specific details
       if (error instanceof PlanLimitError) {

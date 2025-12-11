@@ -116,14 +116,12 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({
     );
   }
 
-  // Desktop frame
+  // Desktop frame - fills 100% of container
   return (
     <div
       style={{
         width: "100%",
-        minWidth: "600px",
-        maxWidth: "100%",
-        margin: "0 auto",
+        height: "100%",
         border: "1px solid #E1E3E5",
         borderRadius: "8px",
         backgroundColor: "#FFFFFF",
@@ -131,13 +129,13 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
-        minHeight: "500px",
       }}
     >
       {/* Browser Chrome */}
       <div
         style={{
           height: "40px",
+          flexShrink: 0,
           backgroundColor: "#F6F6F7",
           display: "flex",
           alignItems: "center",
@@ -171,7 +169,24 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({
         </div>
         <div style={{ width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px" }}>⋮</div>
       </div>
-      <ContentArea minHeight="500px">{children}</ContentArea>
+      {/* Content area fills remaining space */}
+      <div
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          position: "relative",
+          backgroundColor: "#FFFFFF",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+          }}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 };

@@ -13,6 +13,7 @@
 import { data, type LoaderFunctionArgs } from "react-router";
 import { z } from "zod";
 import { authenticate } from "~/shopify.server";
+import { logger } from "~/lib/logger.server";
 
 // Validation schema for query parameters
 const InventoryQuerySchema = z.object({
@@ -247,7 +248,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       },
     });
   } catch (error) {
-    console.error("[Inventory API] Error:", error);
+    logger.error({ error }, "[Inventory API] Error");
 
     // Handle rate limiting
     if (error instanceof Error && error.message.includes("429")) {

@@ -28,6 +28,7 @@ import { useState, useEffect } from "react";
 import type { ExperimentWithVariants } from "~/domains/campaigns/types/experiment";
 import type { CampaignStatus } from "~/domains/campaigns/types/campaign";
 import { SetupStatus, type SetupStatusData } from "~/domains/setup/components/SetupStatus";
+import { logger } from "~/lib/logger.server";
 import { PostBillingReviewTrigger } from "~/domains/reviews";
 import { BillingService } from "~/domains/billing/index.server";
 
@@ -129,10 +130,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           toPlan: billingContext.planTier,
           createdAt: new Date().toISOString(),
         };
-        console.log("[Dashboard] Detected post-billing upgrade:", recentUpgrade);
+        logger.debug({ recentUpgrade }, "[Dashboard] Detected post-billing upgrade");
       }
     } catch (error) {
-      console.error("[Dashboard] Error checking billing context:", error);
+      logger.error({ error }, "[Dashboard] Error checking billing context");
     }
   }
 
@@ -141,7 +142,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const [currency, setupResult] = await Promise.all([
     getStoreCurrency(admin),
     getSetupStatus(session.shop, session.accessToken || "", admin).catch((error) => {
-      console.error("[Dashboard] Error fetching setup status:", error);
+      logger.error({ error }, "[Dashboard] Error fetching setup status");
       return null;
     }),
   ]);

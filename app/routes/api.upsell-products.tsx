@@ -25,6 +25,7 @@ import {
   fetchProductsByIds,
   fetchProductsByCollection,
 } from "~/domains/commerce/services/upsell.server";
+import { logger } from "~/lib/logger.server";
 import {
   fetchSmartRecommendations,
   type RecommendationContext,
@@ -119,7 +120,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
     // AI / Smart Recommendations: Use cascading strategy
     if (method === "ai") {
-      console.log("[Upsell Products API] Using smart recommendations");
+      logger.debug("[Upsell Products API] Using smart recommendations");
 
       const maxProducts: number =
         typeof contentConfig.maxProducts === "number" ? contentConfig.maxProducts : 4;
@@ -137,20 +138,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
         triggerType: parsed.data.triggerType || undefined,
       };
 
-      console.log("[Upsell Products API] Recommendation context:", context);
+      logger.debug({ context }, "[Upsell Products API] Recommendation context");
 
       // Use the new smart recommendations engine
       const result = await fetchSmartRecommendations(admin, shop, context, maxProducts);
 
-      console.log("[Upsell Products API] Smart recommendations result:", {
+      logger.debug({
         productCount: result.products.length,
         source: result.source,
         cached: result.cached,
-      });
+      }, "[Upsell Products API] Smart recommendations result");
 
       // If no products found, return empty (hook will fail and popup won't show)
       if (!result.products || result.products.length === 0) {
-        console.warn("[Upsell Products API] No products available for smart recommendations");
+        logger.warn("[Upsell Products API] No products available for smart recommendations");
         return data({ products: [], source: "newest" } satisfies UpsellProductsResponse);
       }
 
@@ -164,7 +165,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     // Unknown method: return empty
     return data({ products: [] } satisfies UpsellProductsResponse);
   } catch (error) {
-    console.error("[Upsell Products API] Error:", error);
+    logger.error({ error }, "[Upsell Products API] Error");
     return data({ error: "Failed to resolve upsell products" }, { status: 500 });
   }
 }

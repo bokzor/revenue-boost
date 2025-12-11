@@ -72,7 +72,7 @@ export function FeaturesSection() {
         <div className="mx-auto mb-16 max-w-2xl text-center">
           <Badge variant="secondary" className="mb-4 gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            75+ Ready-to-Use Designs
+            40+ Ready-to-Use Designs
           </Badge>
           <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">
             A Design for Every Goal
@@ -165,7 +165,7 @@ export function FeaturesSection() {
         <div className="mt-12 text-center">
           <Button size="lg" variant="outline" className="gap-2" asChild>
             <Link href="/designs">
-              Browse All 75+ Designs
+              Browse All 40+ Designs
               <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>

@@ -17,6 +17,7 @@ import { data } from "react-router";
 import { SocialProofService } from "~/domains/social-proof/services/social-proof.server";
 import { storefrontCors } from "~/lib/cors.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
+import { logger } from "~/lib/logger.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { campaignId } = params;
@@ -65,7 +66,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }
     );
   } catch (error) {
-    console.error("[Social Proof API] Error:", error);
+    logger.error({ error }, "[Social Proof API] Error");
     return data(
       {
         success: false,

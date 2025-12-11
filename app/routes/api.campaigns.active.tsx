@@ -34,6 +34,7 @@ import {
   tokensToCSSString,
   type DesignTokens,
 } from "~/domains/campaigns/types/design-tokens";
+import { logger } from "~/lib/logger.server";
 
 // ============================================================================
 // TYPES
@@ -115,9 +116,7 @@ function extractGlobalCustomCss(settings: unknown): string | undefined {
       "globalCustomCSS"
     );
   } catch (error) {
-    console.warn("[Active Campaigns API] Ignoring invalid globalCustomCSS", {
-      error,
-    });
+    logger.warn({ error }, "[Active Campaigns API] Ignoring invalid globalCustomCSS");
     return undefined;
   }
 }
@@ -169,22 +168,23 @@ export async function loader(args: LoaderFunctionArgs) {
         const parsedSettings = StoreSettingsSchema.safeParse(store?.settings);
         const storeSettings = parsedSettings.success ? parsedSettings.data : undefined;
         const customPresets = storeSettings?.customThemePresets || [];
-        console.log(`[Active Campaigns API] Store settings debug:`, {
+        logger.debug({
           hasStore: !!store,
           rawSettingsType: typeof store?.settings,
           parseSuccess: parsedSettings.success,
           parseError: !parsedSettings.success ? parsedSettings.error?.message : undefined,
           presetsCount: customPresets.length,
           presetNames: customPresets.map(p => ({ name: p.name, isDefault: p.isDefault, brandColor: p.brandColor })),
-        });
+        }, "[Active Campaigns API] Store settings debug");
         const defaultPreset = getDefaultPreset(customPresets);
 
         if (defaultPreset) {
           defaultTokens = presetToDesignTokens(defaultPreset);
-          console.log(`[Active Campaigns API] Using default theme preset: ${defaultPreset.name}`, {
+          logger.debug({
+            presetName: defaultPreset.name,
             primary: defaultTokens.primary,
             background: defaultTokens.background,
-          });
+          }, "[Active Campaigns API] Using default theme preset");
         } else {
           // Fallback: fetch from Shopify theme if no default preset exists
           const { fetchThemeSettings, themeSettingsToDesignTokens } = await import(
@@ -194,12 +194,12 @@ export async function loader(args: LoaderFunctionArgs) {
             const themeResult = await fetchThemeSettings(shop, store.accessToken);
             if (themeResult.success && themeResult.settings) {
               defaultTokens = themeSettingsToDesignTokens(themeResult.settings);
-              console.log(`[Active Campaigns API] Fallback: using Shopify theme settings`);
+              logger.debug("[Active Campaigns API] Fallback: using Shopify theme settings");
             }
           }
         }
       } catch (themeError) {
-        console.warn("[Active Campaigns API] Failed to get theme settings:", themeError);
+        logger.warn({ error: themeError }, "[Active Campaigns API] Failed to get theme settings");
         // Continue without theme settings - campaigns will use defaults
       }
 
@@ -229,36 +229,31 @@ export async function loader(args: LoaderFunctionArgs) {
       context.visitorId = clientVisitorId || visitorId;
 
       if (clientVisitorId) {
-        console.log(`[Active Campaigns API] Using client visitorId: ${clientVisitorId}`);
+        logger.debug({ clientVisitorId }, "[Active Campaigns API] Using client visitorId");
       }
 
       // Preview mode: token-based preview sessions (covers saved and unsaved campaigns)
       const previewToken = url.searchParams.get("previewToken");
 
-      console.log(`[Active Campaigns API] 🔍 Full URL:`, url.toString());
-      console.log(
-        `[Active Campaigns API] 🔍 All URL params:`,
-        Object.fromEntries(url.searchParams.entries())
-      );
-      console.log(`[Active Campaigns API] Request params:`, {
+      logger.debug({ fullUrl: url.toString() }, "[Active Campaigns API] Full URL");
+      logger.debug({ urlParams: Object.fromEntries(url.searchParams.entries()) }, "[Active Campaigns API] All URL params");
+      logger.debug({
         previewToken: previewToken || "none",
         storeId,
         visitorId,
-      });
+      }, "[Active Campaigns API] Request params");
 
       // Handle preview token (preview session data from Redis)
       if (previewToken) {
-        console.log(`[Active Campaigns API] 🎭 Preview mode enabled with token: ${previewToken}`);
+        logger.debug({ previewToken }, "[Active Campaigns API] Preview mode enabled");
 
         try {
           // Fetch preview data directly from Redis (no HTTP call, no loader call)
-          console.log(
-            `[Active Campaigns API] Fetching preview data from Redis for token: ${previewToken}`
-          );
+          logger.debug({ previewToken }, "[Active Campaigns API] Fetching preview data from Redis");
 
           const redis = getRedis();
           if (!redis) {
-            console.error("[Active Campaigns API] Redis not available");
+            logger.error("[Active Campaigns API] Redis not available");
             const emptyResponse: ActiveCampaignsResponse = {
               campaigns: [],
               timestamp: new Date().toISOString(),
@@ -272,9 +267,7 @@ export async function loader(args: LoaderFunctionArgs) {
           const sessionDataStr = await redis.get(redisKey);
 
           if (!sessionDataStr) {
-            console.warn(
-              `[Active Campaigns API] Preview token not found or expired: ${previewToken}`
-            );
+            logger.warn({ previewToken }, "[Active Campaigns API] Preview token not found or expired");
             const emptyResponse: ActiveCampaignsResponse = {
               campaigns: [],
               timestamp: new Date().toISOString(),
@@ -286,12 +279,12 @@ export async function loader(args: LoaderFunctionArgs) {
           const sessionData = JSON.parse(sessionDataStr);
           const campaignData = sessionData.data;
 
-          console.log(`[Active Campaigns API] ✅ Preview data retrieved from Redis:`, {
+          logger.debug({
             name: campaignData.name,
             templateType: campaignData.templateType,
             hasContentConfig: !!campaignData.contentConfig,
             hasDesignConfig: !!campaignData.designConfig,
-          });
+          }, "[Active Campaigns API] Preview data retrieved from Redis");
 
           // Format preview campaign data
           // Parse contentConfig through Zod schema to apply defaults
@@ -326,7 +319,7 @@ export async function loader(args: LoaderFunctionArgs) {
               resolvedTokens
             );
           } catch (tokenError) {
-            console.warn(`[Active Campaigns API] Failed to resolve tokens for preview:`, tokenError);
+            logger.warn({ error: tokenError }, "[Active Campaigns API] Failed to resolve tokens for preview");
           }
 
           const formattedPreview: ApiCampaignData = {
@@ -350,14 +343,14 @@ export async function loader(args: LoaderFunctionArgs) {
             showBranding,
           };
 
-          console.log(`[Active Campaigns API] ✅ Returning preview campaign from token:`, {
+          logger.debug({
             id: formattedPreview.id,
             name: formattedPreview.name,
             templateType: formattedPreview.templateType,
-          });
+          }, "[Active Campaigns API] Returning preview campaign from token");
           return data(response, { headers });
         } catch (error) {
-          console.error(`[Active Campaigns API] ❌ Error fetching preview data:`, error);
+          logger.error({ error }, "[Active Campaigns API] Error fetching preview data");
           const emptyResponse: ActiveCampaignsResponse = {
             campaigns: [],
             timestamp: new Date().toISOString(),
@@ -369,22 +362,22 @@ export async function loader(args: LoaderFunctionArgs) {
 
       // Get all active campaigns
       const allCampaigns = await CampaignService.getActiveCampaigns(storeId);
-      console.log(
-        `[Active Campaigns API] Found ${allCampaigns.length} active campaigns for store ${storeId}`
-      );
+      logger.debug({ count: allCampaigns.length, storeId }, "[Active Campaigns API] Found active campaigns");
 
       // DIAGNOSTIC: Log ALL campaigns with their frequency capping config
       if (allCampaigns.length > 0) {
-        console.log('[Active Campaigns API] 🔍 BEFORE FILTERING - All campaigns from database:');
+        logger.debug("[Active Campaigns API] BEFORE FILTERING - All campaigns from database");
         allCampaigns.forEach((c) => {
           const freqCap = c.targetRules?.enhancedTriggers?.frequency_capping;
-          console.log(`  - ${c.name} (${c.id}):`, {
+          logger.debug({
+            name: c.name,
+            id: c.id,
             priority: c.priority,
             hasFreqCap: !!freqCap,
             maxSession: freqCap?.max_triggers_per_session,
             maxDay: freqCap?.max_triggers_per_day,
             cooldown: freqCap?.cooldown_between_triggers,
-          });
+          }, "[Active Campaigns API] Campaign details");
         });
       }
 
@@ -394,19 +387,20 @@ export async function loader(args: LoaderFunctionArgs) {
         context,
         storeId
       );
-      console.log(`[Active Campaigns API] After filtering: ${filteredCampaigns.length} campaigns`, {
+      logger.debug({
+        count: filteredCampaigns.length,
         pageType: context.pageType,
         deviceType: context.deviceType,
         visitorId: context.visitorId,
-      });
+      }, "[Active Campaigns API] After filtering");
 
       // DIAGNOSTIC: Log which campaigns were filtered OUT
       if (allCampaigns.length !== filteredCampaigns.length) {
         const filteredIds = new Set(filteredCampaigns.map(c => c.id));
         const excluded = allCampaigns.filter(c => !filteredIds.has(c.id));
-        console.log(`[Active Campaigns API] ❌ ${excluded.length} campaigns FILTERED OUT:`);
+        logger.debug({ excludedCount: excluded.length }, "[Active Campaigns API] Campaigns FILTERED OUT");
         excluded.forEach(c => {
-          console.log(`  - ${c.name} (${c.id})`);
+          logger.debug({ name: c.name, id: c.id }, "[Active Campaigns API] Excluded campaign");
         });
       }
 
@@ -441,11 +435,12 @@ export async function loader(args: LoaderFunctionArgs) {
           designTokensCSS = tokensToCSSString(resolvedTokens);
 
           // Log original designConfig colors BEFORE merging
-          console.log(`[Active Campaigns API] Campaign ${campaign.id} BEFORE merge:`, {
+          logger.debug({
+            campaignId: campaign.id,
             originalButtonColor: (parsedDesignConfig as Record<string, unknown>).buttonColor,
             originalAccentColor: (parsedDesignConfig as Record<string, unknown>).accentColor,
             originalBgColor: (parsedDesignConfig as Record<string, unknown>).backgroundColor,
-          });
+          }, "[Active Campaigns API] Campaign BEFORE merge");
 
           // Merge resolved tokens into designConfig so popups receive direct color values
           // SIMPLIFIED: Always apply store tokens as base, campaign colors override
@@ -453,13 +448,14 @@ export async function loader(args: LoaderFunctionArgs) {
             parsedDesignConfig,
             resolvedTokens
           );
-          console.log(`[Active Campaigns API] Campaign ${campaign.id} AFTER merge:`, {
+          logger.debug({
+            campaignId: campaign.id,
             resolvedPrimary: resolvedTokens.primary,
             mergedAccentColor: (mergedDesignConfig as Record<string, unknown>).accentColor,
             mergedButtonColor: (mergedDesignConfig as Record<string, unknown>).buttonColor,
-          });
+          }, "[Active Campaigns API] Campaign AFTER merge");
         } catch (tokenError) {
-          console.warn(`[Active Campaigns API] Failed to resolve tokens for campaign ${campaign.id}:`, tokenError);
+          logger.warn({ campaignId: campaign.id, error: tokenError }, "[Active Campaigns API] Failed to resolve tokens for campaign");
         }
 
         return {
@@ -489,19 +485,16 @@ export async function loader(args: LoaderFunctionArgs) {
         showBranding,
       };
 
-      console.log(
-        `[Active Campaigns API] ✅ Returning ${formattedCampaigns.length} campaigns to storefront`
-      );
+      logger.debug({ count: formattedCampaigns.length }, "[Active Campaigns API] Returning campaigns to storefront");
       if (formattedCampaigns.length > 0) {
-        console.log(
-          "[Active Campaigns API] Campaign details:",
-          formattedCampaigns.map((c) => ({
+        logger.debug({
+          campaigns: formattedCampaigns.map((c) => ({
             id: c.id,
             name: c.name,
             templateType: c.templateType,
             priority: c.priority,
-          }))
-        );
+          })),
+        }, "[Active Campaigns API] Campaign details");
       }
 
       return data(response, { headers });

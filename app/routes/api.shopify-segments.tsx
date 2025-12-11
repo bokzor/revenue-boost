@@ -18,6 +18,7 @@ import {
   listCustomerSegments,
   getCustomerSegmentMembersCount,
 } from "~/lib/shopify/segments.server";
+import { logger } from "~/lib/logger.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
@@ -53,7 +54,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
           const count = await getCustomerSegmentMembersCount(admin, segment.id);
           return { id: segment.id, count };
         } catch (error) {
-          console.warn(`[Shopify Segments] Failed to get count for ${segment.id}:`, error);
+          logger.warn({ segmentId: segment.id, error }, "[Shopify Segments] Failed to get count");
           return { id: segment.id, count: undefined };
         }
       });

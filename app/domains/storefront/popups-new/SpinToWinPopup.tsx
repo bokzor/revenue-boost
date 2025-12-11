@@ -63,18 +63,18 @@ const RESPONSIVE_CSS_VARS = `
      * ============================================ */
 
     /* Wheel Sizing - Uses cqi with aspect-ratio for square proportions */
-    /* Increased max sizes for more prominent wheel display */
-    --stw-wheel-size: clamp(280px, 55cqi, 440px);
-    --stw-wheel-size-mobile: clamp(220px, 70cqi, 340px);
+    /* BIGGER wheel sizes for more prominent display (matching reference design) */
+    --stw-wheel-size: clamp(340px, 60cqi, 480px);
+    --stw-wheel-size-mobile: clamp(280px, 75cqi, 380px);
 
-    /* Center Button */
-    --stw-center-btn-size: clamp(50px, 12cqi, 80px);
-    --stw-center-btn-font: clamp(9px, 1.8cqi, 12px);
-    --stw-center-btn-border: clamp(2px, 0.5cqi, 4px);
+    /* Center Button - Larger and more prominent */
+    --stw-center-btn-size: clamp(70px, 15cqi, 100px);
+    --stw-center-btn-font: clamp(11px, 2.2cqi, 14px);
+    --stw-center-btn-border: clamp(3px, 0.6cqi, 5px);
 
-    /* Pointer */
-    --stw-pointer-size: clamp(12px, 2.5cqi, 18px);
-    --stw-pointer-length: clamp(18px, 3.5cqi, 28px);
+    /* Pointer - Larger for better visibility */
+    --stw-pointer-size: clamp(14px, 3cqi, 22px);
+    --stw-pointer-length: clamp(22px, 4cqi, 32px);
 
     /* Typography - Fluid scaling */
     --stw-headline-size: clamp(1.25rem, 5cqi, 2.25rem);
@@ -987,21 +987,6 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             }
           }
 
-          @keyframes starPop {
-            0% {
-              opacity: 0;
-              transform: scale(0) rotate(0deg);
-            }
-            50% {
-              opacity: 1;
-              transform: scale(1.3) rotate(180deg);
-            }
-            100% {
-              opacity: 0;
-              transform: scale(0.5) rotate(360deg);
-            }
-          }
-
           /* Sparkle particles */
           .spin-sparkle {
             position: absolute;
@@ -1076,11 +1061,31 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             font-size: 20px;
             pointer-events: none;
             z-index: 101;
+            opacity: 0; /* Hidden initially before animation starts */
           }
 
           .spin-star:nth-child(1) { left: 10%; top: 25%; animation: starPop 0.6s ease-out 0.2s forwards; }
           .spin-star:nth-child(2) { left: 90%; top: 30%; animation: starPop 0.7s ease-out 0.3s forwards; }
           .spin-star:nth-child(3) { left: 50%; top: 10%; animation: starPop 0.5s ease-out 0.4s forwards; }
+
+          /* Ensure stars are fully hidden after animation completes */
+          @keyframes starPop {
+            0% {
+              opacity: 0;
+              transform: scale(0) rotate(0deg);
+              visibility: visible;
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.3) rotate(180deg);
+              visibility: visible;
+            }
+            100% {
+              opacity: 0;
+              transform: scale(0) rotate(360deg);
+              visibility: hidden;
+            }
+          }
 
           /* Success section animations */
           .spin-success-section {
@@ -1245,87 +1250,45 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
           }
 
           /* ============================================
-           * 3D POINTER - Metallic Arrow with Animations
+           * CLEAN POINTER - Modern Triangle Arrow
+           * Positioned on right side, pointing left into wheel
            * ============================================ */
           .spin-pointer {
             position: absolute;
             top: 50%;
-            right: calc(-1 * var(--stw-pointer-length) * 0.3);
+            right: calc(-1 * var(--stw-pointer-length) * 0.2);
             transform: translateY(-50%);
-            width: var(--stw-pointer-length);
-            height: calc(var(--stw-pointer-size) * 2.2);
             z-index: 20;
-            /* Reset border-based triangle */
-            border: none;
-            /* 3D Arrow shape using clip-path */
-            clip-path: polygon(0% 50%, 100% 0%, 85% 50%, 100% 100%);
-            /* Metallic gradient */
-            background: linear-gradient(
-              135deg,
-              #f0f0f0 0%,
-              #ffffff 15%,
-              #d4d4d4 30%,
-              #ffffff 45%,
-              #e8e8e8 60%,
-              #c0c0c0 80%,
-              #a0a0a0 100%
-            );
-            /* Multiple shadows for 3D depth */
-            filter:
-              drop-shadow(-3px 0 6px rgba(0,0,0,0.4))
-              drop-shadow(-1px 0 2px rgba(0,0,0,0.3));
+            /* Clean CSS border-based triangle pointing left */
+            width: 0;
+            height: 0;
+            border-top: var(--stw-pointer-size) solid transparent;
+            border-right: var(--stw-pointer-length) solid #1f2937;
+            border-bottom: var(--stw-pointer-size) solid transparent;
+            /* Subtle shadow for depth */
+            filter: drop-shadow(-2px 0 4px rgba(0,0,0,0.3));
             transition: filter 0.3s ease, transform 0.3s ease;
           }
 
-          /* Pointer inner highlight for 3D effect */
-          .spin-pointer::before {
-            content: '';
-            position: absolute;
-            inset: 15% 20% 15% 10%;
-            background: linear-gradient(
-              180deg,
-              rgba(255,255,255,0.9) 0%,
-              rgba(255,255,255,0.3) 50%,
-              rgba(0,0,0,0.1) 100%
-            );
-            clip-path: polygon(0% 50%, 100% 10%, 80% 50%, 100% 90%);
-          }
-
-          /* Golden accent edge */
+          /* Remove pseudo-elements for cleaner design */
+          .spin-pointer::before,
           .spin-pointer::after {
-            content: '';
-            position: absolute;
-            left: -2px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 4px;
-            height: 60%;
-            background: linear-gradient(
-              180deg,
-              #ffd700 0%,
-              #ffec8b 50%,
-              #ffd700 100%
-            );
-            border-radius: 2px;
-            box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+            display: none;
           }
 
           /* Spinning state - subtle glow animation */
           .spin-wheel-wrapper.is-spinning .spin-pointer {
-            animation: pointerGlow 0.3s ease-in-out infinite;
+            filter: drop-shadow(-2px 0 8px rgba(0,0,0,0.4));
           }
 
-          /* Stopped/Won state - bounce animation */
+          /* Stopped/Won state - enhanced shadow */
           .spin-wheel-wrapper.has-won .spin-pointer {
-            animation: pointerWinBounce 0.8s ease-out 1;
-            filter:
-              drop-shadow(-4px 0 12px rgba(255, 215, 0, 0.6))
-              drop-shadow(-2px 0 6px rgba(255, 215, 0, 0.8))
-              drop-shadow(-3px 0 6px rgba(0,0,0,0.4));
+            filter: drop-shadow(-3px 0 10px rgba(0,0,0,0.5));
           }
 
           /* ============================================
-           * CENTER BUTTON - Enhanced 3D with Pulse
+           * CENTER BUTTON - Clean Modern Design
+           * Larger size with bold styling
            * ============================================ */
           .spin-center-button {
             position: absolute;
@@ -1335,66 +1298,46 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             width: var(--stw-center-btn-size);
             height: var(--stw-center-btn-size);
             border-radius: 50%;
-            /* 3D gradient background */
-            background:
-              radial-gradient(circle at 30% 30%,
-                rgba(255,255,255,0.4) 0%,
-                transparent 50%),
-              radial-gradient(circle at 70% 70%,
-                rgba(0,0,0,0.2) 0%,
-                transparent 50%),
-              linear-gradient(
-                145deg,
-                ${adjustBrightness(accentColor, 20)} 0%,
-                ${accentColor} 50%,
-                ${adjustBrightness(accentColor, -15)} 100%
-              );
-            /* Metallic border */
-            border: var(--stw-center-btn-border) solid;
-            border-color:
-              ${adjustBrightness(accentColor, -30)}
-              ${adjustBrightness(accentColor, -40)}
-              ${adjustBrightness(accentColor, -50)}
-              ${adjustBrightness(accentColor, -35)};
+            /* Clean dark background matching pointer */
+            background: #1f2937;
+            /* Subtle border for definition */
+            border: var(--stw-center-btn-border) solid #374151;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #F9FAFB;
+            color: #ffffff;
             font-size: var(--stw-center-btn-font);
             font-weight: 700;
-            letter-spacing: 0.15em;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
             font-family: ${config.fontFamily || 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};
-            /* 3D shadow layers */
+            /* Clean shadow */
             box-shadow:
-              0 clamp(2px, 0.5cqi, 4px) clamp(8px, 2cqi, 12px) rgba(15,23,42,0.4),
-              inset 0 -3px 6px rgba(0,0,0,0.2),
-              inset 0 3px 6px rgba(255,255,255,0.15),
-              0 0 0 2px rgba(255,255,255,0.1);
+              0 4px 14px rgba(0,0,0,0.25),
+              0 2px 6px rgba(0,0,0,0.15);
             pointer-events: none;
             z-index: 15;
             transition: all 0.3s ease;
           }
 
-          /* Idle state - pulsing glow to attract attention */
+          /* Hover effect when not disabled (via parent) */
           .spin-wheel-wrapper:not(.is-spinning):not(.has-won) .spin-center-button {
-            animation: centerButtonPulse 2s ease-in-out infinite;
+            background: #1f2937;
           }
 
-          /* Spinning state - steady glow */
+          /* Spinning state - slightly dimmed */
           .spin-wheel-wrapper.is-spinning .spin-center-button {
-            animation: centerButtonGlow 1s ease-in-out infinite;
+            opacity: 0.7;
             transform: translate(-50%, -50%) scale(0.98);
           }
 
-          /* Won state - celebratory glow */
+          /* Won state - celebratory accent color */
           .spin-wheel-wrapper.has-won .spin-center-button {
+            background: ${accentColor};
+            border-color: ${adjustBrightness(accentColor, -20)};
             box-shadow:
-              0 clamp(4px, 1cqi, 8px) clamp(16px, 4cqi, 24px) rgba(15,23,42,0.5),
-              0 0 30px 10px ${accentColor}50,
-              inset 0 -3px 6px rgba(0,0,0,0.2),
-              inset 0 3px 6px rgba(255,255,255,0.2);
+              0 6px 20px rgba(0,0,0,0.3),
+              0 0 20px 4px ${accentColor}40;
           }
 
           /* ============================================
@@ -1447,26 +1390,31 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
            * DESKTOP LAYOUT (Container Query @ 600px)
            * ============================================ */
           @container popup (min-width: 600px) {
-            /* Desktop: side-by-side layout, reset space-around */
+            /* Desktop: side-by-side layout with equal proportions */
             .SpinToWinPopup .popup-grid-content {
               justify-content: stretch;
               min-height: auto;
             }
 
+            /* Equal 50/50 split for wheel and form */
             .spin-wheel-cell {
+              flex: 1 1 50%;
               justify-content: center;
               align-items: center;
               padding: var(--stw-gap-xl);
+              /* Light background for wheel area like in reference */
+              background-color: rgba(245, 245, 245, 0.5);
             }
 
             .spin-form-cell {
-              padding: var(--stw-gap-lg) var(--stw-padding-x);
+              flex: 1 1 50%;
+              padding: var(--stw-gap-xl) var(--stw-padding-x);
               background-color: transparent;
               justify-content: center;
             }
 
             .spin-form-content {
-              max-width: clamp(300px, 42cqi, 380px);
+              max-width: clamp(320px, 44cqi, 400px);
             }
 
             .spin-wheel-wrapper {
@@ -1476,11 +1424,11 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
             }
 
             .spin-headline {
-              font-size: clamp(1.5rem, 4.5cqi, 2.25rem);
+              font-size: clamp(1.75rem, 5cqi, 2.5rem);
             }
 
             .spin-subheadline {
-              font-size: clamp(1rem, 2.8cqi, 1.25rem);
+              font-size: clamp(1rem, 3cqi, 1.375rem);
             }
           }
 
@@ -1488,14 +1436,23 @@ export const SpinToWinPopup: React.FC<SpinToWinPopupProps> = ({
            * LARGE DESKTOP (Container Query @ 800px)
            * ============================================ */
           @container popup (min-width: 800px) {
+            .spin-wheel-cell {
+              padding: var(--stw-gap-xl) clamp(2rem, 5cqi, 3rem);
+            }
+
             .spin-wheel-wrapper {
-              /* Max out wheel size on large containers */
-              width: clamp(340px, 48cqi, 460px);
+              /* Max out wheel size on large containers - BIGGER wheel */
+              width: clamp(360px, 52cqi, 500px);
               aspect-ratio: 1;
             }
 
             .spin-form-content {
               gap: var(--stw-gap-lg);
+              max-width: 380px;
+            }
+
+            .spin-headline {
+              font-size: clamp(2rem, 5.5cqi, 2.75rem);
             }
           }
         `}

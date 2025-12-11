@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import prisma from "~/db.server";
 import { normalizeDiscountConfig } from "~/domains/commerce/services/discount.server";
+import { logger } from "~/lib/logger.server";
 
 // Attribution window for view-through conversions (7 days in milliseconds)
 const VIEW_THROUGH_ATTRIBUTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -24,12 +25,13 @@ export interface OrderPayload {
 }
 
 export async function handleOrderCreate(shop: string, payload: OrderPayload) {
-  console.log(`[Webhook] Processing ORDERS_CREATE for ${shop}`, {
+  logger.info({
+    shop,
     orderId: payload.id,
     orderNumber: payload.name,
     discounts: payload.discount_codes,
     customerId: payload.customer?.id,
-  });
+  }, "[Webhook] Processing ORDERS_CREATE");
 
   // 1. Find store
   const store = await prisma.store.findUnique({
@@ -37,7 +39,7 @@ export async function handleOrderCreate(shop: string, payload: OrderPayload) {
   });
 
   if (!store) {
-    console.error(`[Webhook] Store not found for shop ${shop}`);
+    logger.error({ shop }, "[Webhook] Store not found");
     return;
   }
 
@@ -62,10 +64,11 @@ export async function handleOrderCreate(shop: string, payload: OrderPayload) {
       });
 
       if (lead) {
-        console.log(`[Webhook] Found lead attribution for code ${code}`, {
+        logger.info({
+          code,
           leadId: lead.id,
           campaignId: lead.campaignId,
-        });
+        }, "[Webhook] Found lead attribution for code");
 
         await recordConversion({
           storeId: store.id,
@@ -83,9 +86,10 @@ export async function handleOrderCreate(shop: string, payload: OrderPayload) {
       // If not found in leads, attempt static/prefix matching from campaign.discountConfig
       const campaign = await findCampaignByDiscountCode(store.id, code);
       if (campaign) {
-        console.log(`[Webhook] Found campaign attribution for code ${code}`, {
+        logger.info({
+          code,
           campaignId: campaign.id,
-        });
+        }, "[Webhook] Found campaign attribution for code");
 
         await recordConversion({
           storeId: store.id,
@@ -126,7 +130,7 @@ async function tryViewThroughAttribution(storeId: string, payload: OrderPayload)
 
   const attributionWindowStart = new Date(Date.now() - VIEW_THROUGH_ATTRIBUTION_WINDOW_MS);
 
-  console.log(`[Webhook] Attempting view-through attribution for customer ${customerId}`);
+  logger.debug({ customerId }, "[Webhook] Attempting view-through attribution");
 
   // Find leads by Shopify customer ID
   // This is the primary attribution strategy - leads represent actual user engagement
@@ -146,11 +150,12 @@ async function tryViewThroughAttribution(storeId: string, payload: OrderPayload)
   });
 
   if (leadByCustomer) {
-    console.log(`[Webhook] View-through: Found lead for customer ${customerId}`, {
+    logger.info({
+      customerId,
       leadId: leadByCustomer.id,
       campaignId: leadByCustomer.campaignId,
       hadDiscountCode: !!leadByCustomer.discountCode,
-    });
+    }, "[Webhook] View-through: Found lead for customer");
 
     await recordConversion({
       storeId,
@@ -170,7 +175,7 @@ async function tryViewThroughAttribution(storeId: string, payload: OrderPayload)
   // 2. The Lead-based lookup above covers all SUBMIT interactions
   // 3. VIEW-only attribution was deemed too weak a signal for revenue attribution
 
-  console.log(`[Webhook] No view-through attribution found for customer ${customerId}`);
+  logger.debug({ customerId }, "[Webhook] No view-through attribution found");
 }
 
 async function recordConversion(params: {
@@ -198,13 +203,13 @@ async function recordConversion(params: {
         source,
       },
     });
-    console.log(`[Webhook] Recorded conversion for campaign ${campaignId} (source: ${source})`);
+    logger.info({ campaignId, source }, "[Webhook] Recorded conversion");
   } catch (error) {
     // Ignore unique constraint violations (idempotency)
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      console.log(`[Webhook] Conversion already recorded for order ${orderPayload.id}`);
+      logger.debug({ orderId: orderPayload.id }, "[Webhook] Conversion already recorded");
     } else {
-      console.error("[Webhook] Failed to record conversion:", error);
+      logger.error({ error }, "[Webhook] Failed to record conversion");
     }
   }
 }

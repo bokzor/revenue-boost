@@ -24,6 +24,7 @@ import { StoreSettingsSchema, type StoreSettings } from "../domains/store/types/
 import { SetupStatus } from "../domains/setup/components/SetupStatus";
 import { getSetupStatus } from "../lib/setup-status.server";
 import { buildThemeEditorDeepLink } from "../lib/app-setup.server";
+import { logger } from "~/lib/logger.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
   const store = await prisma.store.findUnique({
@@ -103,7 +104,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       try {
         parsedJson = JSON.parse(settingsStr);
       } catch (error) {
-        console.error("[Settings] Failed to parse settings JSON", error);
+        logger.error({ error }, "[Settings] Failed to parse settings JSON");
         return data({ success: false, error: "Invalid settings payload" }, { status: 400 });
       }
 
@@ -111,9 +112,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         .passthrough()
         .safeParse(parsedJson);
       if (!validatedSettingsResult.success) {
-        console.warn(
-          "[Settings] Validation failed for store settings update",
-          validatedSettingsResult.error.flatten()
+        logger.warn(
+          { errors: validatedSettingsResult.error.flatten() },
+          "[Settings] Validation failed for store settings update"
         );
         return data({ success: false, error: "Invalid settings payload" }, { status: 400 });
       }

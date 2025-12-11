@@ -7,6 +7,7 @@ import {
   isSubscriptionBeingCancelled,
 } from "../domains/billing/constants";
 import { isBillingBypassed } from "../lib/env.server";
+import { logger } from "~/lib/logger.server";
 
 interface SubscriptionWebhookPayload {
   app_subscription: {
@@ -24,17 +25,17 @@ interface SubscriptionWebhookPayload {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, topic, payload } = await authenticate.webhook(request);
 
-  console.log(`[Billing Webhook] Received ${topic} webhook for ${shop}`);
+  logger.info({ topic, shop }, "[Billing Webhook] Received webhook");
 
   // When billing is bypassed (dev/staging), ignore subscription webhooks
   // to prevent Shopify from overwriting our manually-set plan tiers
   if (isBillingBypassed()) {
-    console.log(`[Billing Webhook] BILLING_BYPASS enabled - ignoring webhook`);
+    logger.info("[Billing Webhook] BILLING_BYPASS enabled - ignoring webhook");
     return new Response("OK (bypassed)", { status: 200 });
   }
 
   if (!payload) {
-    console.error("[Billing Webhook] No payload received");
+    logger.error("[Billing Webhook] No payload received");
     return new Response("No payload", { status: 400 });
   }
 
@@ -42,15 +43,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const subscription = subscriptionPayload.app_subscription;
 
   if (!subscription) {
-    console.error("[Billing Webhook] No app_subscription in payload");
+    logger.error("[Billing Webhook] No app_subscription in payload");
     return new Response("Invalid payload", { status: 400 });
   }
 
-  console.log(`[Billing Webhook] Subscription update:`, {
+  logger.info({
     id: subscription.admin_graphql_api_id,
     name: subscription.name,
     status: subscription.status,
-  });
+  }, "[Billing Webhook] Subscription update");
 
   // Determine the plan tier and status using shared helpers (with logging for unknowns)
   const planTier = getPlanTierFromName(subscription.name);
@@ -73,12 +74,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     });
 
-    console.log(`[Billing Webhook] Updated ${updateResult.count} store(s) for ${shop}`);
-    console.log(`[Billing Webhook] New plan: ${isBeingCancelled ? "FREE" : planTier}, status: ${planStatus}`);
+    logger.info({ count: updateResult.count, shop }, "[Billing Webhook] Updated store(s)");
+    logger.info({ plan: isBeingCancelled ? "FREE" : planTier, status: planStatus }, "[Billing Webhook] New plan");
 
     return new Response("OK", { status: 200 });
   } catch (error) {
-    console.error("[Billing Webhook] Error updating store:", error);
+    logger.error({ error }, "[Billing Webhook] Error updating store");
     return new Response("Error processing webhook", { status: 500 });
   }
 };

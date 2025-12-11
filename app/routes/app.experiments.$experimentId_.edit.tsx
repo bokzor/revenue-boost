@@ -27,6 +27,7 @@ import type { StyledRecipe } from "~/domains/campaigns/recipes/styled-recipe-typ
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import prisma from "~/db.server";
 import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { logger } from "~/lib/logger.server";
 import { presetToDesignTokens, type ThemePresetInput } from "~/domains/store/types/theme-preset";
 import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
 
@@ -101,11 +102,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         return keyA.localeCompare(keyB);
       });
 
-    console.log("[Experiment Edit Loader] experimentId:", experimentId);
-    console.log(
-      "[Experiment Edit Loader] validVariants:",
-      validVariants.map((v) => ({ id: v.id, variantKey: v.variantKey }))
-    );
+    logger.debug({ experimentId }, "[Experiment Edit Loader] experimentId");
+    logger.debug({
+      validVariants: validVariants.map((v) => ({ id: v.id, variantKey: v.variantKey })),
+    }, "[Experiment Edit Loader] validVariants");
 
     // Get plan context for feature flags
     const { PlanGuardService } = await import("~/domains/billing/services/plan-guard.server");
@@ -133,7 +133,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       defaultThemeTokens,
     });
   } catch (error) {
-    console.error("Failed to load experiment for editing:", error);
+    logger.error({ error }, "Failed to load experiment for editing");
 
     return data<LoaderData>(
       {

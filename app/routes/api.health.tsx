@@ -9,6 +9,7 @@ import { data } from "react-router";
 import { adminCors } from "~/lib/cors.server";
 import prisma from "~/db.server";
 import { isRedisAvailable } from "~/lib/redis.server";
+import { logger } from "~/lib/logger.server";
 
 // ============================================================================
 // TYPES
@@ -39,7 +40,7 @@ export async function loader() {
     try {
       await prisma.$queryRaw`SELECT 1`;
     } catch (error) {
-      console.error("[Health Check] Database connection failed:", error);
+      logger.error({ error }, "[Health Check] Database connection failed");
       databaseStatus = "error";
     }
 
@@ -54,7 +55,7 @@ export async function loader() {
         redisStatus = isAvailable ? "connected" : "disconnected";
       }
     } catch (error) {
-      console.error("[Health Check] Redis check failed:", error);
+      logger.error({ error }, "[Health Check] Redis check failed");
       redisStatus = "disconnected";
     }
 
@@ -69,7 +70,7 @@ export async function loader() {
         domainsStatus = "error";
       }
     } catch (error) {
-      console.error("[Health Check] Domain loading failed:", error);
+      logger.error({ error }, "[Health Check] Domain loading failed");
       domainsStatus = "error";
     }
 
@@ -115,7 +116,7 @@ export async function loader() {
       headers,
     });
   } catch (error) {
-    console.error("[Health Check] Unexpected error:", error);
+    logger.error({ error }, "[Health Check] Unexpected error");
 
     const response: HealthResponse = {
       status: "error",

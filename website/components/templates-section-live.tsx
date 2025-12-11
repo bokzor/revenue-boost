@@ -17,7 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-// Featured recipes to showcase (subset of the 75+) - each with unique color theme
+// Featured recipes to showcase (subset of the 40+) - each with unique color theme
 const featuredRecipes = [
   {
     id: "NEWSLETTER",
@@ -185,7 +185,7 @@ export function TemplatesSectionLive() {
           <div className="text-center">
             <Button size="lg" className="gap-2" asChild>
               <Link href="/designs">
-                See All 75+ Designs
+                See All 40+ Designs
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>

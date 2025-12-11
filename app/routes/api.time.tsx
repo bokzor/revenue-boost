@@ -9,6 +9,7 @@
 
 import type { LoaderFunctionArgs } from "react-router";
 import { ShopService } from "~/domains/shops/services/shop.server";
+import { logger } from "~/lib/logger.server";
 
 // Cache server time response for 5 seconds to reduce load
 interface TimeResponseData {
@@ -48,7 +49,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (shopDomain) {
     shopTimezone = await ShopService.getTimezoneByShopDomain(shopDomain);
   } else {
-    console.warn("[api.time] No shop domain provided, defaulting to UTC");
+    logger.warn("[api.time] No shop domain provided, defaulting to UTC");
   }
 
   const data = {

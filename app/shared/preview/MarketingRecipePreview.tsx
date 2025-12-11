@@ -28,6 +28,35 @@ import { TemplatePreview } from "~/domains/popups/components/preview/TemplatePre
 import { DeviceFrame } from "./DeviceFrame";
 import { ShadowDomWrapper } from "~/domains/campaigns/components/recipes/ShadowDomWrapper";
 
+// Inline background preset filenames to avoid ~/config imports that break website build
+// Maps preset ID to filename (relative to public folder)
+const BACKGROUND_PRESET_FILENAMES: Record<string, string> = {
+  // Flash sale backgrounds
+  "fs-bg-summer": "recipes/flash-sale/summer.jpg",
+  "fs-bg-black-friday": "recipes/flash-sale/black-friday-center-negative.jpg",
+  "fs-bg-christmas": "recipes/flash-sale/christman-center-negative.jpg",
+  "fs-bg-valentine": "recipes/flash-sale/valentine-day-negative-center.jpg",
+  "fs-bg-easter": "recipes/flash-sale/easter-negative-center.jpg",
+  "fs-bg-halloween": "recipes/flash-sale/halloween-center-negative.jpg",
+  "fs-bg-thanksgiving": "recipes/flash-sale/thanksgivin-center-negative.jpg",
+  "fs-bg-new-year": "recipes/flash-sale/new-year-center-negative.jpg",
+  "fs-bg-winter": "recipes/flash-sale/winter-negative-center.jpg",
+  "fs-bg-back-to-school": "recipes/flash-sale/back-to-school-center-negative.jpg",
+  // Newsletter backgrounds (in newsletter-backgrounds folder)
+  "bg-modern": "newsletter-backgrounds/modern.jpg",
+  "bg-minimal": "newsletter-backgrounds/minimal.jpg",
+  "bg-bold": "newsletter-backgrounds/bold.jpg",
+  "bg-elegant": "newsletter-backgrounds/elegant.jpg",
+  "bg-dark": "newsletter-backgrounds/dark.jpg",
+  "bg-luxury": "newsletter-backgrounds/luxury.jpg",
+  "bg-neon": "newsletter-backgrounds/neon.jpg",
+  "bg-ocean": "newsletter-backgrounds/ocean.jpg",
+  "bg-summer": "newsletter-backgrounds/summer.jpg",
+  "bg-gradient": "newsletter-backgrounds/gradient.jpg",
+  "bg-glass": "newsletter-backgrounds/glass.jpg",
+  "bg-christmas": "newsletter-backgrounds/christmas.jpg",
+};
+
 // Device type for preview
 export type PreviewDevice = "mobile" | "desktop";
 
@@ -65,6 +94,9 @@ export interface MarketingRecipePreviewProps {
   /** Device mode - mobile or desktop */
   device?: PreviewDevice;
 
+  /** If true, fills container at 100% without scaling (best for desktop modals) */
+  fillContainer?: boolean;
+
   /** Custom class name */
   className?: string;
 
@@ -78,6 +110,7 @@ export const MarketingRecipePreview: React.FC<MarketingRecipePreviewProps> = ({
   height = 280,
   showInfo = false,
   device = "mobile",
+  fillContainer = false,
   className,
   style,
 }) => {
@@ -153,8 +186,42 @@ export const MarketingRecipePreview: React.FC<MarketingRecipePreviewProps> = ({
   // Build design config from recipe
   const designConfig = useMemo(() => buildDesignConfig(fullRecipe), [fullRecipe]);
 
-  // If showInfo is true, wrap in a flex container
-  const previewElement = (
+  // Template preview content (shared between scaled and fill modes)
+  const templateContent = (
+    <TemplatePreview
+      templateType={fullRecipe.templateType}
+      config={contentConfig}
+      designConfig={designConfig}
+    />
+  );
+
+  // fillContainer mode: render at 100% without scaling (for desktop modals)
+  const previewElement = fillContainer ? (
+    <div
+      className={!showInfo ? className : undefined}
+      style={{
+        position: "relative",
+        width: typeof width === "number" ? `${width}px` : width,
+        height: typeof height === "number" ? `${height}px` : height,
+        overflow: "hidden",
+        borderRadius: "8px",
+        backgroundColor: "#f6f6f7",
+        ...(!showInfo ? style : {}),
+      }}
+    >
+      <ShadowDomWrapper
+        style={{
+          position: "absolute",
+          inset: 0,
+        }}
+      >
+        <DeviceFrame device={device}>
+          {templateContent}
+        </DeviceFrame>
+      </ShadowDomWrapper>
+    </div>
+  ) : (
+    // Scaled mode: fit content into container with scaling (for thumbnails)
     <div
       ref={containerRef}
       className={!showInfo ? className : undefined}
@@ -201,11 +268,7 @@ export const MarketingRecipePreview: React.FC<MarketingRecipePreviewProps> = ({
           >
             {/* Device frame for consistent preview (same as admin) */}
             <DeviceFrame device={device}>
-              <TemplatePreview
-                templateType={fullRecipe.templateType}
-                config={contentConfig}
-                designConfig={designConfig}
-              />
+              {templateContent}
             </DeviceFrame>
           </div>
         </div>
@@ -398,10 +461,17 @@ function buildDesignConfig(recipe: StyledRecipe): Record<string, unknown> {
     imageUrl = recipe.imageUrl;
     backgroundImageMode = "file";
   }
-  // Then check for background preset - build URL directly
+  // Then check for background preset - look up the actual filename from inline map
   else if (recipe.backgroundPresetId) {
     backgroundImagePresetKey = recipe.backgroundPresetId;
-    imageUrl = `/apps/revenue-boost/backgrounds/${recipe.backgroundPresetId}.webp`;
+    // Look up the preset filename from inline map
+    const filename = BACKGROUND_PRESET_FILENAMES[recipe.backgroundPresetId];
+    if (filename) {
+      imageUrl = `/${filename}`;
+    } else {
+      // Fallback: try newsletter-backgrounds folder with .jpg extension
+      imageUrl = `/newsletter-backgrounds/${recipe.backgroundPresetId}.jpg`;
+    }
     backgroundImageMode = "preset";
   }
 
@@ -453,11 +523,12 @@ function buildDesignConfig(recipe: StyledRecipe): Record<string, unknown> {
     backgroundImagePresetKey,
     imageUrl,
     imagePosition,
-    backgroundOverlayOpacity: 0.6,
+    // Use recipe's overlay opacity if defined, otherwise default to 0.6
+    backgroundOverlayOpacity: recipeDesign.backgroundOverlayOpacity ?? 0.6,
     // Preview mode settings
     previewMode: true,
     disablePortal: true,
-    // Spread all recipe design config first
+    // Spread all recipe design config first (includes leadCaptureLayout)
     ...recipeDesign,
     // Then apply the resolved color config (theme > recipe > brand fallback)
     ...colorConfig,

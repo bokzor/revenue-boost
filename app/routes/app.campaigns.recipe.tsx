@@ -28,6 +28,7 @@ import { GoalFilter } from "~/domains/campaigns/components/goals/GoalFilter";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import { NEWSLETTER_THEMES, type NewsletterThemeKey } from "~/config/color-presets";
 import { getBackgroundById, getBackgroundUrl } from "~/config/background-presets";
+import { logger } from "~/lib/logger.server";
 import type { StyledRecipe } from "~/domains/campaigns/recipes/styled-recipe-types";
 import type { CampaignGoal } from "~/domains/campaigns/types/campaign";
 import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
@@ -66,7 +67,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }
     }
   } catch (error) {
-    console.error("Error fetching default theme tokens:", error);
+    logger.error({ error }, "Error fetching default theme tokens");
   }
 
   return data<LoaderData>({

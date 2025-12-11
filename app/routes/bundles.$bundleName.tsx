@@ -9,6 +9,7 @@ import { data } from "react-router";
 import { createReadStream, existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { logger } from "~/lib/logger.server";
 
 // Directory where the built bundles live (theme extension assets)
 const ASSETS_DIR = resolve(process.cwd(), "extensions", "storefront-popup", "assets");
@@ -17,17 +18,17 @@ const ASSETS_DIR = resolve(process.cwd(), "extensions", "storefront-popup", "ass
 const ALLOWED_BUNDLE_RE = /^[a-z-]+\.bundle\.js$/;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  console.log(`[Bundles] Request: ${request.method} ${request.url}`);
+  logger.debug({ method: request.method, url: request.url }, "[Bundles] Request");
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     return data({ error: "Method not allowed" }, { status: 405 });
   }
 
   const bundleName = params.bundleName || "";
-  console.log(`[Bundles] Bundle name: ${bundleName}`);
+  logger.debug({ bundleName }, "[Bundles] Bundle name");
 
   if (!ALLOWED_BUNDLE_RE.test(bundleName)) {
-    console.error(`[Bundles] Invalid bundle name: ${bundleName}`);
+    logger.error({ bundleName }, "[Bundles] Invalid bundle name");
     return data({ error: "Invalid bundle name" }, { status: 400 });
   }
 
@@ -35,19 +36,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   // Ensure resolved path is within the assets directory
   if (!absPath.startsWith(ASSETS_DIR)) {
-    console.error(`[Bundles] Path traversal attempt: ${absPath}`);
+    logger.error({ absPath }, "[Bundles] Path traversal attempt");
     return data({ error: "Invalid path" }, { status: 400 });
   }
 
   if (!existsSync(absPath)) {
-    console.error(`[Bundles] Bundle not found: ${absPath}`);
-    console.error(`[Bundles] ASSETS_DIR: ${ASSETS_DIR}`);
+    logger.error({ absPath, ASSETS_DIR }, "[Bundles] Bundle not found");
     return data({ error: "Bundle not found" }, { status: 404 });
   }
 
   try {
     const stats = await stat(absPath);
-    console.log(`[Bundles] ✅ Serving: ${bundleName} (${stats.size} bytes)`);
+    logger.debug({ bundleName, size: stats.size }, "[Bundles] Serving");
 
     // HEAD support
     if (request.method === "HEAD") {
@@ -64,7 +64,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       headers: buildHeaders(stats.mtime.toUTCString(), stats.size),
     });
   } catch (err) {
-    console.error("[Bundles] Failed to serve:", bundleName, err);
+    logger.error({ bundleName, err }, "[Bundles] Failed to serve");
     return data({ error: "Failed to serve bundle" }, { status: 500 });
   }
 }

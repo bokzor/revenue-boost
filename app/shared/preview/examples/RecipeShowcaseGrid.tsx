@@ -20,14 +20,14 @@
  * ```
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import {
   MARKETING_RECIPES,
   MARKETING_CATEGORIES,
   type MarketingCategory,
   type MarketingRecipe,
 } from "../recipe-marketing-data";
-import { MarketingRecipePreview, type PreviewDevice } from "../MarketingRecipePreview";
+import { MarketingRecipePreview } from "../MarketingRecipePreview";
 import { RECIPE_TAG_LABELS, type RecipeTag } from "~/domains/campaigns/recipes/styled-recipe-types";
 
 // =============================================================================
@@ -126,7 +126,17 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<MarketingCategory | "all">(initialCategory);
   const [hoveredRecipe, setHoveredRecipe] = useState<string | null>(null);
-  const [device, setDevice] = useState<PreviewDevice>("mobile");
+  const [modalRecipe, setModalRecipe] = useState<MarketingRecipe | null>(null);
+
+  // Open modal for desktop preview
+  const openDesktopModal = useCallback((recipe: MarketingRecipe) => {
+    setModalRecipe(recipe);
+  }, []);
+
+  // Close modal
+  const closeModal = useCallback(() => {
+    setModalRecipe(null);
+  }, []);
 
   // Filter recipes by category
   const filteredRecipes = useMemo(() => {
@@ -176,58 +186,6 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
             ))}
           </div>
 
-          {/* Device Toggle */}
-          <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-            <button
-              style={{
-                padding: "8px 16px",
-                borderRadius: "8px",
-                border: "1px solid rgba(0, 0, 0, 0.1)",
-                background: device === "mobile" ? "#6366F1" : "#FFFFFF",
-                color: device === "mobile" ? "#FFFFFF" : "#374151",
-                fontSize: "14px",
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-              onClick={() => setDevice("mobile")}
-              aria-label="Mobile preview"
-            >
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14.1667 2.5H5.83333C4.91286 2.5 4.16667 3.24619 4.16667 4.16667V15.8333C4.16667 16.7538 4.91286 17.5 5.83333 17.5H14.1667C15.0871 17.5 15.8333 16.7538 15.8333 15.8333V4.16667C15.8333 3.24619 15.0871 2.5 14.1667 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10 14.1667H10.0083" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Mobile
-            </button>
-            <button
-              style={{
-                padding: "8px 16px",
-                borderRadius: "8px",
-                border: "1px solid rgba(0, 0, 0, 0.1)",
-                background: device === "desktop" ? "#6366F1" : "#FFFFFF",
-                color: device === "desktop" ? "#FFFFFF" : "#374151",
-                fontSize: "14px",
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-              onClick={() => setDevice("desktop")}
-              aria-label="Desktop preview"
-            >
-              <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16.6667 3.33333H3.33333C2.41286 3.33333 1.66667 4.07953 1.66667 5V12.5C1.66667 13.4205 2.41286 14.1667 3.33333 14.1667H16.6667C17.5871 14.1667 18.3333 13.4205 18.3333 12.5V5C18.3333 4.07953 17.5871 3.33333 16.6667 3.33333Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6.66667 17.5H13.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10 14.1667V17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              Desktop
-            </button>
-          </div>
         </div>
       )}
 
@@ -247,8 +205,7 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
             {/* Preview - matching admin's structure */}
             <div style={{
               ...previewContainerStyles,
-              // Desktop needs a different aspect ratio
-              aspectRatio: device === "desktop" ? "16 / 10" : "9 / 16",
+              aspectRatio: "9 / 16",
             }}>
               <div style={{
                 position: "absolute",
@@ -258,9 +215,43 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
                   recipe={recipe}
                   width="100%"
                   height="100%"
-                  device={device}
+                  device="mobile"
                 />
               </div>
+              {/* Desktop preview button overlay */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openDesktopModal(recipe);
+                }}
+                style={{
+                  position: "absolute",
+                  bottom: "12px",
+                  right: "12px",
+                  padding: "6px 12px",
+                  borderRadius: "6px",
+                  border: "none",
+                  background: "rgba(0, 0, 0, 0.7)",
+                  color: "#FFFFFF",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  opacity: hoveredRecipe === recipe.id ? 1 : 0,
+                  transition: "opacity 0.2s",
+                  zIndex: 10,
+                }}
+                aria-label="View desktop preview"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16.6667 3.33333H3.33333C2.41286 3.33333 1.66667 4.07953 1.66667 5V12.5C1.66667 13.4205 2.41286 14.1667 3.33333 14.1667H16.6667C17.5871 14.1667 18.3333 13.4205 18.3333 12.5V5C18.3333 4.07953 17.5871 3.33333 16.6667 3.33333Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6.66667 17.5H13.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M10 14.1667V17.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Desktop
+              </button>
             </div>
 
             {/* Info - matching admin's styling */}
@@ -392,6 +383,14 @@ export const RecipeShowcaseGrid: React.FC<RecipeShowcaseGridProps> = ({
       <div style={{ textAlign: "center", marginTop: "24px", color: "#6B7280" }}>
         Showing {filteredRecipes.length} of {MARKETING_RECIPES.length} designs
       </div>
+
+      {/* Desktop Preview Modal */}
+      {modalRecipe && (
+        <DesktopPreviewModal
+          recipe={modalRecipe}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 };
@@ -413,6 +412,146 @@ function getCategoryColor(category: MarketingCategory): string {
 // =============================================================================
 // HELPER COMPONENTS
 // =============================================================================
+
+/**
+ * Desktop Preview Modal
+ * Shows a large desktop preview of a recipe in a modal overlay
+ */
+const DesktopPreviewModal: React.FC<{
+  recipe: MarketingRecipe;
+  onClose: () => void;
+}> = ({ recipe, onClose }) => {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.75)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: "90vw",
+          height: "90vh",
+          backgroundColor: "#ffffff",
+          borderRadius: "16px",
+          overflow: "hidden",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Modal Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "16px 24px",
+            borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600, color: "#1F2937" }}>
+              {recipe.name}
+            </h3>
+            <p style={{ margin: "4px 0 0 0", fontSize: "14px", color: "#6B7280" }}>
+              {recipe.tagline}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "8px",
+              border: "none",
+              background: "#F3F4F6",
+              color: "#6B7280",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "20px",
+            }}
+            aria-label="Close modal"
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Modal Content - Desktop Preview (fills remaining space) */}
+        <div
+          style={{
+            flex: 1,
+            padding: "24px",
+            overflow: "hidden",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {/* Desktop Preview - fills container */}
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              borderRadius: "12px",
+              overflow: "hidden",
+              backgroundColor: "#f6f6f7",
+            }}
+          >
+            <MarketingRecipePreview
+              recipe={recipe}
+              width="100%"
+              height="100%"
+              device="desktop"
+              fillContainer
+            />
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div
+          style={{
+            padding: "16px 24px",
+            borderTop: "1px solid rgba(0, 0, 0, 0.08)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: "13px", color: "#9CA3AF" }}>
+            {recipe.description}
+          </p>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                padding: "4px 8px",
+                borderRadius: "4px",
+                backgroundColor: getCategoryColor(recipe.category) + "15",
+                color: getCategoryColor(recipe.category),
+                fontWeight: 500,
+              }}
+            >
+              {MARKETING_CATEGORIES[recipe.category].icon} {MARKETING_CATEGORIES[recipe.category].label}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Badge: React.FC<{ color: string; children: React.ReactNode }> = ({ color, children }) => (
   <span

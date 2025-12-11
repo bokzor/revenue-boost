@@ -10,16 +10,18 @@
 import prisma from "~/db.server";
 import { Prisma } from "@prisma/client";
 import type { CustomersRedactPayload } from "./types";
+import { logger } from "~/lib/logger.server";
 
 export async function handleCustomersRedact(
   shop: string,
   payload: CustomersRedactPayload
 ): Promise<void> {
-  console.log(`[Privacy Webhook] Processing customers/redact for ${shop}`, {
+  logger.info({
+    shop,
     customerId: payload.customer.id,
     customerEmail: payload.customer.email,
     ordersToRedact: payload.orders_to_redact.length,
-  });
+  }, "[Privacy Webhook] Processing customers/redact");
 
   // Find the store
   const store = await prisma.store.findUnique({
@@ -28,7 +30,7 @@ export async function handleCustomersRedact(
   });
 
   if (!store) {
-    console.warn(`[Privacy Webhook] Store not found for ${shop}, nothing to redact`);
+    logger.warn({ shop }, "[Privacy Webhook] Store not found, nothing to redact");
     return;
   }
 
@@ -64,7 +66,7 @@ export async function handleCustomersRedact(
           metadata: null,
         },
       });
-      console.log(`[Privacy Webhook] Anonymized ${leadsToAnonymize.length} leads`);
+      logger.info({ count: leadsToAnonymize.length }, "[Privacy Webhook] Anonymized leads");
     }
 
     // 2. Anonymize PopupEvents linked to these leads
@@ -89,7 +91,7 @@ export async function handleCustomersRedact(
           metadata: Prisma.JsonNull,
         },
       });
-      console.log(`[Privacy Webhook] Anonymized ${eventsToAnonymize.length} popup events`);
+      logger.info({ count: eventsToAnonymize.length }, "[Privacy Webhook] Anonymized popup events");
     }
 
     // 3. Anonymize CampaignConversions
@@ -112,9 +114,9 @@ export async function handleCustomersRedact(
           customerId: null,
         },
       });
-      console.log(`[Privacy Webhook] Anonymized ${conversionsToAnonymize.length} conversions`);
+      logger.info({ count: conversionsToAnonymize.length }, "[Privacy Webhook] Anonymized conversions");
     }
   });
 
-  console.log(`[Privacy Webhook] Successfully redacted customer data for ${payload.customer.id}`);
+  logger.info({ customerId: payload.customer.id }, "[Privacy Webhook] Successfully redacted customer data");
 }

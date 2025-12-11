@@ -23,6 +23,7 @@ import { withAuthRateLimit, withWriteRateLimit } from "~/lib/rate-limit-middlewa
 import { authenticate } from "~/shopify.server";
 import { triggerCampaignSegmentSync } from "~/domains/targeting/services/campaign-segment-sync.server";
 import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
+import { logger } from "~/lib/logger.server";
 
 function sanitizeDesignCustomCss(designConfig?: { customCSS?: unknown }) {
   if (!designConfig) return;
@@ -77,7 +78,7 @@ export async function action(args: { request: Request; params: Record<string, st
 
       if (method === "POST") {
         const rawData = await request.json();
-        console.log("[API /api/campaigns] POST payload", rawData);
+        logger.debug({ rawData }, "[API /api/campaigns] POST payload");
         const validatedData = validateData(
           CampaignCreateDataSchema,
           rawData,
@@ -102,7 +103,7 @@ export async function action(args: { request: Request; params: Record<string, st
           admin,
           appUrl
         );
-        console.log("[API /api/campaigns] created campaign", campaign?.id);
+        logger.info({ campaignId: campaign?.id }, "[API /api/campaigns] created campaign");
 
         // Trigger async segment membership sync if campaign has Shopify segment targeting
         triggerCampaignSegmentSync({

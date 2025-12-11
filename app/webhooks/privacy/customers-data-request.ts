@@ -7,16 +7,18 @@
 
 import prisma from "~/db.server";
 import type { CustomersDataRequestPayload, CustomerDataExport } from "./types";
+import { logger } from "~/lib/logger.server";
 
 export async function handleCustomersDataRequest(
   shop: string,
   payload: CustomersDataRequestPayload
 ): Promise<CustomerDataExport> {
-  console.log(`[Privacy Webhook] Processing customers/data_request for ${shop}`, {
+  logger.info({
+    shop,
     customerId: payload.customer.id,
     customerEmail: payload.customer.email,
     dataRequestId: payload.data_request.id,
-  });
+  }, "[Privacy Webhook] Processing customers/data_request");
 
   // Find the store
   const store = await prisma.store.findUnique({
@@ -25,7 +27,7 @@ export async function handleCustomersDataRequest(
   });
 
   if (!store) {
-    console.warn(`[Privacy Webhook] Store not found for ${shop}, returning empty data`);
+    logger.warn({ shop }, "[Privacy Webhook] Store not found, returning empty data");
     return createEmptyDataExport(payload.customer);
   }
 
@@ -72,11 +74,11 @@ export async function handleCustomersDataRequest(
     }),
   ]);
 
-  console.log(`[Privacy Webhook] Found customer data:`, {
+  logger.info({
     leads: leads.length,
     conversions: conversions.length,
     events: events.length,
-  });
+  }, "[Privacy Webhook] Found customer data");
 
   // Compile the data export
   const dataExport: CustomerDataExport = {

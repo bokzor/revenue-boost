@@ -21,6 +21,7 @@ import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getStoreCurrency } from "~/lib/currency.server";
 import prisma from "~/db.server";
 import { StoreSettingsSchema } from "~/domains/store/types/settings";
+import { logger } from "~/lib/logger.server";
 
 // ============================================================================
 // TYPES
@@ -168,7 +169,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       defaultThemeTokens,
     });
   } catch (error) {
-    console.error("Failed to load campaign:", error);
+    logger.error({ error }, "Failed to load campaign");
 
     return data<LoaderData>(
       {
@@ -198,8 +199,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
-  console.warn(
-    `[CampaignDetail] Unexpected form submission to route. Intent: ${intent}, Campaign: ${params.campaignId}`
+  logger.warn(
+    { intent, campaignId: params.campaignId },
+    "[CampaignDetail] Unexpected form submission to route"
   );
 
   return data({ success: false, error: "Use API routes for campaign mutations" }, { status: 400 });

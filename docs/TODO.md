@@ -182,6 +182,74 @@ Inspired by Wisepops' multi-channel approach. Extends engagement beyond the curr
 
 ---
 
+## 🎓 Help & Onboarding
+
+### [ ] Onboarding Wizard (P1)
+**Impact:** 🔥🔥🔥 | **Effort:** Medium
+
+First-time user guided setup flow to reduce time-to-value and support tickets.
+
+- [ ] Welcome modal on first login
+- [ ] Step 1: Enable theme extension (with deep link to theme editor)
+- [ ] Step 2: Create first campaign (pre-selected template)
+- [ ] Step 3: Preview & publish confirmation
+- [ ] Track onboarding completion in store settings
+- [ ] "Skip" option for experienced users
+
+**Why:** Critical for activation. Users who complete setup are 3x more likely to convert to paid.
+
+### [ ] Contextual Tooltips (P1)
+**Impact:** 🔥🔥 | **Effort:** Low
+
+Inline help for complex features without leaving the current screen.
+
+- [ ] Targeting options (exit intent, scroll depth, time delay)
+- [ ] Trigger configuration (combination logic, frequency capping)
+- [ ] Discount types (percentage vs fixed, minimum requirements)
+- [ ] Audience targeting (new vs returning, device types)
+- [ ] Design settings (position, animation, overlay)
+
+**Why:** Reduces confusion on advanced features. Quick win with Polaris `Tooltip` component.
+
+### [ ] Help Center Link (P2)
+**Impact:** 🔥 | **Effort:** Low
+
+Add "Help" link in app navigation pointing to external documentation.
+
+- [ ] Add help link to app navigation bar
+- [ ] Link to website FAQ section (already exists)
+- [ ] Consider Intercom/Zendesk widget integration
+- [ ] "Contact Support" mailto or form link
+
+**Why:** Standard for Shopify apps. Low effort, immediate support value.
+
+### [ ] Video Tutorials (P2)
+**Impact:** 🔥🔥 | **Effort:** Medium
+
+Short (1-2 min) video walkthroughs for key features.
+
+- [ ] "Getting Started" overview video
+- [ ] Template-specific tutorials (Spin-to-Win, Newsletter, Flash Sale)
+- [ ] Targeting & triggers setup video
+- [ ] A/B testing walkthrough
+- [ ] Embed in relevant admin screens or help modal
+
+**Why:** Visual learners prefer video. Reduces support burden for complex features.
+
+### [ ] Empty State Guidance (P1)
+**Impact:** 🔥🔥 | **Effort:** Low
+
+Helpful empty states when no data exists yet.
+
+- [ ] Dashboard: "Create your first campaign" CTA with template suggestions
+- [ ] Analytics: "No data yet" with tips to drive traffic
+- [ ] Experiments: Explain A/B testing benefits + quick start
+- [ ] Campaign list: Template showcase + "Start from template" button
+
+**Why:** Prevents user confusion. Guides next action naturally.
+
+---
+
 ## ⚡ Quick Wins
 
 ### [ ] Template Library Expansion
@@ -209,9 +277,14 @@ Inspired by Wisepops' multi-channel approach. Extends engagement beyond the curr
 | Geo-Targeting | 🔥🔥🔥 | Medium | **P1** |
 | Low Stock Alerts | 🔥🔥 | Low | **P1** |
 | Campaign Scheduling | 🔥🔥 | Low | **P1** |
+| Onboarding Wizard | 🔥🔥🔥 | Medium | **P1** |
+| Contextual Tooltips | 🔥🔥 | Low | **P1** |
+| Empty State Guidance | 🔥🔥 | Low | **P1** |
 | Revenue Dashboard | 🔥🔥🔥 | Medium | **P2** |
 | AI Copy Generation | 🔥🔥 | Medium | **P2** |
 | Advanced Discounts | 🔥🔥 | Medium | **P2** |
+| Help Center Link | 🔥 | Low | **P2** |
+| Video Tutorials | 🔥🔥 | Medium | **P2** |
 | Custom Template Builder | 🔥🔥 | High | **P3** |
 | Embedded Widgets | 🔥🔥 | High | **P3** |
 | Webhook/API Access | 🔥 | Medium | **P3** |

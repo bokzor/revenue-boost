@@ -292,15 +292,6 @@ export const TEMPLATE_PREVIEW_REGISTRY: Record<string, TemplatePreviewEntry<any>
       mergedConfig: Partial<NewsletterConfig> & { discountConfig?: Partial<AdminDiscountConfig> },
       designConfig: Partial<PopupDesignConfig>
     ): NewsletterConfig => {
-      // DEBUG: Log leadCaptureLayout sources
-      console.log(
-        "[NEWSLETTER buildConfig] mergedConfig.leadCaptureLayout:",
-        mergedConfig.leadCaptureLayout
-      );
-      console.log(
-        "[NEWSLETTER buildConfig] designConfig.leadCaptureLayout:",
-        designConfig.leadCaptureLayout
-      );
       return {
         id: "preview-newsletter",
 

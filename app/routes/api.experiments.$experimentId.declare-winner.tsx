@@ -8,6 +8,7 @@ import { data, type ActionFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import prisma from "~/db.server";
+import { logger } from "~/lib/logger.server";
 
 interface DeclareWinnerRequest {
   winningVariantKey: string;
@@ -76,13 +77,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
       ),
     ]);
 
-    console.log(
-      `[Declare Winner] Set ${winningVariantKey} as winner for experiment ${experimentId}`
-    );
+    logger.info({ winningVariantKey, experimentId }, "[Declare Winner] Set winner for experiment");
 
     return data({ success: true });
   } catch (error) {
-    console.error("[Declare Winner] Error:", error);
+    logger.error({ error }, "[Declare Winner] Error");
     return data({ success: false, error: "Failed to declare winner" }, { status: 500 });
   }
 }

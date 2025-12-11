@@ -160,7 +160,7 @@ const goldenReveal: ScratchCardRecipe = {
       scratchOverlayImage: "/recipes/scratch-card/golden-reveal-overlay.jpg",
       inputBackgroundColor: "rgba(255,255,255,0.1)",
       inputTextColor: "#F5F0E8", // Light text for dark input
-      inputPlaceholderColor: "rgba(245, 240, 232, 0.6)", // Light cream placeholder with opacity
+      inputPlaceholderColor: "rgba(245, 240, 232, 0.8)", // Light cream placeholder - higher opacity for visibility
       inputBorderColor: "#D4AF37",
       accentColor: "#D4AF37",
       fontFamily: "'Playfair Display', Georgia, serif",

@@ -25,6 +25,7 @@ import {
   createZodErrorResponse,
   handleGamePopupPrize,
 } from "~/domains/popups/services/game-popup-handler.server";
+import { logger } from "~/lib/logger.server";
 
 const CONFIG = GAME_POPUP_CONFIGS.SCRATCH_CARD;
 
@@ -55,7 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const emailBeforeScratching = contentConfig?.emailBeforeScratching === true;
 
     if (emailRequired && emailBeforeScratching && !email) {
-      console.log("[Scratch Card] Email required before scratching but not provided");
+      logger.info("[Scratch Card] Email required before scratching but not provided");
       return createErrorResponse(
         "Email is required before scratching for this campaign",
         400,
@@ -63,7 +64,7 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    console.log("[Scratch Card] Email validation passed:", {
+    logger.debug({
       emailRequired,
       emailBeforeScratching,
       emailProvided: !!email,
@@ -73,7 +74,7 @@ export async function action({ request }: ActionFunctionArgs) {
           : emailRequired
             ? "Email after scratch"
             : "No email required",
-    });
+    }, "[Scratch Card] Email validation passed");
 
     // 5. Security validation (bot detection)
     const securityResult = await validateSecurityRequest(request, validatedRequest, CONFIG);
@@ -104,7 +105,7 @@ export async function action({ request }: ActionFunctionArgs) {
       leadSource: "scratch_card_popup",
     });
   } catch (error) {
-    console.error("[Scratch Card API] Error:", error);
+    logger.error({ error }, "[Scratch Card API] Error");
 
     if (error instanceof z.ZodError) {
       return createZodErrorResponse(error);

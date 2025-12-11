@@ -13,6 +13,7 @@ import { data } from "react-router";
 import { createReadStream, existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
+import { logger } from "~/lib/logger.server";
 
 // Directory where public assets live
 const PUBLIC_DIR = resolve(process.cwd(), "public");
@@ -64,12 +65,12 @@ function getContentType(filename: string): string {
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const assetPath = params["*"] || "";
 
-  console.log(`[Assets] Request for: ${assetPath}`);
+  logger.debug({ assetPath }, "[Assets] Request for");
 
   // Validate asset path against whitelist
   const isAllowed = ALLOWED_ASSET_PATHS.some((pattern) => pattern.test(assetPath));
   if (!isAllowed) {
-    console.error(`[Assets] Rejected (not in whitelist): ${assetPath}`);
+    logger.error({ assetPath }, "[Assets] Rejected (not in whitelist)");
     return data({ error: "Asset not allowed" }, { status: 403 });
   }
 
@@ -78,19 +79,19 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
   // Ensure resolved path is within the public directory (prevent path traversal)
   if (!absPath.startsWith(PUBLIC_DIR)) {
-    console.error(`[Assets] Path traversal attempt: ${absPath}`);
+    logger.error({ absPath }, "[Assets] Path traversal attempt");
     return data({ error: "Invalid path" }, { status: 400 });
   }
 
   if (!existsSync(absPath)) {
-    console.error(`[Assets] Asset not found: ${absPath}`);
+    logger.error({ absPath }, "[Assets] Asset not found");
     return data({ error: "Asset not found" }, { status: 404 });
   }
 
   try {
     const stats = await stat(absPath);
     const contentType = getContentType(assetPath);
-    console.log(`[Assets] ✅ Serving: ${assetPath} (${stats.size} bytes, ${contentType})`);
+    logger.debug({ assetPath, size: stats.size, contentType }, "[Assets] Serving");
 
     // HEAD support
     if (request.method === "HEAD") {
@@ -107,7 +108,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
       headers: buildHeaders(stats.mtime.toUTCString(), stats.size, contentType),
     });
   } catch (err) {
-    console.error("[Assets] Failed to serve:", assetPath, err);
+    logger.error({ assetPath, err }, "[Assets] Failed to serve");
     return data({ error: "Failed to serve asset" }, { status: 500 });
   }
 }

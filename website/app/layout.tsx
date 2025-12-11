@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s | Revenue Boost",
   },
   description:
-    "75+ ready-to-use popup designs for Shopify. Pick one, add your brand, go live in 60 seconds. No design skills needed. Increase conversions with email popups, spin-to-win wheels, flash sales & more.",
+    "40+ ready-to-use popup designs for Shopify. Pick one, add your brand, go live in 60 seconds. No design skills needed. Increase conversions with email popups, spin-to-win wheels, flash sales & more.",
   keywords: [
     "shopify popup app",
     "shopify popups",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     siteName: "Revenue Boost",
     title: "Revenue Boost - Shopify Popups & Notifications App",
     description:
-      "75+ ready-to-use popup designs for Shopify. Pick one, add your brand, go live in 60 seconds. No design skills needed.",
+      "40+ ready-to-use popup designs for Shopify. Pick one, add your brand, go live in 60 seconds. No design skills needed.",
     images: [
       {
         url: "/og-image.png",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Revenue Boost - Shopify Popups & Notifications App",
     description:
-      "75+ ready-to-use popup designs for Shopify. Pick one, add your brand, go live in 60 seconds.",
+      "40+ ready-to-use popup designs for Shopify. Pick one, add your brand, go live in 60 seconds.",
     images: ["/og-image.png"],
     creator: "@revenueboost",
   },
@@ -89,7 +89,7 @@ const softwareApplicationSchema = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   description:
-    "75+ ready-to-use popup designs for Shopify. Increase conversions with email popups, spin-to-win wheels, flash sales & more.",
+    "40+ ready-to-use popup designs for Shopify. Increase conversions with email popups, spin-to-win wheels, flash sales & more.",
   url: "https://revenueboost.app",
   offers: {
     "@type": "Offer",

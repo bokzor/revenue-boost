@@ -33,7 +33,7 @@ export default function DesignsPage() {
             Ready-to-Use Popup Designs
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Browse 75+ professionally designed popups. Pick one, customize your
+            Browse 40+ professionally designed popups. Pick one, customize your
             colors, and go live in 60 seconds.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">

@@ -28,6 +28,7 @@ import { authenticate } from "~/shopify.server";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { ExperimentService } from "~/domains/campaigns";
 import type { ExperimentWithVariants } from "~/domains/campaigns";
+import { logger } from "~/lib/logger.server";
 import { apiClient, getErrorMessage } from "~/lib/api-client";
 import {
   getVariantPerformance,
@@ -86,7 +87,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       currency,
     });
   } catch (error) {
-    console.error("Failed to load experiment:", error);
+    logger.error({ error }, "Failed to load experiment");
 
     return data<LoaderData>(
       {

@@ -9,16 +9,17 @@ import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { handleCustomersDataRequest } from "~/webhooks/privacy/customers-data-request";
 import type { CustomersDataRequestPayload } from "~/webhooks/privacy/types";
+import { logger } from "~/lib/logger.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     // Authenticate the webhook request (validates HMAC signature)
     const { shop, payload, topic } = await authenticate.webhook(request);
 
-    console.log(`[Webhook Route] Received ${topic} for ${shop}`);
+    logger.info({ topic, shop }, "[Webhook Route] Received webhook");
 
     if (topic !== "CUSTOMERS_DATA_REQUEST") {
-      console.error(`[Webhook Route] Unexpected topic: ${topic}`);
+      logger.error({ topic }, "[Webhook Route] Unexpected topic");
       return new Response("Invalid topic", { status: 400 });
     }
 
@@ -29,12 +30,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
 
     // Log the data export (in production, this would be sent to the merchant or stored)
-    console.log(`[Webhook Route] Customer data compiled:`, {
+    logger.info({
       customerId: customerData.customer.id,
       leadsCount: customerData.leads.length,
       conversionsCount: customerData.conversions.length,
       eventsCount: customerData.events.length,
-    });
+    }, "[Webhook Route] Customer data compiled");
 
     // Return success response
     // Note: In a production system, you might want to:
@@ -46,7 +47,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[Webhook Route] Error processing customers/data_request:", error);
+    logger.error({ error }, "[Webhook Route] Error processing customers/data_request");
 
     // Return 500 to signal Shopify to retry
     return new Response(

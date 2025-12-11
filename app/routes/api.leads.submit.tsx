@@ -23,6 +23,7 @@ import {
   generatePreviewDiscountCode,
   isPreviewCampaign as _checkIsPreviewCampaign,
 } from "~/lib/preview-discount.server";
+import { logger } from "~/lib/logger.server";
 import {
   upsertCustomer,
   sanitizeCustomerData,
@@ -128,7 +129,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!validation.valid) {
       if (validation.isBotLikely) {
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-        console.warn(`[Lead Submit] 🤖 Bot detected (${validation.reason}) for campaign ${validatedData.campaignId}, IP: ${ip}`);
+        logger.warn({ reason: validation.reason, campaignId: validatedData.campaignId, ip }, "[Lead Submit] Bot detected");
         return data(
           { success: true, leadId: "processed", message: "Thank you!" },
           { status: 200, headers: storefrontCors() }
@@ -143,7 +144,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // PREVIEW MODE: Return success without saving to database
     // BYPASS RATE LIMITING for preview mode to allow unlimited testing
     if (isPreviewCampaign) {
-      console.log(`[Lead Submit] ✅ Preview mode - returning mock success response (BYPASSING RATE LIMITS)`);
+      logger.debug({ campaignId: validatedData.campaignId }, "[Lead Submit] Preview mode - returning mock success response (BYPASSING RATE LIMITS)");
 
       // Try to fetch discount config from Redis preview session
       let previewDiscountCode: string | undefined;
@@ -167,13 +168,13 @@ export async function action({ request }: ActionFunctionArgs) {
               if (discountConfig) {
                 previewDiscountCode = generatePreviewDiscountCode(discountConfig);
                 previewBehavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
-                console.log(`[Lead Submit] 🎟️ Preview discount code generated: ${previewDiscountCode}`);
+                logger.debug({ previewDiscountCode }, "[Lead Submit] Preview discount code generated");
               }
             }
           }
         }
       } catch (error) {
-        console.warn("[Lead Submit] Failed to fetch preview discount config:", error);
+        logger.warn({ error }, "[Lead Submit] Failed to fetch preview discount config");
         // Fallback to generic preview code
         previewDiscountCode = "PREVIEW-SAVE";
       }
@@ -195,7 +196,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const leadLimitResult = await PlanGuardService.checkLeadLimit(storeId);
 
     if (!leadLimitResult.allowed) {
-      console.warn(`[Lead Submit] Monthly lead limit reached for store ${storeId}: ${leadLimitResult.current}/${leadLimitResult.max}`);
+      logger.warn({ storeId, current: leadLimitResult.current, max: leadLimitResult.max }, "[Lead Submit] Monthly lead limit reached");
       return data(
         {
           success: false,
@@ -219,7 +220,7 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (!rateLimitResult.allowed) {
-      console.warn(`[Lead Submit] Rate limit exceeded for ${validatedData.email}`);
+      logger.warn({ email: validatedData.email }, "[Lead Submit] Rate limit exceeded");
       return data(
         {
           success: false,
@@ -247,7 +248,7 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (existingLead) {
-      console.log(`[Lead Submission] Lead already exists: ${existingLead.id}`);
+      logger.debug({ leadId: existingLead.id }, "[Lead Submission] Lead already exists");
 
       if (!campaign) {
         return data(
@@ -282,7 +283,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
       // Otherwise, try to generate a code now (retroactive issuance)
       if (!campaign.store.accessToken) {
-        console.warn("[Lead Submission] Cannot retro-issue code: missing access token");
+        logger.warn("[Lead Submission] Cannot retro-issue code: missing access token");
         return data(
           {
             success: true,
@@ -347,7 +348,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Create admin API context from store's access token
     if (!campaign) {
-      console.error("[Lead Submission] Campaign is null");
+      logger.error("[Lead Submission] Campaign is null");
       return data(
         { success: false, error: "Campaign not found" },
         { status: 404, headers: storefrontCors() }
@@ -355,7 +356,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     if (!campaign.store.accessToken) {
-      console.error("[Lead Submission] Store has no access token");
+      logger.error("[Lead Submission] Store has no access token");
       return data(
         { success: false, error: "Store not properly configured" },
         { status: 500, headers: storefrontCors() }
@@ -390,7 +391,7 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (!discountResult.success) {
-      console.warn("[Lead Submission] Failed to create discount code:", discountResult.errors);
+      logger.warn({ errors: discountResult.errors }, "[Lead Submission] Failed to create discount code");
       // Continue without discount code - don't fail the entire process
     }
 
@@ -415,7 +416,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // Email platforms (Klaviyo, Mailchimp, etc.) automatically sync these customers
     const customerResult = await upsertCustomer(admin, customerData);
     if (!customerResult.success) {
-      console.warn("[Lead Submission] Failed to create/update customer:", customerResult.errors);
+      logger.warn({ errors: customerResult.errors }, "[Lead Submission] Failed to create/update customer");
       // Continue without customer - not critical
     }
 
@@ -496,11 +497,12 @@ export async function action({ request }: ActionFunctionArgs) {
         : undefined;
 
     if (freeGiftData) {
-      console.log("[Lead Submission] Free gift data:", freeGiftData);
+      logger.debug({ freeGiftData }, "[Lead Submission] Free gift data");
     }
 
-    console.log(
-      `[Lead Submission] ✅ Created lead ${lead.id} for campaign ${campaign.id} with discount code: ${discountResult.discountCode}`
+    logger.info(
+      { leadId: lead.id, campaignId: campaign.id, discountCode: discountResult.discountCode },
+      "[Lead Submission] Created lead"
     );
 
     return data(
@@ -520,7 +522,7 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     );
   } catch (error) {
-    console.error("[Lead Submission] Error:", error);
+    logger.error({ error }, "[Lead Submission] Error");
 
     if (error instanceof z.ZodError) {
       return data(
@@ -598,7 +600,7 @@ async function recordLeadEvents(
       });
     }
   } catch (error) {
-    console.error("[Lead Submission] Error recording events:", error);
+    logger.error({ error }, "[Lead Submission] Error recording events");
     // Don't fail the entire process if event recording fails
   }
 }

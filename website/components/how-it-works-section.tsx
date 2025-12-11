@@ -5,7 +5,7 @@ const steps = [
     icon: MousePointerClick,
     step: "1",
     title: "Pick a Design",
-    description: "Browse 75+ ready-to-use popup designs. Find one that matches your brand in seconds.",
+    description: "Browse 40+ ready-to-use popup designs. Find one that matches your brand in seconds.",
   },
   {
     icon: Paintbrush,

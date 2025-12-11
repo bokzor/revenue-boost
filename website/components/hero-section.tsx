@@ -87,7 +87,7 @@ export function HeroSection() {
           <div className="text-center lg:text-left">
             <Badge variant="secondary" className="mb-6 gap-2 px-4 py-2">
               <Zap className="h-4 w-4 text-primary" />
-              <span>75+ Ready-to-Use Designs</span>
+              <span>40+ Ready-to-Use Designs</span>
             </Badge>
 
             <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">

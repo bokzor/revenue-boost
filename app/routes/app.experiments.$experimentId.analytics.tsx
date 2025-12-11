@@ -17,6 +17,7 @@ import { ExperimentService } from "~/domains/campaigns";
 import { getStoreId } from "~/lib/auth-helpers.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { getStoreCurrency } from "~/lib/currency.server";
+import { logger } from "~/lib/logger.server";
 
 // Helper for currency formatting
 const formatMoney = (amount: number, currency: string = "USD") => {
@@ -48,10 +49,10 @@ interface LoaderData {
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  console.log("[ExperimentAnalytics] loader hit", {
+  logger.debug({
     url: request.url,
     experimentId: params.experimentId,
-  });
+  }, "[ExperimentAnalytics] loader hit");
 
   const { admin } = await authenticate.admin(request);
   const storeId = await getStoreId(request);

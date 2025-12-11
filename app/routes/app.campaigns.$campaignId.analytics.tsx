@@ -18,6 +18,7 @@ import { getStoreId } from "~/lib/auth-helpers.server";
 import { getStoreCurrency } from "~/lib/currency.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import prisma from "~/db.server";
+import { logger } from "~/lib/logger.server";
 
 // --- Types ---
 interface LoaderData {
@@ -50,10 +51,7 @@ interface LoaderData {
 
 // --- Loader ---
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  console.log("[CampaignAnalytics] loader hit", {
-    url: request.url,
-    campaignId: params.campaignId,
-  });
+  logger.debug({ url: request.url, campaignId: params.campaignId }, "[CampaignAnalytics] loader hit");
   const { admin } = await authenticate.admin(request);
   const storeId = await getStoreId(request);
   const campaignId = params.campaignId;

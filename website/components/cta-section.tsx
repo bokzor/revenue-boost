@@ -16,7 +16,7 @@ export function CtaSection() {
             Pick a Design. Go Live in 60 Seconds.
           </h2>
           <p className="mb-8 text-lg text-muted-foreground md:text-xl">
-            75+ expert-designed popups ready to use. No design skills needed.
+            40+ expert-designed popups ready to use. No design skills needed.
           </p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">

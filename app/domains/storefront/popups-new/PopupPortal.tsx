@@ -237,7 +237,11 @@ const PopupPortalComponent: React.FC<PopupPortalProps> = ({
   ariaDescribedBy,
 }) => {
   // Animation state machine
-  const [animationState, setAnimationState] = useState<AnimationState>("unmounted");
+  // In preview mode with isVisible=true, start in "visible" state for SSR compatibility
+  // This ensures the popup renders immediately without waiting for useEffect
+  const [animationState, setAnimationState] = useState<AnimationState>(
+    previewMode && isVisible ? "visible" : "unmounted"
+  );
 
   // Swipe-to-dismiss state
   const [dragOffset, setDragOffset] = useState(0);
