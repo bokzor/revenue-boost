@@ -26,6 +26,9 @@
       "@/*": [
         "./*"
       ],
+      "#site/content": [
+        "./.velite"
+      ],
       "~/domains/*": [
         "../app/domains/*"
       ],

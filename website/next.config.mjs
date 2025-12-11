@@ -26,6 +26,7 @@ const nextConfig = {
       '~/shared': '../app/shared',
       '~/lib': '../app/lib',
       '~/config': '../app/config',
+      '#site/content': './.velite',
     },
   },
 

@@ -12,6 +12,7 @@ node_modules
 /public/_dev
 /app/public/build
 website/out
+website/.velite
 
 # Database
 /prisma/dev.sqlite
