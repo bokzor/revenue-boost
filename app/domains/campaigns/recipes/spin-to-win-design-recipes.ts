@@ -468,7 +468,7 @@ const minimalMono: SpinToWinRecipe = {
       consentFieldEnabled: false,
       // Enhanced wheel styling
       wheelGlowEnabled: false,
-      wheelCenterStyle: "minimal",
+      wheelCenterStyle: "simple",
     },
     designConfig: {
       position: "center",

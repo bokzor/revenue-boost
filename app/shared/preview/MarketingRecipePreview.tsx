@@ -505,7 +505,7 @@ function buildDesignConfig(recipe: StyledRecipe): Record<string, unknown> {
     colorConfig = {
       backgroundColor: recipeDesign.backgroundColor || colorConfig.backgroundColor,
       textColor: recipeDesign.textColor || colorConfig.textColor,
-      primaryColor: recipeDesign.primaryColor || colorConfig.primaryColor,
+      primaryColor: recipeDesign.accentColor || colorConfig.primaryColor,
       accentColor: recipeDesign.accentColor || colorConfig.accentColor,
       buttonColor: recipeDesign.buttonColor || colorConfig.buttonColor,
       buttonTextColor: recipeDesign.buttonTextColor || colorConfig.buttonTextColor,
