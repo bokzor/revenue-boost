@@ -31,19 +31,19 @@ export function Header() {
             Designs
           </Link>
           <Link
-            href="#how-it-works"
+            href="/#how-it-works"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             How It Works
           </Link>
           <Link
-            href="#pricing"
+            href="/#pricing"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Pricing
           </Link>
           <Link
-            href="#faq"
+            href="/#faq"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             FAQ
@@ -74,20 +74,20 @@ export function Header() {
               Designs
             </Link>
             <Link
-              href="#how-it-works"
+              href="/#how-it-works"
               className="text-sm font-medium text-muted-foreground"
               onClick={() => setIsOpen(false)}
             >
               How It Works
             </Link>
             <Link
-              href="#pricing"
+              href="/#pricing"
               className="text-sm font-medium text-muted-foreground"
               onClick={() => setIsOpen(false)}
             >
               Pricing
             </Link>
-            <Link href="#faq" className="text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>
+            <Link href="/#faq" className="text-sm font-medium text-muted-foreground" onClick={() => setIsOpen(false)}>
               FAQ
             </Link>
             <div className="flex flex-col gap-2 pt-4">

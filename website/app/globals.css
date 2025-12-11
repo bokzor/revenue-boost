@@ -147,3 +147,18 @@
   background-size: 300% 100%;
   animation: gradient-shift 4s ease infinite;
 }
+
+/* Word swipe animation - slides down from above */
+@keyframes word-swipe {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-word-swipe {
+  display: inline-block;
+  animation: word-swipe 0.6s cubic-bezier(0.23, 1, 0.32, 1.2) forwards;
+}

@@ -118,66 +118,79 @@ function toMarketingRecipe(recipe: StyledRecipe): MarketingRecipe {
  * - Prioritizes gamification (spin-to-win, scratch cards) and newsletters (with images)
  */
 const CURATED_RECIPE_IDS: string[] = [
-  // === SPIN TO WIN (Gamification - visually engaging) ===
-  "spin-to-win-neon-nights",       // Neon cyberpunk style
-  "spin-to-win-lucky-fortune",     // Luxury gold/black
-  "spin-to-win-retro-arcade",      // Fun retro gaming style
-  "spin-to-win-pastel-dream",      // Soft beauty/cosmetics
-  "spin-to-win-ocean-breeze",      // Fresh surf/beach
-  "spin-to-win-earthy-organic",    // Natural organic style
-  "spin-to-win-minimal-mono",      // Clean minimal
+  // === MIXED ORDER FOR VISUAL VARIETY ===
+  // Alternating between different template types for a more engaging showcase
 
-  // === SCRATCH CARDS (Gamification - unique interactions) ===
-  "scratch-card-golden-reveal",    // Luxury gold
-  "scratch-card-holographic-hype", // Gen-Z vibrant
-  "scratch-card-neon-arcade",      // Gaming neon
-  "scratch-card-rose-gold-dream",  // Beauty/cosmetics
-  "scratch-card-holiday-magic",    // Festive seasonal
+  // Row 1: Gamification + Newsletter + Flash Sale
+  "spin-to-win-neon-nights",       // Spin - Neon cyberpunk
+  "newsletter-elegant-luxe",       // Newsletter - High-end fashion
+  "black-friday-sale",             // Flash Sale - Black Friday
 
-  // === NEWSLETTERS (With background images - high visual impact) ===
-  "newsletter-elegant-luxe",       // High-end fashion
-  "newsletter-street-style",       // Urban streetwear
-  "newsletter-fresh-organic",      // Fresh food/organic
-  "newsletter-cafe-warm",          // Coffee/bakery
-  "newsletter-soft-glow",          // Beauty/skincare
-  "newsletter-spa-serenity",       // Wellness/spa
-  "newsletter-scandinavian",       // Home/furniture
-  "newsletter-cozy-comfort",       // Bedding/home
-  "newsletter-bold-energy",        // Fitness/sports
-  "newsletter-active-life",        // Outdoor/adventure
-  "newsletter-dark-mode",          // Tech/SaaS
-  "newsletter-minimal-tech",       // Clean tech
+  // Row 2: Scratch + Newsletter + Upsell
+  "scratch-card-golden-reveal",    // Scratch - Luxury gold
+  "newsletter-street-style",       // Newsletter - Urban streetwear
+  "upsell-premium-fullscreen",     // Upsell - Luxury fullscreen
 
-  // === FLASH SALES (Seasonal - unique backgrounds) ===
-  "black-friday-sale",             // Black Friday
-  "new-year-sale",                 // New Year
-  "valentine-sale",                // Valentine's Day
-  "halloween-sale",                // Halloween
-  "winter-sale",                   // Winter
-  "summer-sale",                   // Summer
-  "flash-sale",                    // Classic flash sale
-  "mystery-discount",              // Gamified mystery reveal
+  // Row 3: Spin + Newsletter + Flash Sale
+  "spin-to-win-lucky-fortune",     // Spin - Luxury gold/black
+  "newsletter-fresh-organic",      // Newsletter - Fresh food/organic
+  "valentine-sale",                // Flash Sale - Valentine's Day
+
+  // Row 4: Scratch + Newsletter + Upsell
+  "scratch-card-holographic-hype", // Scratch - Gen-Z vibrant
+  "newsletter-cafe-warm",          // Newsletter - Coffee/bakery
+  "upsell-complete-the-look",      // Upsell - Post add-to-cart
+
+  // Row 5: Spin + Newsletter + Flash Sale
+  "spin-to-win-retro-arcade",      // Spin - Fun retro gaming
+  "newsletter-soft-glow",          // Newsletter - Beauty/skincare
+  "halloween-sale",                // Flash Sale - Halloween
+
+  // Row 6: Scratch + Newsletter + Cart
+  "scratch-card-neon-arcade",      // Scratch - Gaming neon
+  "newsletter-spa-serenity",       // Newsletter - Wellness/spa
+  "cart-discount-incentive",       // Cart - Discount to complete
+
+  // Row 7: Spin + Newsletter + Flash Sale
+  "spin-to-win-pastel-dream",      // Spin - Soft beauty/cosmetics
+  "newsletter-scandinavian",       // Newsletter - Home/furniture
+  "new-year-sale",                 // Flash Sale - New Year
+
+  // Row 8: Scratch + Newsletter + Upsell
+  "scratch-card-rose-gold-dream",  // Scratch - Beauty/cosmetics
+  "newsletter-cozy-comfort",       // Newsletter - Bedding/home
+  "upsell-frequently-bought-together", // Upsell - Bundle
+
+  // Row 9: Spin + Newsletter + Flash Sale
+  "spin-to-win-ocean-breeze",      // Spin - Fresh surf/beach
+  "newsletter-bold-energy",        // Newsletter - Fitness/sports
+  "winter-sale",                   // Flash Sale - Winter
+
+  // Row 10: Remaining items mixed
+  "scratch-card-holiday-magic",    // Scratch - Festive seasonal
+  "newsletter-active-life",        // Newsletter - Outdoor/adventure
+  "summer-sale",                   // Flash Sale - Summer
+
+  // Row 11: More variety
+  "spin-to-win-earthy-organic",    // Spin - Natural organic
+  "newsletter-dark-mode",          // Newsletter - Tech/SaaS
+  "flash-sale",                    // Flash Sale - Classic
+
+  // Row 12: Final mix
+  "spin-to-win-minimal-mono",      // Spin - Clean minimal
+  "newsletter-minimal-tech",       // Newsletter - Clean tech
+  "mystery-discount",              // Flash Sale - Mystery reveal
+
+  // Remaining items
   "first-purchase",                // Welcome discount
   "free-gift-with-purchase",       // Free gift offer
-
-  // === UPSELLS (Different layouts - good variety) ===
-  "upsell-complete-the-look",      // Post add-to-cart
-  "upsell-frequently-bought-together", // Amazon-style bundle
-  "upsell-premium-fullscreen",     // Luxury fullscreen
-  "upsell-countdown-urgency",      // Flash deal with timer
-
-  // === CART RECOVERY (Different approaches) ===
-  "cart-discount-incentive",       // Discount to complete order
-  "cart-urgency-scarcity",         // FOMO/urgency
+  "upsell-countdown-urgency",      // Upsell - Flash deal with timer
+  "cart-urgency-scarcity",         // Cart - FOMO/urgency
   "free-shipping-classic",         // Free shipping bar
-
-  // === ANNOUNCEMENTS (Keep only 2 distinctive ones) ===
-  "announcement-black-friday",     // Black Friday banner
-  "announcement-flash-deal",       // Flash deal with timer
-
-  // === SOCIAL PROOF (Keep only 2 distinctive ones) ===
-  "social-proof-recent-purchases", // Classic purchase notifications
-  "social-proof-luxury",           // Luxury brand style
+  "announcement-black-friday",     // Announcement - Black Friday
+  "announcement-flash-deal",       // Announcement - Flash deal
+  "social-proof-recent-purchases", // Social Proof - Purchase notifications
+  "social-proof-luxury",           // Social Proof - Luxury brand
 ];
 
 // =============================================================================

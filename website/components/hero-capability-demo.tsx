@@ -2,7 +2,7 @@
 
 /**
  * HeroCapabilityDemo - Demonstrates app capabilities with animated preview
- * 
+ *
  * Shows a single popup (Premium Fullscreen Experience) that:
  * 1. Animates from mobile → desktop size (responsive demonstration)
  * 2. Changes CSS color variables (brand color demonstration)
@@ -14,20 +14,35 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, ShieldCheck, Zap, CheckCircle2, Smartphone, Monitor, Palette } from "lucide-react"
 
+// Word swipe animation component - slides words in from below
+function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
+  return (
+    <span className={`${className} overflow-hidden inline-flex`} aria-label={text}>
+      <span
+        key={text}
+        className="inline-block animate-word-swipe"
+      >
+        {text}
+      </span>
+    </span>
+  )
+}
+
 // Lazy load the preview component
 const TemplatePreview = lazy(() => 
   import("~/domains/popups/components/preview/TemplatePreview").then(m => ({ default: m.TemplatePreview }))
 )
 
 // Animation phases
-type DemoPhase = "mobile" | "desktop" | "theme-1" | "theme-2" | "theme-3"
+type DemoPhase = "intro" | "mobile" | "desktop" | "theme-1" | "theme-2" | "theme-3"
 
-const PHASES: { phase: DemoPhase; duration: number; label: string; icon: React.ReactNode }[] = [
-  { phase: "mobile", duration: 2500, label: "Mobile-first design", icon: <Smartphone className="h-4 w-4" /> },
-  { phase: "desktop", duration: 2500, label: "Desktop experience", icon: <Monitor className="h-4 w-4" /> },
-  { phase: "theme-1", duration: 2000, label: "Your brand colors", icon: <Palette className="h-4 w-4" /> },
-  { phase: "theme-2", duration: 2000, label: "Any color scheme", icon: <Palette className="h-4 w-4" /> },
-  { phase: "theme-3", duration: 2000, label: "Perfect match", icon: <Palette className="h-4 w-4" /> },
+const PHASES: { phase: DemoPhase; duration: number; label: string; headline: string; icon: React.ReactNode }[] = [
+  { phase: "intro", duration: 2000, label: "Ready to launch", headline: "Go live in 60 seconds.", icon: <Zap className="h-4 w-4" /> },
+  { phase: "mobile", duration: 2500, label: "Mobile-first design", headline: "Mobile-first design.", icon: <Smartphone className="h-4 w-4" /> },
+  { phase: "desktop", duration: 2500, label: "Desktop experience", headline: "Desktop experience.", icon: <Monitor className="h-4 w-4" /> },
+  { phase: "theme-1", duration: 2000, label: "Your brand colors", headline: "Your brand colors.", icon: <Palette className="h-4 w-4" /> },
+  { phase: "theme-2", duration: 2000, label: "Any color scheme", headline: "Any color scheme.", icon: <Palette className="h-4 w-4" /> },
+  { phase: "theme-3", duration: 2000, label: "Perfect match", headline: "Go live in 60 seconds.", icon: <Palette className="h-4 w-4" /> },
 ]
 
 // Theme color presets for demonstration (flat properties for popup config)
@@ -64,6 +79,7 @@ const THEME_COLORS = {
 
 // Size styles for each phase - use fixed heights to avoid aspectRatio transition issues
 const SIZE_STYLES: Record<DemoPhase, React.CSSProperties> = {
+  intro: { width: "280px", height: "520px", maxWidth: "100%" },
   mobile: { width: "280px", height: "520px", maxWidth: "100%" },
   desktop: { width: "700px", height: "420px", maxWidth: "100%" },
   "theme-1": { width: "700px", height: "420px", maxWidth: "100%" },
@@ -74,6 +90,7 @@ const SIZE_STYLES: Record<DemoPhase, React.CSSProperties> = {
 // Scale factor for popup content per phase (shrinks the popup to fit without scrolling)
 // [desktop viewport scale, mobile viewport scale]
 const POPUP_SCALES: Record<DemoPhase, [number, number]> = {
+  intro: [0.55, 0.50],
   mobile: [0.55, 0.50],
   desktop: [0.65, 0.38],
   "theme-1": [0.65, 0.38],
@@ -178,10 +195,6 @@ export function HeroCapabilityDemo() {
     return { ...recipeConfig.contentConfig, previewMode: true }
   }, [recipeConfig])
 
-  // Determine if we're in "size" or "theme" demonstration
-  const isThemePhase = currentPhase.phase.startsWith("theme-")
-  const isSizePhase = !isThemePhase
-
   return (
     <section ref={sectionRef} className="relative overflow-hidden px-4 pb-16 pt-12 md:pb-24 md:pt-20">
       {/* Background gradient */}
@@ -197,9 +210,13 @@ export function HeroCapabilityDemo() {
             <span>40+ Ready-to-Use Designs</span>
           </Badge>
 
-          <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
-            Pick a popup.{" "}
-            <span className="text-primary">Go live in 60 seconds.</span>
+          <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl">
+            <span className="block">Pick a popup.</span>
+            <AnimatedHeadline
+              key={currentPhase.headline}
+              text={currentPhase.headline}
+              className="block text-primary"
+            />
           </h1>
 
           <p className="mx-auto mb-8 max-w-xl text-pretty text-lg text-muted-foreground">
@@ -213,18 +230,6 @@ export function HeroCapabilityDemo() {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {/* Phase indicator + explanation */}
-          <div className="flex flex-col items-center gap-3 mb-6">
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border">
-              {currentPhase.icon}
-              <span className="font-medium text-sm">{currentPhase.label}</span>
-            </div>
-            <p className="text-sm text-muted-foreground max-w-md text-center">
-              {isSizePhase
-                ? "Watch how the popup adapts perfectly to every screen size"
-                : "Apply your brand colors with one click — works with any theme"}
-            </p>
-          </div>
 
           {/* Preview container with smooth size transitions */}
           <div className="flex justify-center items-center">
