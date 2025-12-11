@@ -1,49 +1,144 @@
-"use client"
+"use client";
 
 /**
  * HeroCapabilityDemo - Demonstrates app capabilities with animated preview
  *
- * Shows a single popup (Premium Fullscreen Experience) that:
- * 1. Animates from mobile → desktop size (responsive demonstration)
- * 2. Changes CSS color variables (brand color demonstration)
- * 3. Has explanatory text for what's happening
+ * 8-phase customer journey:
+ * 1-4: Feature showcase (Social Proof, Spin-to-Win, Upsell, Cart Recovery)
+ * 5-7: Flexibility showcase (Mobile, Desktop, Theme customization)
+ * 8: CTA (Go live in 60 seconds)
  */
 
-import React, { useEffect, useState, useMemo, useRef, lazy, Suspense } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ArrowRight, ShieldCheck, Zap, CheckCircle2, Smartphone, Monitor, Palette } from "lucide-react"
+import React, { useEffect, useState, useMemo, useRef, lazy, Suspense } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  CheckCircle2,
+  Smartphone,
+  Monitor,
+  Palette,
+  Users,
+  Gift,
+  ShoppingCart,
+  RotateCcw,
+} from "lucide-react";
 
-// Word swipe animation component - slides words in from below
+// Word swipe animation component - slides words in from above
 function AnimatedHeadline({ text, className }: { text: string; className?: string }) {
   return (
     <span className={`${className} overflow-hidden inline-flex`} aria-label={text}>
-      <span
-        key={text}
-        className="inline-block animate-word-swipe"
-      >
+      <span key={text} className="inline-block animate-word-swipe">
         {text}
       </span>
     </span>
-  )
+  );
 }
 
 // Lazy load the preview component
-const TemplatePreview = lazy(() => 
-  import("~/domains/popups/components/preview/TemplatePreview").then(m => ({ default: m.TemplatePreview }))
-)
+const TemplatePreview = lazy(() =>
+  import("~/domains/popups/components/preview/TemplatePreview").then((m) => ({
+    default: m.TemplatePreview,
+  }))
+);
 
-// Animation phases
-type DemoPhase = "intro" | "mobile" | "desktop" | "theme-1" | "theme-2" | "theme-3"
+// Animation phases - 8-step customer journey
+type DemoPhase =
+  | "social-proof" // 1. Build trust
+  | "spin-to-win" // 2. Capture emails
+  | "upsell" // 3. Increase AOV
+  | "cart-recovery" // 4. Recover sales
+  | "mobile" // 5. Mobile-first
+  | "desktop" // 6. Desktop experience
+  | "theme" // 7. Brand colors
+  | "outro"; // 8. CTA
 
-const PHASES: { phase: DemoPhase; duration: number; label: string; headline: string; icon: React.ReactNode }[] = [
-  { phase: "intro", duration: 2000, label: "Ready to launch", headline: "Go live in 60 seconds.", icon: <Zap className="h-4 w-4" /> },
-  { phase: "mobile", duration: 2500, label: "Mobile-first design", headline: "Mobile-first design.", icon: <Smartphone className="h-4 w-4" /> },
-  { phase: "desktop", duration: 2500, label: "Desktop experience", headline: "Desktop experience.", icon: <Monitor className="h-4 w-4" /> },
-  { phase: "theme-1", duration: 2000, label: "Your brand colors", headline: "Your brand colors.", icon: <Palette className="h-4 w-4" /> },
-  { phase: "theme-2", duration: 2000, label: "Any color scheme", headline: "Any color scheme.", icon: <Palette className="h-4 w-4" /> },
-  { phase: "theme-3", duration: 2000, label: "Perfect match", headline: "Go live in 60 seconds.", icon: <Palette className="h-4 w-4" /> },
-]
+// Recipe IDs for each phase
+const PHASE_RECIPES: Record<DemoPhase, string> = {
+  "social-proof": "social-proof-minimal-dark", // Dark theme
+  "spin-to-win": "newsletter-spa-serenity", // Spa Serenity newsletter
+  upsell: "upsell-premium-fullscreen",
+  "cart-recovery": "upsell-countdown-urgency", // Flash Deal Countdown
+  mobile: "upsell-premium-fullscreen",
+  desktop: "upsell-premium-fullscreen",
+  theme: "upsell-premium-fullscreen",
+  outro: "upsell-premium-fullscreen",
+};
+
+// Override content config for specific phases (e.g., faster rotation for social proof demo)
+const PHASE_CONTENT_OVERRIDES: Partial<Record<DemoPhase, Record<string, unknown>>> = {
+  "social-proof": {
+    rotationInterval: 1, // Fast cycling through notification types
+    displayDuration: 0.5, // Quick display
+  },
+};
+
+const PHASES: {
+  phase: DemoPhase;
+  duration: number;
+  label: string;
+  headline: string;
+  icon: React.ReactNode;
+}[] = [
+  {
+    phase: "social-proof",
+    duration: 2500,
+    label: "Social Proof",
+    headline: "Build instant trust.",
+    icon: <Users className="h-4 w-4" />,
+  },
+  {
+    phase: "spin-to-win",
+    duration: 2500,
+    label: "Email Capture",
+    headline: "Capture every visitor.",
+    icon: <Gift className="h-4 w-4" />,
+  },
+  {
+    phase: "upsell",
+    duration: 2500,
+    label: "Upsell",
+    headline: "Boost order value.",
+    icon: <ShoppingCart className="h-4 w-4" />,
+  },
+  {
+    phase: "cart-recovery",
+    duration: 2500,
+    label: "Cart Recovery",
+    headline: "Recover lost sales.",
+    icon: <RotateCcw className="h-4 w-4" />,
+  },
+  {
+    phase: "mobile",
+    duration: 2000,
+    label: "Mobile-first",
+    headline: "Mobile-first design.",
+    icon: <Smartphone className="h-4 w-4" />,
+  },
+  {
+    phase: "desktop",
+    duration: 2000,
+    label: "Desktop",
+    headline: "Desktop experience.",
+    icon: <Monitor className="h-4 w-4" />,
+  },
+  {
+    phase: "theme",
+    duration: 2000,
+    label: "Your colors",
+    headline: "Your brand colors.",
+    icon: <Palette className="h-4 w-4" />,
+  },
+  {
+    phase: "outro",
+    duration: 2500,
+    label: "Ready",
+    headline: "Go live in 60 seconds.",
+    icon: <Zap className="h-4 w-4" />,
+  },
+];
 
 // Theme color presets for demonstration (flat properties for popup config)
 const THEME_COLORS = {
@@ -54,49 +149,42 @@ const THEME_COLORS = {
     textColor: "#1a1a1a",
     buttonTextColor: "#ffffff",
   },
-  "theme-1": {
+  theme: {
     accentColor: "#7C3AED",
     buttonColor: "#7C3AED",
     backgroundColor: "#faf5ff",
     textColor: "#1a1a1a",
     buttonTextColor: "#ffffff",
   },
-  "theme-2": {
-    accentColor: "#DC2626",
-    buttonColor: "#DC2626",
-    backgroundColor: "#fef2f2",
-    textColor: "#1a1a1a",
-    buttonTextColor: "#ffffff",
-  },
-  "theme-3": {
-    accentColor: "#EA580C",
-    buttonColor: "#EA580C",
-    backgroundColor: "#fff7ed",
-    textColor: "#1a1a1a",
-    buttonTextColor: "#ffffff",
-  },
-}
+};
 
-// Size styles for each phase - use fixed heights to avoid aspectRatio transition issues
+// Size styles for each phase - desktop size throughout, mobile only for mobile phase
+const DESKTOP_SIZE: React.CSSProperties = { width: "700px", height: "420px", maxWidth: "100%" };
+const MOBILE_SIZE: React.CSSProperties = { width: "280px", height: "520px", maxWidth: "100%" };
+
 const SIZE_STYLES: Record<DemoPhase, React.CSSProperties> = {
-  intro: { width: "280px", height: "520px", maxWidth: "100%" },
-  mobile: { width: "280px", height: "520px", maxWidth: "100%" },
-  desktop: { width: "700px", height: "420px", maxWidth: "100%" },
-  "theme-1": { width: "700px", height: "420px", maxWidth: "100%" },
-  "theme-2": { width: "700px", height: "420px", maxWidth: "100%" },
-  "theme-3": { width: "700px", height: "420px", maxWidth: "100%" },
-}
+  "social-proof": DESKTOP_SIZE,
+  "spin-to-win": DESKTOP_SIZE,
+  upsell: DESKTOP_SIZE,
+  "cart-recovery": DESKTOP_SIZE,
+  mobile: MOBILE_SIZE,
+  desktop: DESKTOP_SIZE,
+  theme: DESKTOP_SIZE,
+  outro: DESKTOP_SIZE,
+};
 
 // Scale factor for popup content per phase (shrinks the popup to fit without scrolling)
 // [desktop viewport scale, mobile viewport scale]
 const POPUP_SCALES: Record<DemoPhase, [number, number]> = {
-  intro: [0.55, 0.50],
-  mobile: [0.55, 0.50],
+  "social-proof": [1.0, 1.0], // Social proof is a small notification, no scaling needed
+  "spin-to-win": [0.65, 0.38],
+  upsell: [0.65, 0.38],
+  "cart-recovery": [0.65, 0.38],
+  mobile: [0.55, 0.5],
   desktop: [0.65, 0.38],
-  "theme-1": [0.65, 0.38],
-  "theme-2": [0.65, 0.38],
-  "theme-3": [0.65, 0.38],
-}
+  theme: [0.65, 0.38],
+  outro: [0.65, 0.38],
+};
 
 const PreviewSkeleton = () => (
   <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-muted to-muted/50 rounded-xl">
@@ -105,98 +193,165 @@ const PreviewSkeleton = () => (
       <div className="w-48 h-6 bg-primary/10 rounded" />
     </div>
   </div>
-)
+);
+
+// Cache for loaded recipes
+type RecipeConfig = {
+  templateType: string;
+  contentConfig: Record<string, unknown>;
+  designConfig: Record<string, unknown>;
+};
 
 export function HeroCapabilityDemo() {
-  const [phaseIndex, setPhaseIndex] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
-  const [isInView, setIsInView] = useState(true)
-  const [mounted, setMounted] = useState(false)
-  const [isMobileViewport, setIsMobileViewport] = useState(false)
-  const sectionRef = useRef<HTMLElement>(null)
-  const [recipeConfig, setRecipeConfig] = useState<{
-    templateType: string
-    contentConfig: Record<string, unknown>
-    designConfig: Record<string, unknown>
-  } | null>(null)
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+  const [showPopup, setShowPopup] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isInView, setIsInView] = useState(true);
+  const [mounted, setMounted] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const [recipeCache, setRecipeCache] = useState<Record<string, RecipeConfig>>({});
+  const [recipesLoaded, setRecipesLoaded] = useState(false);
 
-  const currentPhase = PHASES[phaseIndex]
+  const currentPhase = PHASES[phaseIndex];
+  const currentRecipeId = PHASE_RECIPES[currentPhase.phase];
 
   // Detect mobile viewport for responsive scaling
   useEffect(() => {
-    const checkMobile = () => setIsMobileViewport(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [])
+    const checkMobile = () => setIsMobileViewport(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Intersection Observer to detect when section is in view
   useEffect(() => {
-    const section = sectionRef.current
-    if (!section) return
+    const section = sectionRef.current;
+    if (!section) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        setIsInView(entry.isIntersecting)
+        setIsInView(entry.isIntersecting);
       },
       { threshold: 0.3 } // Trigger when 30% of section is visible
-    )
+    );
 
-    observer.observe(section)
-    return () => observer.disconnect()
-  }, [])
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
-  // Load recipe config on mount
+  // Load all recipe configs on mount
   useEffect(() => {
-    setMounted(true)
+    setMounted(true);
     import("~/shared/preview/recipe-marketing-data").then((module) => {
-      const recipe = module.getStyledRecipeForMarketing("upsell-premium-fullscreen")
-      if (recipe) {
-        setRecipeConfig({
-          templateType: recipe.templateType,
-          contentConfig: recipe.defaults.contentConfig || {},
-          designConfig: recipe.defaults.designConfig || {},
-        })
+      const cache: Record<string, RecipeConfig> = {};
+      const uniqueRecipeIds = [...new Set(Object.values(PHASE_RECIPES))];
+
+      console.log("[HeroDemo] Loading recipes:", uniqueRecipeIds);
+
+      for (const recipeId of uniqueRecipeIds) {
+        const recipe = module.getStyledRecipeForMarketing(recipeId);
+        if (recipe) {
+          cache[recipeId] = {
+            templateType: recipe.templateType,
+            contentConfig: recipe.defaults.contentConfig || {},
+            designConfig: recipe.defaults.designConfig || {},
+          };
+          console.log(`[HeroDemo] Loaded recipe: ${recipeId}`, recipe.templateType);
+        } else {
+          console.warn(`[HeroDemo] Recipe not found: ${recipeId}`);
+        }
       }
-    })
-  }, [])
+
+      console.log("[HeroDemo] Cache:", Object.keys(cache));
+      setRecipeCache(cache);
+      setRecipesLoaded(true);
+    });
+  }, []);
+
+  // Handle phase transitions: exit -> change -> enter
+  const handlePhaseChange = (newIndex: number) => {
+    if (newIndex === phaseIndex || isExiting) return;
+
+    const currentRecipeId = PHASE_RECIPES[PHASES[phaseIndex].phase];
+    const newRecipeId = PHASE_RECIPES[PHASES[newIndex].phase];
+    const isSameRecipe = currentRecipeId === newRecipeId;
+
+    // If same recipe (e.g., mobile/desktop/theme transitions), just change phase smoothly
+    if (isSameRecipe) {
+      setPhaseIndex(newIndex);
+      return;
+    }
+
+    // Different recipe: do full exit -> enter animation
+    // Step 1: Start exit animation
+    setIsExiting(true);
+    setShowPopup(true);
+
+    // Step 2: After exit completes, change phase and hide popup briefly
+    setTimeout(() => {
+      setShowPopup(false);
+      setPhaseIndex(newIndex);
+      setIsExiting(false);
+
+      // Step 3: Show new popup with enter animation
+      setTimeout(() => {
+        setShowPopup(true);
+        setIsEntering(true);
+
+        // Step 4: Clear entering state after animation
+        setTimeout(() => {
+          setIsEntering(false);
+        }, 500);
+      }, 50); // Brief delay before enter
+    }, 250); // Exit animation duration
+  };
 
   // Auto-advance phases (only when in view and not paused)
   useEffect(() => {
-    if (isPaused || !isInView) return
+    if (isPaused || !isInView || isExiting) return;
     const timer = setTimeout(() => {
-      setPhaseIndex((prev) => (prev + 1) % PHASES.length)
-    }, currentPhase.duration)
-    return () => clearTimeout(timer)
-  }, [phaseIndex, isPaused, isInView, currentPhase.duration])
+      handlePhaseChange((phaseIndex + 1) % PHASES.length);
+    }, currentPhase.duration);
+    return () => clearTimeout(timer);
+  }, [phaseIndex, isPaused, isInView, currentPhase.duration, isExiting]);
+
+  // Get current recipe config for the phase
+  const currentRecipe = recipeCache[currentRecipeId];
 
   // Get current theme colors based on phase (flat properties for popup config)
   const themeColors = useMemo(() => {
-    if (currentPhase.phase.startsWith("theme-")) {
-      return THEME_COLORS[currentPhase.phase as keyof typeof THEME_COLORS]
+    if (currentPhase.phase === "theme") {
+      return THEME_COLORS.theme;
     }
-    return THEME_COLORS.default
-  }, [currentPhase.phase])
+    return THEME_COLORS.default;
+  }, [currentPhase.phase]);
 
   // Build design config with current theme colors as flat properties
   const designConfig = useMemo(() => {
-    if (!recipeConfig) return null
+    if (!currentRecipe) return null;
     return {
-      ...recipeConfig.designConfig,
+      ...currentRecipe.designConfig,
       previewMode: true,
       disablePortal: true,
       // Apply theme colors as flat properties (how popup components expect them)
       ...themeColors,
-    }
-  }, [recipeConfig, themeColors])
+    };
+  }, [currentRecipe, themeColors]);
 
   const config = useMemo(() => {
-    if (!recipeConfig) return null
-    return { ...recipeConfig.contentConfig, previewMode: true }
-  }, [recipeConfig])
+    if (!currentRecipe) return null;
+    const phaseOverrides = PHASE_CONTENT_OVERRIDES[currentPhase.phase] || {};
+    return { ...currentRecipe.contentConfig, ...phaseOverrides, previewMode: true };
+  }, [currentRecipe, currentPhase.phase]);
 
   return (
-    <section ref={sectionRef} className="relative overflow-hidden px-4 pb-16 pt-12 md:pb-24 md:pt-20">
+    <section
+      ref={sectionRef}
+      className="relative overflow-hidden px-4 pb-16 pt-12 md:pb-24 md:pt-20"
+    >
       {/* Background gradient */}
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#AEE5AB]/10 via-transparent to-transparent" />
       <div className="absolute -left-40 -top-40 -z-10 h-80 w-80 rounded-full bg-[#AEE5AB]/15 blur-3xl" />
@@ -230,7 +385,6 @@ export function HeroCapabilityDemo() {
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-
           {/* Preview container with smooth size transitions */}
           <div className="flex justify-center items-center">
             <div
@@ -251,35 +405,43 @@ export function HeroCapabilityDemo() {
 
               {/* Popup content - scaled down to fit without scrolling */}
               <div className="relative h-[calc(100%-36px)] overflow-hidden bg-gray-50">
-                {(() => {
-                  const scaleValue = POPUP_SCALES[currentPhase.phase][isMobileViewport ? 1 : 0]
-                  return (
-                    <div
-                      className="transition-all duration-700 ease-out"
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        width: `${100 / scaleValue}%`,
-                        height: `${100 / scaleValue}%`,
-                        transform: `translate(-50%, -50%) scale(${scaleValue})`,
-                        transformOrigin: "center center",
-                      }}
-                    >
-                      {mounted && recipeConfig && config && designConfig ? (
-                        <Suspense fallback={<PreviewSkeleton />}>
-                          <TemplatePreview
-                            templateType={recipeConfig.templateType}
-                            config={config}
-                            designConfig={designConfig}
-                          />
-                        </Suspense>
-                      ) : (
-                        <PreviewSkeleton />
-                      )}
-                    </div>
-                  )
-                })()}
+                {showPopup &&
+                  (() => {
+                    const scaleValue = POPUP_SCALES[currentPhase.phase][isMobileViewport ? 1 : 0];
+                    // Determine animation class
+                    let animationClass = "";
+                    if (isExiting) animationClass = "animate-popup-exit";
+                    else if (isEntering) animationClass = "animate-popup-enter";
+
+                    return (
+                      <div
+                        key={`popup-${currentPhase.phase}`}
+                        className={animationClass}
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          width: `${100 / scaleValue}%`,
+                          height: `${100 / scaleValue}%`,
+                          transform: `translate(-50%, -50%) scale(${scaleValue})`,
+                          transformOrigin: "center center",
+                        }}
+                      >
+                        {mounted && recipesLoaded && currentRecipe && config && designConfig ? (
+                          <Suspense fallback={<PreviewSkeleton />}>
+                            <TemplatePreview
+                              key={`${currentRecipeId}-${currentPhase.phase}`}
+                              templateType={currentRecipe.templateType}
+                              config={config}
+                              designConfig={designConfig}
+                            />
+                          </Suspense>
+                        ) : (
+                          <PreviewSkeleton />
+                        )}
+                      </div>
+                    );
+                  })()}
               </div>
             </div>
           </div>
@@ -289,11 +451,9 @@ export function HeroCapabilityDemo() {
             {PHASES.map((p, index) => (
               <button
                 key={p.phase}
-                onClick={() => setPhaseIndex(index)}
+                onClick={() => handlePhaseChange(index)}
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  index === phaseIndex
-                    ? "w-6 bg-primary"
-                    : "w-2 bg-primary/30 hover:bg-primary/50"
+                  index === phaseIndex ? "w-6 bg-primary" : "w-2 bg-primary/30 hover:bg-primary/50"
                 }`}
                 aria-label={`Show ${p.label}`}
               />
@@ -307,7 +467,11 @@ export function HeroCapabilityDemo() {
         {/* CTA Buttons */}
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Button size="lg" className="gap-2 px-8" asChild>
-            <a href="https://apps.shopify.com/revenue-boost" target="_blank" rel="noopener noreferrer">
+            <a
+              href="https://apps.shopify.com/revenue-boost"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               Install Free on Shopify
               <ArrowRight className="h-4 w-4" />
             </a>
@@ -338,6 +502,5 @@ export function HeroCapabilityDemo() {
         </div>
       </div>
     </section>
-  )
+  );
 }
-

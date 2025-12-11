@@ -162,3 +162,30 @@
   display: inline-block;
   animation: word-swipe 0.6s cubic-bezier(0.23, 1, 0.32, 1.2) forwards;
 }
+
+/* Popup phase transition - crossfade */
+@keyframes popup-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes popup-fade-out {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-popup-enter {
+  animation: popup-fade-in 0.4s ease-out forwards;
+}
+
+.animate-popup-exit {
+  animation: popup-fade-out 0.3s ease-in forwards;
+}

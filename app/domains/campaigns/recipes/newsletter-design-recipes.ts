@@ -684,6 +684,8 @@ const spaSerenity: NewsletterRecipe = {
       accentColor: "#166534",
       // Serif headline font for elegance
       headlineFontFamily: "Georgia, 'Times New Roman', serif",
+      // Spa wellness image for split layout
+      imageUrl: "/recipes/newsletter/spa-serenity.jpg",
       // Layout configuration - split with image
       leadCaptureLayout: {
         desktop: "split-left",
