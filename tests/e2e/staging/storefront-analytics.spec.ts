@@ -117,7 +117,8 @@ test.describe('Analytics Event Tracking', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
 
@@ -164,7 +165,8 @@ test.describe('Analytics Event Tracking', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -228,7 +230,8 @@ test.describe('Analytics Event Tracking', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -306,7 +309,8 @@ test.describe('Analytics Event Tracking', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -375,7 +379,8 @@ test.describe('Analytics Event Tracking', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -482,7 +487,8 @@ test.describe('Analytics Event Tracking', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });

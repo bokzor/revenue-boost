@@ -120,7 +120,8 @@ test.describe('Popup Interactions', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -168,7 +169,8 @@ test.describe('Popup Interactions', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
 
@@ -223,7 +225,8 @@ test.describe('Popup Interactions', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -286,7 +289,8 @@ test.describe('Popup Interactions', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -381,7 +385,8 @@ test.describe('Form Validation', () => {
             }
 
         } finally {
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
         }
     });
 
@@ -434,7 +439,8 @@ test.describe('Form Validation', () => {
             }
 
         } finally {
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
         }
     });
 
@@ -503,7 +509,8 @@ test.describe('Form Validation', () => {
             }
 
         } finally {
-            await prisma.campaign.delete({ where: { id: campaign.id } });
+            // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
         }
     });
 });

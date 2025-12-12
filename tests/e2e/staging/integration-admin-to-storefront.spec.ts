@@ -62,10 +62,33 @@ async function navigateToCampaignCreate(page: Page): Promise<AppContext> {
   console.log("🚀 Navigating to campaign creation...");
 
   if (TEST_MODE) {
-    await page.goto(`${TEST_SERVER_URL}/app/campaigns/create`);
-    await page.waitForLoadState("domcontentloaded");
-    await expect(page.getByText("What would you like to create?")).toBeVisible({ timeout: 30000 });
-    console.log("📋 Mode selection page loaded (TEST_MODE)");
+    // Retry navigation up to 3 times to handle transient server issues
+    let navigationSuccess = false;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= 3 && !navigationSuccess; attempt++) {
+      try {
+        console.log(`📍 Navigation attempt ${attempt}/3...`);
+        await page.goto(`${TEST_SERVER_URL}/app/campaigns/create`, {
+          timeout: 30000,
+          waitUntil: "domcontentloaded",
+        });
+        await expect(page.getByText("What would you like to create?")).toBeVisible({ timeout: 30000 });
+        navigationSuccess = true;
+        console.log("📋 Mode selection page loaded (TEST_MODE)");
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`⚠️ Navigation attempt ${attempt} failed: ${lastError.message}`);
+        if (attempt < 3) {
+          console.log("⏳ Waiting 3s before retry...");
+          await page.waitForTimeout(3000);
+        }
+      }
+    }
+
+    if (!navigationSuccess) {
+      throw new Error(`Failed to navigate to campaign creation after 3 attempts: ${lastError?.message}`);
+    }
 
     const singleCampaignCard = page.getByRole("button", { name: /Single Campaign/ }).first();
     await singleCampaignCard.click();
