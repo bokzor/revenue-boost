@@ -37,6 +37,10 @@ See [`completed/`](./completed/) for shipped features.
 
 | Feature | Impact | Effort | File |
 |---------|--------|--------|------|
+| Multi-Step Forms & Quiz Builder | 🔥🔥🔥🔥 | High | [p1-multi-step-quiz.md](./p1-multi-step-quiz.md) |
+| Phone/SMS Capture | 🔥🔥🔥 | Low | [p1-phone-sms-capture.md](./p1-phone-sms-capture.md) |
+| Email Validation | 🔥🔥 | Low | [p1-email-validation.md](./p1-email-validation.md) |
+| Birthday Capture | 🔥🔥 | Low | [p1-birthday-capture.md](./p1-birthday-capture.md) |
 | WhatsApp Cart Recovery | 🔥🔥🔥 | High | [p1-whatsapp-cart-recovery.md](./p1-whatsapp-cart-recovery.md) |
 | Geo-Targeting & Localization | 🔥🔥🔥 | Medium | [p1-geo-targeting.md](./p1-geo-targeting.md) |
 | Low Stock Threshold Triggers | 🔥🔥 | Low | [p1-low-stock-alerts.md](./p1-low-stock-alerts.md) |
@@ -51,6 +55,10 @@ See [`completed/`](./completed/) for shipped features.
 
 | Feature | Impact | Effort | File |
 |---------|--------|--------|------|
+| AI Product Recommendations | 🔥🔥🔥 | High | [p2-ai-product-recommendations.md](./p2-ai-product-recommendations.md) |
+| Slot Machine Gamification | 🔥🔥 | Medium | [p2-slot-machine-game.md](./p2-slot-machine-game.md) |
+| Referral Popup / Share-to-Unlock | 🔥🔥 | Medium | [p2-referral-popup.md](./p2-referral-popup.md) |
+| Notification Feed / On-Site Inbox | 🔥🔥 | High | [p2-notification-feed.md](./p2-notification-feed.md) |
 | Revenue Attribution Dashboard | 🔥🔥🔥 | Medium | [p2-revenue-dashboard.md](./p2-revenue-dashboard.md) |
 | AI-Powered Copy Generation | 🔥🔥 | Medium | [p2-ai-copy-generation.md](./p2-ai-copy-generation.md) |
 | Advanced Discount Types | 🔥🔥 | Medium | [p2-advanced-discounts.md](./p2-advanced-discounts.md) |
