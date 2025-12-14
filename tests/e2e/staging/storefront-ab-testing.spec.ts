@@ -492,7 +492,8 @@ test.describe('A/B Testing Experiments', () => {
             }
 
         } finally {
-            await prisma.campaign.delete({ where: { id: standaloneCampaign.id } });
+            // Use deleteMany to avoid throwing if campaign was already deleted
+            await prisma.campaign.deleteMany({ where: { id: standaloneCampaign.id } });
             await builder.cleanup(experiment.id);
         }
     });

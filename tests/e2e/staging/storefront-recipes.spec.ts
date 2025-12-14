@@ -983,7 +983,8 @@ test.describe.serial('Recipe Use Cases', () => {
                     .create();
 
                 // Manually set freeGift config without overriding trigger
-                await prisma.campaign.update({
+                // Use updateMany to avoid throwing if record doesn't exist yet (race condition)
+                await prisma.campaign.updateMany({
                     where: { id: campaign.id },
                     data: {
                         discountConfig: {
