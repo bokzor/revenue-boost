@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { copyToClipboard } from "app/domains/storefront/popups-new/utils/utils";
+import { copyToClipboard } from "../utils/utils";
 
 export function useDiscountCode(initialCode?: string) {
   const [discountCode, setDiscountCode] = useState<string | null>(initialCode || null);

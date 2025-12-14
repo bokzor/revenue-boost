@@ -21,6 +21,7 @@ import {
   createEmailCampaignKey,
   RATE_LIMITS,
 } from "~/domains/security/services/rate-limit.server";
+import { logger } from "~/lib/logger.server";
 
 const SaveEmailSchema = z.object({
   email: z.string().email(),
@@ -38,7 +39,7 @@ const SaveEmailSchema = z.object({
 });
 
 export async function action({ request }: ActionFunctionArgs) {
-  console.log("[Save Email] Processing request");
+  logger.debug("[Save Email] Processing request");
 
   // Handle CORS preflight
   if (request.method === "OPTIONS") {
@@ -72,7 +73,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // BYPASS RATE LIMITING and database checks for preview mode
     const isPreviewCampaign = validatedData.campaignId.startsWith("preview-");
     if (isPreviewCampaign) {
-      console.log(`[Save Email] ✅ Preview mode - returning mock success (BYPASSING RATE LIMITS)`);
+      logger.debug({ campaignId: validatedData.campaignId }, "[Save Email] Preview mode - returning mock success (BYPASSING RATE LIMITS)");
       return data(
         {
           success: true,
@@ -99,8 +100,9 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (!leadWithDiscountCode) {
-      console.warn(
-        `[Save Email] Invalid discount code or session mismatch: ${validatedData.discountCode}`
+      logger.warn(
+        { discountCode: validatedData.discountCode },
+        "[Save Email] Invalid discount code or session mismatch"
       );
       return data(
         {
@@ -114,8 +116,9 @@ export async function action({ request }: ActionFunctionArgs) {
     // If email already exists and is not an anonymous placeholder, return success (idempotent)
     const isAnonymousEmail = leadWithDiscountCode.email?.endsWith("@anonymous.local");
     if (leadWithDiscountCode.email && !isAnonymousEmail) {
-      console.log(
-        `[Save Email] Email already exists for lead ${leadWithDiscountCode.id}, returning success`
+      logger.debug(
+        { leadId: leadWithDiscountCode.id },
+        "[Save Email] Email already exists for lead, returning success"
       );
       return data(
         {
@@ -141,7 +144,7 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (!rateLimitResult.allowed) {
-      console.warn(`[Save Email] Rate limit exceeded for ${validatedData.email}`);
+      logger.warn({ email: validatedData.email }, "[Save Email] Rate limit exceeded");
       return data(
         {
           success: false,
@@ -152,11 +155,11 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    console.log("[Save Email] Validated data:", {
+    logger.debug({
       email: validatedData.email,
       campaignId: validatedData.campaignId,
       discountCode: validatedData.discountCode,
-    });
+    }, "[Save Email] Validated data");
 
     // Get campaign and store with access token
     const campaign = await prisma.campaign.findFirst({
@@ -187,7 +190,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     // Initialize Shopify admin API
     if (!campaign.store.accessToken) {
-      console.warn("[Save Email] Cannot create customer: missing access token");
+      logger.warn("[Save Email] Cannot create customer: missing access token");
       return data(
         { success: false, error: "Store not properly configured" },
         { status: 500, headers: storefrontCors() }
@@ -210,7 +213,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // Upsert customer in Shopify
     const customerResult = await upsertCustomer(admin, customerData);
     if (!customerResult.success) {
-      console.warn("[Save Email] Failed to create/update customer:", customerResult.errors);
+      logger.warn({ errors: customerResult.errors }, "[Save Email] Failed to create/update customer");
       // Continue without customer - not critical
     }
 
@@ -233,7 +236,7 @@ export async function action({ request }: ActionFunctionArgs) {
       },
     });
 
-    console.log(`[Save Email] Lead updated successfully: ${lead.id}`);
+    logger.info({ leadId: lead.id }, "[Save Email] Lead updated successfully");
 
     return data(
       {
@@ -249,7 +252,7 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     );
   } catch (error) {
-    console.error("[Save Email] Error:", error);
+    logger.error({ error }, "[Save Email] Error");
 
     if (error instanceof z.ZodError) {
       return data(

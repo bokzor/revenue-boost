@@ -11,11 +11,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { FrequencyCappingConfig } from "~/domains/targeting/components";
-import type { DiscountConfig } from "~/domains/campaigns/types/campaign";
-import { getTemplateMetadata } from "~/domains/templates/registry/template-registry";
-
-// Import comprehensive enhanced triggers types
 import type {
+  DiscountConfig,
   EnhancedTriggersConfig,
   AudienceTargetingConfig,
   PageTargetingConfig,
@@ -25,6 +22,7 @@ import type {
   TriggerType as CampaignTriggerType,
   TemplateType,
 } from "~/domains/campaigns/types/campaign";
+import { getTemplateMetadata } from "~/domains/templates/registry/template-registry";
 
 // Import extracted modules for SOLID compliance
 import { validateStep as validateStepFn, type ValidationResult } from "./wizard/validators";

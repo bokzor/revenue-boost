@@ -15,13 +15,13 @@ import type { TemplateType } from "~/domains/campaigns/types/campaign";
 // =============================================================================
 
 const BRAND_COLORS = {
-  primary: "#6366F1", // Indigo
+  primary: "#16A34A", // Green (matches website theme)
   primaryText: "#FFFFFF",
   secondary: "#10B981", // Emerald
   background: "#FFFFFF",
   text: "#1F2937",
   muted: "#6B7280",
-  accent: "#F59E0B", // Amber
+  accent: "#22C55E", // Green accent
 };
 
 const BASE_DESIGN = {

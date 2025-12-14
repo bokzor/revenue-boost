@@ -200,7 +200,7 @@ export function PremiumFullscreenContentSection({
 
                 {/* Add new feature */}
                 <InlineStack gap="200" blockAlign="end">
-                  <div style={{ flex: 1 }} onKeyDown={handleFeatureKeyDown}>
+                  <div style={{ flex: 1 }} role="textbox" tabIndex={0} onKeyDown={handleFeatureKeyDown}>
                     <PolarisTextField
                       label="Add feature"
                       labelHidden

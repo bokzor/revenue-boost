@@ -4,34 +4,35 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { TrendingUp, Users, ShoppingBag, Flame } from "lucide-react"
 
+// Brand gradient: #AEE5AB → #0E7768
 const stats = [
   {
     icon: ShoppingBag,
     label: "Purchase Notifications",
     value: "+15-25%",
     description: "Conversion increase",
-    color: "from-emerald-500 to-green-500",
+    color: "from-[#AEE5AB] to-[#0E7768]",
   },
   {
     icon: Users,
     label: "Live Visitor Count",
     value: "+10-18%",
     description: "Conversion increase",
-    color: "from-blue-500 to-cyan-500",
+    color: "from-[#AEE5AB] to-[#0E7768]",
   },
   {
     icon: TrendingUp,
     label: "Sales Count (24h)",
     value: "+12-20%",
     description: "Conversion increase",
-    color: "from-primary to-accent",
+    color: "from-[#AEE5AB] to-[#0E7768]",
   },
   {
     icon: Flame,
     label: "Trending Products",
     value: "+8-12%",
     description: "Conversion increase",
-    color: "from-orange-500 to-red-500",
+    color: "from-[#AEE5AB] to-[#0E7768]",
   },
 ]
 
@@ -100,8 +101,8 @@ function SocialProofDemo() {
                 index === activeIndex ? "translate-y-0 opacity-100" : "absolute inset-0 translate-y-4 opacity-0"
               }`}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent">
-                <ShoppingBag className="h-6 w-6 text-primary-foreground" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#AEE5AB] to-[#0E7768]">
+                <ShoppingBag className="h-6 w-6 text-white" />
               </div>
               <div>
                 <p className="font-medium text-foreground">{notification.name}</p>
@@ -118,7 +119,7 @@ function SocialProofDemo() {
           <button
             key={index}
             onClick={() => setActiveIndex(index)}
-            className={`h-2 w-2 rounded-full transition-colors ${index === activeIndex ? "bg-primary" : "bg-muted"}`}
+            className={`h-2 w-2 rounded-full transition-colors ${index === activeIndex ? "bg-[#0E7768]" : "bg-muted"}`}
             aria-label={`Show notification ${index + 1}`}
           />
         ))}

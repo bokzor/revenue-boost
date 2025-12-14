@@ -21,7 +21,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { PopupPortal } from "./PopupPortal";
 import type { PopupDesignConfig, CartItem, DiscountConfig } from "./types";
 import type { CartAbandonmentContent } from "~/domains/campaigns/types/campaign";
-import { formatCurrency, getAdaptiveMutedColor } from "app/domains/storefront/popups-new/utils/utils";
+import { formatCurrency, getAdaptiveMutedColor } from "./utils/utils";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode, usePopupForm } from "./hooks";

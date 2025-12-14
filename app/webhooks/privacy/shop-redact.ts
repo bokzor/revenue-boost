@@ -9,12 +9,14 @@
 
 import prisma from "~/db.server";
 import type { ShopRedactPayload } from "./types";
+import { logger } from "~/lib/logger.server";
 
 export async function handleShopRedact(shop: string, payload: ShopRedactPayload): Promise<void> {
-  console.log(`[Privacy Webhook] Processing shop/redact for ${shop}`, {
+  logger.info({
+    shop,
     shopId: payload.shop_id,
     shopDomain: payload.shop_domain,
-  });
+  }, "[Privacy Webhook] Processing shop/redact");
 
   // Find the store
   const store = await prisma.store.findUnique({
@@ -23,7 +25,7 @@ export async function handleShopRedact(shop: string, payload: ShopRedactPayload)
   });
 
   if (!store) {
-    console.warn(`[Privacy Webhook] Store not found for ${shop}, nothing to redact`);
+    logger.warn({ shop }, "[Privacy Webhook] Store not found, nothing to redact");
     return;
   }
 
@@ -35,7 +37,7 @@ export async function handleShopRedact(shop: string, payload: ShopRedactPayload)
     const deletedSessions = await tx.session.deleteMany({
       where: { shop },
     });
-    console.log(`[Privacy Webhook] Deleted ${deletedSessions.count} sessions`);
+    logger.info({ count: deletedSessions.count }, "[Privacy Webhook] Deleted sessions");
 
     // 2. Delete the store record
     // This will cascade delete:
@@ -47,7 +49,7 @@ export async function handleShopRedact(shop: string, payload: ShopRedactPayload)
     const deletedStore = await tx.store.delete({
       where: { id: store.id },
     });
-    console.log(`[Privacy Webhook] Deleted store ${deletedStore.id}`);
+    logger.info({ storeId: deletedStore.id }, "[Privacy Webhook] Deleted store");
 
     // 3. Clean up any orphaned security records
     // ChallengeTokens and RateLimitLogs don't have direct foreign keys,
@@ -55,5 +57,5 @@ export async function handleShopRedact(shop: string, payload: ShopRedactPayload)
     // For now, we'll leave them as they don't contain shop PII
   });
 
-  console.log(`[Privacy Webhook] Successfully redacted all data for shop ${shop}`);
+  logger.info({ shop }, "[Privacy Webhook] Successfully redacted all data");
 }

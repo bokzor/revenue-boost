@@ -19,13 +19,14 @@ import type {
   CustomersRedactPayload,
   ShopRedactPayload,
 } from "~/webhooks/privacy/types";
+import { logger } from "~/lib/logger.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     // Authenticate the webhook request (validates HMAC signature)
     const { shop, payload, topic } = await authenticate.webhook(request);
 
-    console.log(`[Webhook Route] Received ${topic} for ${shop}`);
+    logger.info({ topic, shop }, "[Webhook Route] Received webhook");
 
     switch (topic) {
       case "CUSTOMERS_DATA_REQUEST": {
@@ -33,7 +34,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           shop,
           payload as CustomersDataRequestPayload
         );
-        console.log(`[Webhook Route] Customer data compiled for ${shop}`);
+        logger.info({ shop }, "[Webhook Route] Customer data compiled");
         return new Response(JSON.stringify({ success: true, data: customerData }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -42,7 +43,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       case "CUSTOMERS_REDACT": {
         await handleCustomersRedact(shop, payload as CustomersRedactPayload);
-        console.log(`[Webhook Route] Customer data redacted for ${shop}`);
+        logger.info({ shop }, "[Webhook Route] Customer data redacted");
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -51,7 +52,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
       case "SHOP_REDACT": {
         await handleShopRedact(shop, payload as ShopRedactPayload);
-        console.log(`[Webhook Route] Shop data redacted for ${shop}`);
+        logger.info({ shop }, "[Webhook Route] Shop data redacted");
         return new Response(JSON.stringify({ success: true }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -59,14 +60,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       }
 
       default:
-        console.warn(`[Webhook Route] Unhandled topic: ${topic}`);
+        logger.warn({ topic }, "[Webhook Route] Unhandled topic");
         return new Response(JSON.stringify({ error: "Unhandled topic" }), {
           status: 400,
           headers: { "Content-Type": "application/json" },
         });
     }
   } catch (error) {
-    console.error("[Webhook Route] Error processing webhook:", error);
+    logger.error({ error }, "[Webhook Route] Error processing webhook");
 
     // Check if this is an authentication/HMAC validation error
     // Shopify expects 401 for invalid HMAC, not 500

@@ -220,12 +220,35 @@ async function navigateToCampaignCreate(page: Page): Promise<AppContext> {
 
   // In TEST_MODE, navigate directly to the app URL (no iframe)
   if (TEST_MODE) {
-    await page.goto(`${TEST_SERVER_URL}/app/campaigns/create`);
-    await page.waitForLoadState("domcontentloaded");
+    // Retry navigation up to 3 times to handle transient server issues
+    let navigationSuccess = false;
+    let lastError: Error | null = null;
 
-    // Wait for the choice page
-    await expect(page.getByText("What would you like to create?")).toBeVisible({ timeout: 30000 });
-    console.log("📋 Campaign type selection page loaded (TEST_MODE)");
+    for (let attempt = 1; attempt <= 3 && !navigationSuccess; attempt++) {
+      try {
+        console.log(`📍 Navigation attempt ${attempt}/3...`);
+        await page.goto(`${TEST_SERVER_URL}/app/campaigns/create`, {
+          timeout: 30000,
+          waitUntil: "domcontentloaded",
+        });
+
+        // Wait for the choice page
+        await expect(page.getByText("What would you like to create?")).toBeVisible({ timeout: 30000 });
+        navigationSuccess = true;
+        console.log("📋 Campaign type selection page loaded (TEST_MODE)");
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`⚠️ Navigation attempt ${attempt} failed: ${lastError.message}`);
+        if (attempt < 3) {
+          console.log("⏳ Waiting 3s before retry...");
+          await page.waitForTimeout(3000);
+        }
+      }
+    }
+
+    if (!navigationSuccess) {
+      throw new Error(`Failed to navigate to campaign creation after 3 attempts: ${lastError?.message}`);
+    }
 
     // Click the "Single Campaign" card
     const singleCampaignCard = page.getByRole("button", { name: /Single Campaign/ }).first();
@@ -465,10 +488,18 @@ test.describe("Admin Campaign Creation - Template Families", () => {
 
     const createdCampaigns: Array<{ id: string; name: string; type: string }> = [];
 
-    for (const templateTest of templateTests) {
+    for (let i = 0; i < templateTests.length; i++) {
+      const templateTest = templateTests[i];
       console.log(`\n${"=".repeat(60)}`);
-      console.log(`📋 Creating ${templateTest.name} campaign...`);
+      console.log(`📋 Creating ${templateTest.name} campaign (${i + 1}/${templateTests.length})...`);
       console.log("=".repeat(60));
+
+      // Add delay between campaign creations to let the server recover
+      // This helps prevent net::ERR_ABORTED errors in CI
+      if (i > 0) {
+        console.log("⏳ Waiting 2s before next campaign creation...");
+        await page.waitForTimeout(2000);
+      }
 
       const appFrame = await navigateToCampaignCreate(page);
 

@@ -5,29 +5,28 @@
 
 import type { LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
+import { logger } from "~/lib/logger.server";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const splat = params["*"] || "";
 
-  console.log(`[App Proxy] Catch-all route hit: ${url.pathname}`);
-  console.log(`[App Proxy] Splat param: ${splat}`);
-  console.log(`[App Proxy] Full params:`, params);
+  logger.debug({ pathname: url.pathname, splat, params }, "[App Proxy] Catch-all route hit");
 
   // Check if this is a revenue-boost request
   if (splat.startsWith("revenue-boost/")) {
     const path = splat.replace("revenue-boost/", "");
-    console.log(`[App Proxy] Revenue Boost path: ${path}`);
+    logger.debug({ path }, "[App Proxy] Revenue Boost path");
 
     // Handle bundles
     if (path.startsWith("bundles/")) {
       const bundleName = path.replace("bundles/", "").replace(/\?.*$/, ""); // Remove query string
-      console.log(`[App Proxy] ⚡ Bundle request: ${bundleName}`);
+      logger.debug({ bundleName }, "[App Proxy] Bundle request");
 
       try {
         // Import and call the bundle loader
         const bundleModule = await import("./apps.revenue-boost.bundles.$bundleName");
-        console.log(`[App Proxy] ✅ Bundle module loaded`);
+        logger.debug("[App Proxy] Bundle module loaded");
         return bundleModule.loader({
           request,
           params: { bundleName },
@@ -35,7 +34,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           unstable_pattern: "",
         });
       } catch (error) {
-        console.error(`[App Proxy] ❌ Failed to load bundle module:`, error);
+        logger.error({ error }, "[App Proxy] Failed to load bundle module");
         return data({ error: "Failed to load bundle handler" }, { status: 500 });
       }
     }
@@ -43,12 +42,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     // Handle assets (images, etc.)
     if (path.startsWith("assets/")) {
       const assetPath = path.replace("assets/", "").replace(/\?.*$/, ""); // Remove query string
-      console.log(`[App Proxy] 🖼️  Asset request: ${assetPath}`);
+      logger.debug({ assetPath }, "[App Proxy] Asset request");
 
       try {
         // Import and call the asset loader
         const assetModule = await import("./apps.revenue-boost.assets.$");
-        console.log(`[App Proxy] ✅ Asset module loaded`);
+        logger.debug("[App Proxy] Asset module loaded");
         return assetModule.loader({
           request,
           params: { "*": assetPath },
@@ -56,36 +55,38 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           unstable_pattern: "",
         });
       } catch (error) {
-        console.error(`[App Proxy] ❌ Failed to load asset module:`, error);
+        logger.error({ error }, "[App Proxy] Failed to load asset module");
         return data({ error: "Failed to load asset handler" }, { status: 500 });
       }
     }
 
     // Handle API routes
     if (path.startsWith("api/")) {
-      console.log(`[App Proxy] API request: ${path}`);
+      // Strip query string for route matching (query params are in request.url)
+      const apiPath = path.replace(/\?.*$/, "");
+      logger.debug({ apiPath }, "[App Proxy] API request");
 
-      if (path === "api/health") {
+      if (apiPath === "api/health") {
         const { loader: healthLoader } = await import("./apps.revenue-boost.api.health");
         return healthLoader();
       }
 
-      if (path === "api/campaigns/active") {
+      if (apiPath === "api/campaigns/active") {
         const { loader: apiLoader } = await import("./apps.revenue-boost.api.campaigns.active");
         return apiLoader({ request, params } as LoaderFunctionArgs);
       }
 
-      if (path === "api/inventory") {
+      if (apiPath === "api/inventory") {
         const { loader: inventoryLoader } = await import("./apps.revenue-boost.api.inventory");
         return inventoryLoader({ request, params } as LoaderFunctionArgs);
       }
 
-      if (path === "api/upsell-products") {
+      if (apiPath === "api/upsell-products") {
         const { loader: upsellLoader } = await import("./apps.revenue-boost.api.upsell-products");
         return upsellLoader({ request, params } as LoaderFunctionArgs);
       }
 
-      if (path === "api/social-proof/track") {
+      if (apiPath === "api/social-proof/track") {
         const { action: apiAction } = await import("./apps.revenue-boost.api.social-proof.track");
         return apiAction({ request, params } as LoaderFunctionArgs);
       }
@@ -99,48 +100,49 @@ export async function action({ request, params }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const splat = params["*"] || "";
 
-  console.log(`[App Proxy] Action catch-all: ${url.pathname}`);
+  logger.debug({ pathname: url.pathname }, "[App Proxy] Action catch-all");
 
   // Check if this is a revenue-boost request
   if (splat.startsWith("revenue-boost/")) {
     const path = splat.replace("revenue-boost/", "");
+    // Strip query string for route matching (query params are in request.url)
+    const apiPath = path.replace(/\?.*$/, "");
 
     // Handle API POST routes
-    if (path === "api/social-proof/track") {
+    if (apiPath === "api/social-proof/track") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.social-proof.track");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
 
-    if (path === "api/popups/scratch-card") {
+    if (apiPath === "api/popups/scratch-card") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.popups.scratch-card");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
 
-    if (path === "api/popups/spin-win") {
+    if (apiPath === "api/popups/spin-win") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.popups.spin-win");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
 
-    if (path === "api/leads/submit") {
+    if (apiPath === "api/leads/submit") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.leads.submit");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
 
-    if (path === "api/discounts/issue") {
+    if (apiPath === "api/discounts/issue") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.discounts.issue");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
 
-    if (path === "api/cart/email-recovery") {
+    if (apiPath === "api/cart/email-recovery") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.cart.email-recovery");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
 
-    if (path === "api/analytics/track") {
+    if (apiPath === "api/analytics/track") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.analytics.track");
       return apiAction({ request, params } as LoaderFunctionArgs);
     }
-
     if (path === "api/analytics/frequency") {
       const { action: apiAction } = await import("./apps.revenue-boost.api.analytics.frequency");
       return apiAction({ request, params } as LoaderFunctionArgs);

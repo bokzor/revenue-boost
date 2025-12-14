@@ -8,7 +8,7 @@ import type {
   PopupSize,
   PopupPosition,
   PopupAnimation,
-} from "app/domains/storefront/popups-new/types";
+} from "../types";
 
 // =============================================================================
 // COLOR CONTRAST UTILITIES

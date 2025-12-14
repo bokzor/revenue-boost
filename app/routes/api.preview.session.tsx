@@ -14,6 +14,7 @@ import { storefrontCors } from "~/lib/cors.server";
 import { getRedis, REDIS_PREFIXES } from "~/lib/redis.server";
 import crypto from "crypto";
 import { validateCustomCss } from "~/lib/css-guards";
+import { logger } from "~/lib/logger.server";
 
 // Redis key prefix for preview sessions
 const PREVIEW_PREFIX = `${REDIS_PREFIXES.SESSION}:preview`;
@@ -68,7 +69,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // Get Redis client
     const redis = getRedis();
     if (!redis) {
-      console.error("[Preview Session] Redis not available");
+      logger.error("[Preview Session] Redis not available");
       return data(
         {
           success: false,
@@ -89,7 +90,7 @@ export async function action({ request }: ActionFunctionArgs) {
     await redis.setex(redisKey, PREVIEW_TTL, JSON.stringify(sessionData));
 
     const expiresAt = Date.now() + PREVIEW_TTL * 1000;
-    console.log(`[Preview Session] Created preview token: ${token} for store: ${storeId}`);
+    logger.info({ token, storeId }, "[Preview Session] Created preview token");
 
     return data({
       success: true,
@@ -97,7 +98,7 @@ export async function action({ request }: ActionFunctionArgs) {
       expiresAt: new Date(expiresAt).toISOString(),
     });
   } catch (error) {
-    console.error("[Preview Session] Error creating preview session:", error);
+    logger.error({ error }, "[Preview Session] Error creating preview session");
     return data(
       {
         success: false,
@@ -126,7 +127,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     // Get Redis client
     const redis = getRedis();
     if (!redis) {
-      console.error("[Preview Session] Redis not available");
+      logger.error("[Preview Session] Redis not available");
       return data(
         { success: false, error: "Preview service temporarily unavailable" },
         { status: 503, headers: storefrontCors() }
@@ -138,7 +139,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     const sessionDataStr = await redis.get(redisKey);
 
     if (!sessionDataStr) {
-      console.warn(`[Preview Session] Token not found or expired: ${token}`);
+      logger.warn({ token }, "[Preview Session] Token not found or expired");
       return data(
         { success: false, error: "Preview session not found or expired" },
         { status: 404, headers: storefrontCors() }
@@ -148,7 +149,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
     // Parse session data
     const sessionData = JSON.parse(sessionDataStr);
 
-    console.log(`[Preview Session] Retrieved preview data for token: ${token}`);
+    logger.info({ token }, "[Preview Session] Retrieved preview data");
 
     return data(
       {
@@ -159,7 +160,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
       { headers: storefrontCors() }
     );
   } catch (error) {
-    console.error("[Preview Session] Error retrieving preview session:", error);
+    logger.error({ error }, "[Preview Session] Error retrieving preview session");
     return data(
       {
         success: false,

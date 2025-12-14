@@ -1,42 +1,42 @@
-import { Download, Palette, TrendingUp } from "lucide-react"
+import { MousePointerClick, Paintbrush, Rocket } from "lucide-react"
 
 const steps = [
   {
-    icon: Download,
+    icon: MousePointerClick,
     step: "1",
-    title: "Install the App",
-    description: "One-click installation directly from the Shopify App Store. No coding required.",
+    title: "Pick a Design",
+    description: "Browse 40+ ready-to-use popup designs. Find one that matches your brand in seconds.",
   },
   {
-    icon: Palette,
+    icon: Paintbrush,
     step: "2",
-    title: "Choose a Template",
-    description: "Pick from 11+ ready-to-use templates. Customize colors, text, and timing in minutes.",
+    title: "Add Your Brand",
+    description: "Customize colors, text, and images. Your popup, your style — no design skills needed.",
   },
   {
-    icon: TrendingUp,
+    icon: Rocket,
     step: "3",
-    title: "Watch Conversions Grow",
-    description: "Go live instantly and track your results with built-in analytics dashboard.",
+    title: "Go Live",
+    description: "One click to publish. Watch your conversions grow with built-in analytics.",
   },
 ]
 
 export function HowItWorksSection() {
   return (
-    <section className="px-4 py-20 md:py-32">
+    <section id="how-it-works" className="px-4 py-20 md:py-32">
       <div className="container mx-auto">
         <div className="mx-auto mb-16 max-w-2xl text-center">
-          <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">Get Started in 3 Simple Steps</h2>
+          <h2 className="mb-4 text-3xl font-bold text-foreground md:text-4xl">Launch in 60 Seconds</h2>
           <p className="text-lg text-muted-foreground">
-            No technical skills needed. Launch your first campaign in under 5 minutes.
+            No coding. No design skills. Just pick, customize, and go live.
           </p>
         </div>
 
         <div className="relative mx-auto max-w-4xl">
-          {/* Connection line */}
-          <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-gradient-to-b from-primary via-accent to-primary/20 md:block" />
+          {/* Connection line - brand gradient */}
+          <div className="absolute left-1/2 top-0 hidden h-full w-px -translate-x-1/2 bg-gradient-to-b from-[#AEE5AB] via-[#5AB990] to-[#0E7768] md:block" />
 
-          <div className="grid gap-12 md:gap-0">
+          <div className="grid gap-16 md:gap-20">
             {steps.map((step, index) => (
               <div
                 key={step.title}
@@ -49,8 +49,8 @@ export function HowItWorksSection() {
                   <p className="text-muted-foreground">{step.description}</p>
                 </div>
 
-                <div className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent shadow-lg">
-                  <step.icon className="h-8 w-8 text-primary-foreground" />
+                <div className="relative z-10 flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#AEE5AB] to-[#0E7768] shadow-lg">
+                  <step.icon className="h-8 w-8 text-white" />
                 </div>
 
                 <div className="hidden flex-1 md:block" />

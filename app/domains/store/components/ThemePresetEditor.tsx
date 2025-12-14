@@ -18,7 +18,6 @@ import {
   Button,
   Divider,
   Collapsible,
-  Banner,
 } from "@shopify/polaris";
 import { ChevronDownIcon, ChevronUpIcon } from "@shopify/polaris-icons";
 

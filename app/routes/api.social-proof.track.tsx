@@ -17,6 +17,7 @@ import { storefrontCors } from "~/lib/cors.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import { getOrCreateVisitorId } from "~/lib/visitor-id.server";
 import { validateTrackEvent } from "~/domains/social-proof/types/tracking";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== "POST") {
@@ -86,7 +87,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return data({ success: true }, { headers: storefrontCors() });
   } catch (error) {
-    console.error("[Social Proof Track API] Error:", error);
+    logger.error({ error }, "[Social Proof Track API] Error");
     return data(
       { success: false, error: "Failed to track event" },
       { status: 500, headers: storefrontCors() }

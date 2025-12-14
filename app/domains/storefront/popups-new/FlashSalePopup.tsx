@@ -22,7 +22,7 @@ import { BannerPortal } from "./BannerPortal";
 import {
   getContainerPadding,
   POPUP_SPACING,
-} from "app/domains/storefront/popups-new/utils/spacing";
+} from "./utils/spacing";
 
 // Import custom hooks
 import { useCountdownTimer, useDiscountCode, useCTAHandler } from "./hooks";

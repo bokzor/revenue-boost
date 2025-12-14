@@ -34,6 +34,7 @@ import {
 import { BillingService } from "../domains/billing/services/billing.server";
 import { PlanGuardService } from "../domains/billing/services/plan-guard.server";
 import { isBillingBypassed } from "../lib/env.server";
+import { logger } from "../lib/logger.server";
 import { ShopService } from "../domains/shops/services/shop.server";
 
 // =============================================================================
@@ -110,13 +111,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const intent = formData.get("intent");
   const billingBypassed = isBillingBypassed();
 
-  console.log(`[Billing Action] intent: ${intent}, billingBypassed: ${billingBypassed}, shop: ${session.shop}`);
+  logger.info({ intent, billingBypassed, shop: session.shop }, "[Billing Action] Processing request");
 
   // When billing is bypassed (staging), update database directly
   if (billingBypassed) {
     if (intent === "subscribe") {
       const planTier = formData.get("planTier") as PlanTier;
-      console.log(`[Billing Action] Subscribing to plan: ${planTier}`);
+      logger.info({ planTier }, "[Billing Action] Subscribing to plan");
 
       if (!ENABLED_PLAN_ORDER.includes(planTier)) {
         return { error: "Invalid plan selected" };
@@ -135,7 +136,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           billingLastSyncedAt: new Date(),
         },
       });
-      console.log(`[Billing Action] Update result - planTier: ${result.planTier}, planStatus: ${result.planStatus}`);
+      logger.info({ planTier: result.planTier, planStatus: result.planStatus }, "[Billing Action] Update result");
 
       return redirect("/app/billing");
     }

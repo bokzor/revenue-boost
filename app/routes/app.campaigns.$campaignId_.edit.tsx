@@ -20,6 +20,7 @@ import { StoreSettingsSchema, GLOBAL_FREQUENCY_BEST_PRACTICES } from "~/domains/
 import { PlanGuardService } from "~/domains/billing/services/plan-guard.server";
 import { STYLED_RECIPES } from "~/domains/campaigns/recipes/styled-recipe-catalog";
 import type { DesignTokens } from "~/domains/campaigns/types/design-tokens";
+import { logger } from "~/lib/logger.server";
 
 // ============================================================================
 // TYPES
@@ -70,26 +71,26 @@ interface LoaderData {
 // ============================================================================
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  console.log("[Campaign Edit Loader] Starting loader for campaignId:", params.campaignId);
-  console.log("[Campaign Edit Loader] Request URL:", request.url);
+  logger.debug({ campaignId: params.campaignId }, "[Campaign Edit Loader] Starting loader");
+  logger.debug({ url: request.url }, "[Campaign Edit Loader] Request URL");
 
   try {
     const { session } = await authenticate.admin(request);
-    console.log("[Campaign Edit Loader] Session authenticated:", !!session);
+    logger.debug({ authenticated: !!session }, "[Campaign Edit Loader] Session authenticated");
 
     if (!session?.shop) {
-      console.error("[Campaign Edit Loader] No shop session found");
+      logger.error("[Campaign Edit Loader] No shop session found");
       throw new Error("No shop session found");
     }
 
     const campaignId = params.campaignId;
     if (!campaignId) {
-      console.error("[Campaign Edit Loader] Campaign ID is missing");
+      logger.error("[Campaign Edit Loader] Campaign ID is missing");
       throw new Error("Campaign ID is required");
     }
 
     const storeId = await getStoreId(request);
-    console.log("[Campaign Edit Loader] StoreId:", storeId);
+    logger.debug({ storeId }, "[Campaign Edit Loader] StoreId");
 
     // Fetch plan context to determine feature availability
     const planContext = await PlanGuardService.getPlanContext(storeId);
@@ -111,9 +112,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     };
 
     // Get campaign details
-    console.log("[Campaign Edit Loader] Fetching campaign by ID:", campaignId);
+    logger.debug({ campaignId }, "[Campaign Edit Loader] Fetching campaign by ID");
     const campaign = await CampaignService.getCampaignById(campaignId, storeId);
-    console.log("[Campaign Edit Loader] Campaign fetched:", campaign ? campaign.id : "null");
+    logger.debug({ campaignId: campaign?.id ?? "null" }, "[Campaign Edit Loader] Campaign fetched");
 
     // Check if campaign uses a template type the user's plan doesn't support (grandfathered)
     let isTemplateLocked = false;
@@ -200,7 +201,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       campaignLimitInfo,
     });
   } catch (error) {
-    console.error("[Campaign Edit Loader] Failed to load campaign for editing:", error);
+    logger.error({ error }, "[Campaign Edit Loader] Failed to load campaign for editing");
 
     return data<LoaderData>(
       {

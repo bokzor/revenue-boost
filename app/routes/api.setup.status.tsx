@@ -14,6 +14,7 @@ import { data, type LoaderFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
 import prisma from "~/db.server";
 import { getSetupStatus } from "~/lib/setup-status.server";
+import { logger } from "~/lib/logger.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
@@ -50,7 +51,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       setupComplete,
     });
   } catch (error) {
-    console.error("[Setup Status] Error:", error);
+    logger.error({ error }, "[Setup Status] Error");
     return data(
       {
         success: false,

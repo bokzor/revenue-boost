@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Zap } from "lucide-react"
+import Image from "next/image"
 
 export function Footer() {
   return (
@@ -8,9 +8,13 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           <div className="md:col-span-1">
             <Link href="/" className="mb-4 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
-                <Zap className="h-5 w-5 text-primary-foreground" />
-              </div>
+              <Image
+                src="/logo.webp"
+                alt="Revenue Boost"
+                width={36}
+                height={36}
+                className="h-9 w-9"
+              />
               <span className="text-xl font-bold text-foreground">Revenue Boost</span>
             </Link>
             <p className="text-sm text-muted-foreground">The #1 popup and notification app for Shopify stores.</p>
