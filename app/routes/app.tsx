@@ -114,7 +114,6 @@ export default function App() {
             <s-link href="/app">Dashboard</s-link>
             <s-link href="/app/analytics">Analytics</s-link>
             <s-link href="/app/campaigns/create">New campaign</s-link>
-            <s-link href="/topics.dashboard">Topics & Promotion</s-link>
             <s-link href="/app/billing">Plans</s-link>
             <s-link href="/app/settings">Settings</s-link>
           </s-app-nav>
