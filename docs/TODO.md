@@ -1,6 +1,26 @@
 # Revenue Boost - Feature Roadmap & TODO
 
-> Last updated: 2025-11-30
+> ⚠️ **This file has been migrated!**
+>
+> The feature roadmap has been reorganized into the `todo/` directory for better organization.
+> Each feature now has its own file with detailed specs, user stories, and implementation tasks.
+>
+> **See:**
+> - [`../todo/README.md`](../todo/README.md) - Feature roadmap overview
+> - [`../todo/p1-*.md`](../todo/) - High priority features (this quarter)
+> - [`../todo/p2-*.md`](../todo/) - Medium priority features (next quarter)
+> - [`../todo/p3-*.md`](../todo/) - Future/backlog features
+> - [`../todo/completed/`](../todo/completed/) - Shipped features archive
+
+---
+
+# DEPRECATED - Content Below Has Been Migrated
+
+The content below is kept for reference but is no longer maintained. See `todo/README.md` for the current version.
+
+---
+
+> Last updated: 2025-11-30 (DEPRECATED)
 
 ## Priority Legend
 - **P0** - Critical / Next Sprint

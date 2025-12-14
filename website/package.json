@@ -6,7 +6,8 @@
     "build": "velite && next build",
     "dev": "velite --watch & next dev",
     "lint": "eslint .",
-    "start": "next start",
+    "start": "node scripts/serve-out.mjs",
+    "preview": "node scripts/serve-out.mjs",
     "velite": "velite"
   },
   "dependencies": {

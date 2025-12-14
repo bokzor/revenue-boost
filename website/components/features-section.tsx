@@ -12,7 +12,8 @@ import {
   Target,
   Clock,
   MousePointerClick,
-  Users
+  Users,
+  Brain
 } from "lucide-react"
 
 // Brand gradient: #AEE5AB → #0E7768
@@ -48,6 +49,14 @@ const categories = [
     description: "Announcements, social proof, and visitor notifications to build trust.",
     color: "from-[#AEE5AB] to-[#0E7768]",
     examples: ["Sales announcements", "Purchase notifications", "Visitor counts"],
+  },
+  {
+    icon: Brain,
+    title: "AI Product Recommendations",
+    count: 8,
+    description: "Smart AI-powered upsells that suggest the perfect products to each customer.",
+    color: "from-[#AEE5AB] to-[#0E7768]",
+    examples: ["Personalized upsells", "Frequently bought together", "Smart cross-sells"],
   },
 ]
 

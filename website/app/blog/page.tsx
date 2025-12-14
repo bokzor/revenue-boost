@@ -49,7 +49,7 @@ export default function BlogPage() {
                       {post.image && (
                         <div className="relative aspect-video overflow-hidden rounded-t-xl">
                           <Image
-                            src={post.image}
+                            src={post.image.src}
                             alt={post.imageAlt || post.title}
                             fill
                             className="object-cover"

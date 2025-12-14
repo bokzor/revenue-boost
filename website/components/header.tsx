@@ -31,12 +31,6 @@ export function Header() {
             Designs
           </Link>
           <Link
-            href="/blog"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Blog
-          </Link>
-          <Link
             href="/#how-it-works"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
@@ -78,13 +72,6 @@ export function Header() {
               onClick={() => setIsOpen(false)}
             >
               Designs
-            </Link>
-            <Link
-              href="/blog"
-              className="text-sm font-medium text-muted-foreground"
-              onClick={() => setIsOpen(false)}
-            >
-              Blog
             </Link>
             <Link
               href="/#how-it-works"

@@ -6,6 +6,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export', // Static export for Cloudflare Pages
+  // Prevent Next from picking repo root due to extra lockfiles
+  outputFileTracingRoot: path.resolve(__dirname, '..'),
   typescript: {
     ignoreBuildErrors: true,
   },

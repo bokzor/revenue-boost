@@ -42,13 +42,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       type: "article",
       url: `${siteUrl}${post.permalink}`,
       publishedTime: post.date,
-      images: post.image ? [{ url: post.image, alt: post.imageAlt || post.title }] : undefined,
+      images: post.image ? [{ url: post.image.src, alt: post.imageAlt || post.title }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: post.seoTitle || post.title,
       description: post.seoDescription || post.description,
-      images: post.image ? [post.image] : undefined,
+      images: post.image ? [post.image.src] : undefined,
     },
   }
 }
@@ -101,7 +101,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               {post.image && (
                 <div className="relative mb-10 aspect-video overflow-hidden rounded-xl">
                   <Image
-                    src={post.image}
+                    src={post.image.src}
                     alt={post.imageAlt || post.title}
                     fill
                     className="object-cover"
