@@ -80,15 +80,26 @@ test.describe.serial('Countdown Timer Template', () => {
         const campaign = await (await factory.countdownTimer().init())
             .withPriority(MAX_TEST_PRIORITY)
             .create();
-        console.log(`✅ Campaign created: ${campaign.id}`);
+        console.log(`✅ Campaign created: ${campaign.id} (status: ${campaign.status}, priority: ${campaign.priority})`);
 
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
+        // Give extension time to initialize, retry on refresh if needed
+        await page.waitForTimeout(3000);
+
+        // Check if any popup element is visible, if not try a refresh
+        const anyPopupVisible = await page.locator('[data-rb-banner], #revenue-boost-popup-shadow-host').first().isVisible().catch(() => false);
+        if (!anyPopupVisible) {
+            console.log('⚠️ No popup visible on first load, refreshing page...');
+            await page.reload();
+            await handlePasswordPage(page);
+            await page.waitForTimeout(3000);
+        }
+
         // Debug: Log what Revenue Boost elements exist in the DOM
-        await page.waitForTimeout(3000); // Give popup time to render
         const domDebug = await page.evaluate(() => {
             const results: string[] = [];
 
