@@ -13,6 +13,7 @@ import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import { storefrontCors } from "~/lib/cors.server";
 import { getOrCreateVisitorId } from "~/lib/visitor-id.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const headers = storefrontCors();
@@ -86,7 +87,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return data({ success: true }, { headers });
   } catch (error) {
-    console.error("[Analytics] Error in /api/analytics/track:", error);
+    logger.error({ error }, "[Analytics] Error in /api/analytics/track");
     return data({ success: false, error: "Failed to track event" }, { status: 500, headers });
   }
 }

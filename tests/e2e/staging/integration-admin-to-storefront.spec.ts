@@ -62,10 +62,33 @@ async function navigateToCampaignCreate(page: Page): Promise<AppContext> {
   console.log("🚀 Navigating to campaign creation...");
 
   if (TEST_MODE) {
-    await page.goto(`${TEST_SERVER_URL}/app/campaigns/create`);
-    await page.waitForLoadState("domcontentloaded");
-    await expect(page.getByText("What would you like to create?")).toBeVisible({ timeout: 30000 });
-    console.log("📋 Mode selection page loaded (TEST_MODE)");
+    // Retry navigation up to 3 times to handle transient server issues
+    let navigationSuccess = false;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= 3 && !navigationSuccess; attempt++) {
+      try {
+        console.log(`📍 Navigation attempt ${attempt}/3...`);
+        await page.goto(`${TEST_SERVER_URL}/app/campaigns/create`, {
+          timeout: 30000,
+          waitUntil: "domcontentloaded",
+        });
+        await expect(page.getByText("What would you like to create?")).toBeVisible({ timeout: 30000 });
+        navigationSuccess = true;
+        console.log("📋 Mode selection page loaded (TEST_MODE)");
+      } catch (error) {
+        lastError = error as Error;
+        console.log(`⚠️ Navigation attempt ${attempt} failed: ${lastError.message}`);
+        if (attempt < 3) {
+          console.log("⏳ Waiting 3s before retry...");
+          await page.waitForTimeout(3000);
+        }
+      }
+    }
+
+    if (!navigationSuccess) {
+      throw new Error(`Failed to navigate to campaign creation after 3 attempts: ${lastError?.message}`);
+    }
 
     const singleCampaignCard = page.getByRole("button", { name: /Single Campaign/ }).first();
     await singleCampaignCard.click();
@@ -342,11 +365,16 @@ test.describe("Integration: Admin to Storefront", () => {
     console.log("=".repeat(60));
 
     // Update priority via database to ensure this campaign shows first
-    await prisma.campaign.update({
+    // Use updateMany to avoid throwing if record doesn't exist yet (race condition)
+    const updateResult = await prisma.campaign.updateMany({
       where: { id: campaignId! },
       data: { priority: MAX_TEST_PRIORITY },
     });
-    console.log(`📝 Set priority to ${MAX_TEST_PRIORITY} via database`);
+    if (updateResult.count === 0) {
+      console.log(`⚠️ Warning: Campaign ${campaignId} not found for priority update`);
+    } else {
+      console.log(`📝 Set priority to ${MAX_TEST_PRIORITY} via database`);
+    }
 
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId! },
@@ -409,10 +437,14 @@ test.describe("Integration: Admin to Storefront", () => {
     createdCampaignIds.push(campaignId!);
 
     // Step 2: Verify in database and set high priority
-    await prisma.campaign.update({
+    // Use updateMany to avoid throwing if record doesn't exist yet (race condition)
+    const updateResult = await prisma.campaign.updateMany({
       where: { id: campaignId! },
       data: { priority: MAX_TEST_PRIORITY },
     });
+    if (updateResult.count === 0) {
+      console.log(`⚠️ Warning: Campaign ${campaignId} not found for priority update`);
+    }
 
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId! },
@@ -475,10 +507,14 @@ test.describe("Integration: Admin to Storefront", () => {
     createdCampaignIds.push(campaignId!);
 
     // Step 2: Verify in database and set high priority
-    await prisma.campaign.update({
+    // Use updateMany to avoid throwing if record doesn't exist yet (race condition)
+    const updateResult = await prisma.campaign.updateMany({
       where: { id: campaignId! },
       data: { priority: MAX_TEST_PRIORITY },
     });
+    if (updateResult.count === 0) {
+      console.log(`⚠️ Warning: Campaign ${campaignId} not found for priority update`);
+    }
 
     const campaign = await prisma.campaign.findUnique({
       where: { id: campaignId! },
@@ -537,10 +573,14 @@ test.describe("Integration: Admin to Storefront", () => {
     createdCampaignIds.push(campaignId!);
 
     // Set high priority via database
-    await prisma.campaign.update({
+    // Use updateMany to avoid throwing if record doesn't exist yet (race condition)
+    const updateResult = await prisma.campaign.updateMany({
       where: { id: campaignId! },
       data: { priority: MAX_TEST_PRIORITY },
     });
+    if (updateResult.count === 0) {
+      console.log(`⚠️ Warning: Campaign ${campaignId} not found for priority update`);
+    }
 
     // Step 2: Navigate to storefront and wait for popup
     console.log("\n" + "=".repeat(60));

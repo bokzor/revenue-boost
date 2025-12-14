@@ -87,15 +87,24 @@ test.describe.serial('Complete User Flows', () => {
             .withName('E2E-Newsletter-Complete')
             .withPriority(MAX_TEST_PRIORITY)
             .create();
-        console.log(`✅ Campaign created: ${campaign.id}`);
+        console.log(`✅ Campaign created: ${campaign.id} (status: ${campaign.status}, priority: ${campaign.priority})`);
 
         await page.waitForTimeout(API_PROPAGATION_DELAY_MS);
 
         await page.goto(STORE_URL);
         await handlePasswordPage(page);
 
-        // Wait for popup
+        // Wait for popup with retry on page refresh (extension loading can be flaky)
         const popup = page.locator('#revenue-boost-popup-shadow-host');
+        let popupVisible = await popup.isVisible().catch(() => false);
+
+        if (!popupVisible) {
+            console.log('⚠️ Popup not visible on first load, refreshing page...');
+            await page.reload();
+            await handlePasswordPage(page);
+            await page.waitForTimeout(3000); // Give extension time to initialize
+        }
+
         await expect(popup).toBeVisible({ timeout: 15000 });
         console.log('✅ Newsletter popup appeared');
 

@@ -13,7 +13,7 @@
  */
 
 import { useState, useCallback, useRef } from "react";
-import { validateEmail } from "app/domains/storefront/popups-new/utils/utils";
+import { validateEmail } from "../utils/utils";
 
 export interface PopupFormConfig {
   emailRequired?: boolean;

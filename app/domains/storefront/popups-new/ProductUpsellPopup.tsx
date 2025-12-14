@@ -34,7 +34,7 @@ import {
   formatCurrency,
   getSizeDimensions,
   prefersReducedMotion,
-} from "app/domains/storefront/popups-new/utils/utils";
+} from "./utils/utils";
 import { PopupCloseButton, PromotionDisplay, ProductImage } from "./components/shared";
 
 // Import custom hooks

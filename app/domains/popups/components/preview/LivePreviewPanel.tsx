@@ -48,7 +48,7 @@ export const LivePreviewPanel: React.FC<LivePreviewPanelProps> = ({
   templateType,
   config,
   designConfig,
-  targetRules,
+  targetRules: _targetRules,
   onPreviewElementReady,
   globalCustomCSS,
   defaultThemeTokens,

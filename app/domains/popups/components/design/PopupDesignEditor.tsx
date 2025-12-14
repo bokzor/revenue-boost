@@ -160,7 +160,7 @@ export const PopupDesignEditor: React.FC<PopupDesignEditorProps> = ({
   campaignId,
   discountConfig,
   onDiscountChange,
-  shopDomain,
+  shopDomain: _shopDomain,
   isLoading = false,
   hasEmailCapture,
 }) => {

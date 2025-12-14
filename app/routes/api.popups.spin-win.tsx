@@ -25,6 +25,7 @@ import {
   createZodErrorResponse,
   handleGamePopupPrize,
 } from "~/domains/popups/services/game-popup-handler.server";
+import { logger } from "~/lib/logger.server";
 
 const CONFIG = GAME_POPUP_CONFIGS.SPIN_TO_WIN;
 
@@ -76,7 +77,7 @@ export async function action({ request }: ActionFunctionArgs) {
       leadSource: "spin_to_win_popup",
     });
   } catch (error) {
-    console.error("[Spin-to-Win API] Error:", error);
+    logger.error({ error }, "[Spin-to-Win API] Error");
 
     if (error instanceof z.ZodError) {
       return createZodErrorResponse(error);

@@ -108,7 +108,8 @@ test.describe('Popup Design Variations', () => {
                 console.log('✅ SMALL popup rendered');
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
 
@@ -150,7 +151,8 @@ test.describe('Popup Design Variations', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -177,7 +179,8 @@ test.describe('Popup Design Variations', () => {
                 console.log('✅ CENTER position popup rendered');
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
 
@@ -224,7 +227,8 @@ test.describe('Popup Design Variations', () => {
                 console.log('✅ BOTTOM_RIGHT position popup rendered');
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -284,7 +288,8 @@ test.describe('Popup Design Variations', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -336,7 +341,8 @@ test.describe('Popup Design Variations', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });
@@ -384,7 +390,8 @@ test.describe('Popup Design Variations', () => {
                 }
 
             } finally {
-                await prisma.campaign.delete({ where: { id: campaign.id } });
+                // Use deleteMany to avoid error if campaign was already deleted by cleanup
+                await prisma.campaign.deleteMany({ where: { id: campaign.id } });
             }
         });
     });

@@ -31,6 +31,26 @@ export {
   TEMPLATE_MARKETING_INFO,
 } from "./demo-configs";
 
+// Marketing recipe preview wrapper
+export { MarketingRecipePreview } from "./MarketingRecipePreview";
+export type { MarketingRecipePreviewProps } from "./MarketingRecipePreview";
+
+// Recipe marketing data and utilities
+export {
+  MARKETING_RECIPES,
+  MARKETING_CATEGORIES,
+  getRecipesByMarketingCategory,
+  getFeaturedMarketingRecipes,
+  getMarketingRecipeCounts,
+  getTotalRecipeCount,
+  getStyledRecipeForMarketing,
+} from "./recipe-marketing-data";
+export type {
+  MarketingCategory,
+  MarketingCategoryInfo,
+  MarketingRecipe,
+} from "./recipe-marketing-data";
+
 // Re-export the core TemplatePreview for advanced usage
 // This allows consumers to use the lower-level component if needed
 export { TemplatePreview } from "~/domains/popups/components/preview/TemplatePreview";

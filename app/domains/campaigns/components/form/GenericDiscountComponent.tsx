@@ -820,7 +820,7 @@ export function GenericDiscountComponent({
                     {config.bogo.get.ids && config.bogo.get.ids.length > 0 && (
                       <Banner tone="info">
                         <Text as="p" variant="bodySm">
-                          💡 These products are eligible for the "Get" portion of your BOGO discount. Customers must add them to their cart to receive the discount at checkout.
+                          💡 These products are eligible for the &quot;Get&quot; portion of your BOGO discount. Customers must add them to their cart to receive the discount at checkout.
                         </Text>
                       </Banner>
                     )}

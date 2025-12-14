@@ -57,6 +57,20 @@ function getLuminance(hex: string): number {
 }
 
 /**
+ * Calculate fallback color for a wheel segment based on index and accent color.
+ * Used when segment.color is not explicitly defined.
+ * Alternates between accent color and off-white for maximum contrast.
+ */
+function getSegmentFallbackColor(index: number, accentColor: string): string {
+  // Alternate between accent and off-white
+  if (index % 2 === 0) {
+    return accentColor;
+  }
+  // Off-white that works well with any accent
+  return "#F8F9FA";
+}
+
+/**
  * Wheel Renderer for Spin-to-Win popup
  * Clean, modern design with subtle gradients - colors are the primary differentiator
  */
@@ -116,7 +130,8 @@ export class WheelRenderer {
       const baseAngle = index * segmentAngleRad - Math.PI / 2;
       const startAngle = rotationRad + baseAngle;
       const endAngle = startAngle + segmentAngleRad;
-      const baseColor = segment.color || accentColor;
+      // Use explicit segment color if defined, otherwise calculate fallback from accent
+      const baseColor = segment.color || getSegmentFallbackColor(index, accentColor);
       const isWinningSegment = hasSpun && wonPrize !== null && segment.id === wonPrize.id;
 
       // Draw segment with subtle gradient fill

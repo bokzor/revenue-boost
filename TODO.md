@@ -1,5 +1,24 @@
 # TODO
 
+> ⚠️ **This file has been migrated!**
+>
+> The feature roadmap and technical debt have been reorganized into the `todo/` directory for better organization.
+>
+> **See:**
+> - [`todo/README.md`](./todo/README.md) - Feature roadmap overview
+> - [`todo/technical-debt.md`](./todo/technical-debt.md) - Technical issues (content from this file)
+> - [`todo/p1-*.md`](./todo/) - High priority features
+> - [`todo/p2-*.md`](./todo/) - Medium priority features
+> - [`todo/p3-*.md`](./todo/) - Future/backlog features
+
+---
+
+# DEPRECATED - Content Below Has Been Migrated
+
+The content below is kept for reference but is no longer maintained. See `todo/technical-debt.md` for the current version.
+
+---
+
 ## Missing Targeting Triggers
 
 ### ❌ What's Missing (Industry Standard)

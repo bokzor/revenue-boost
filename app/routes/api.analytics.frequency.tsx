@@ -13,6 +13,7 @@ import { storefrontCors } from "~/lib/cors.server";
 import { getStoreIdFromShop } from "~/lib/auth-helpers.server";
 import prisma from "~/db.server";
 import type { StoreSettings } from "~/domains/store/types/settings";
+import { logger } from "~/lib/logger.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const headers = storefrontCors();
@@ -70,7 +71,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const frequencyRules = targetRules?.enhancedTriggers?.frequency_capping;
 
     // DIAGNOSTIC: Log frequency capping rules being used for recordDisplay
-    console.log('[Analytics Frequency] 🔍 Frequency rules for recordDisplay:', {
+    logger.debug({
       campaignId,
       trackingKey,
       visitorId,
@@ -79,7 +80,7 @@ export async function action({ request }: ActionFunctionArgs) {
       max_triggers_per_session: frequencyRules?.max_triggers_per_session,
       max_triggers_per_day: frequencyRules?.max_triggers_per_day,
       rawFrequencyRules: frequencyRules,
-    });
+    }, "[Analytics Frequency] Frequency rules for recordDisplay");
 
     // Fetch store settings for global frequency capping
     const store = await prisma.store.findUnique({
@@ -127,19 +128,14 @@ export async function action({ request }: ActionFunctionArgs) {
       });
     } catch (eventError) {
       // Don't fail the request if analytics write fails
-      console.error("[Analytics] Failed to record popup VIEW event:", eventError);
+      logger.error({ eventError }, "[Analytics] Failed to record popup VIEW event");
     }
 
-    console.log("[Analytics] Frequency tracking recorded:", {
-      campaignId,
-      trackingKey,
-      storeId,
-      visitorId,
-    });
+    logger.debug({ campaignId, trackingKey, storeId, visitorId }, "[Analytics] Frequency tracking recorded");
 
     return data({ success: true }, { headers });
   } catch (error) {
-    console.error("[Analytics] Error tracking frequency:", error);
+    logger.error({ error }, "[Analytics] Error tracking frequency");
     return data({ success: false, error: "Failed to track frequency" }, { status: 500, headers });
   }
 }

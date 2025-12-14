@@ -16,7 +16,7 @@
  */
 
 import React from "react";
-import type { DesktopLayout, MobileLayout } from "app/domains/storefront/popups-new/types";
+import type { DesktopLayout, MobileLayout } from "../../types";
 
 // =============================================================================
 // TYPES

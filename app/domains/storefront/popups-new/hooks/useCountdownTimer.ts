@@ -17,7 +17,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   calculateTimeRemaining,
   formatTimeRemaining,
-} from "app/domains/storefront/popups-new/utils/utils";
+} from "../utils/utils";
 
 export type TimerMode = "duration" | "fixed_end" | "personal";
 

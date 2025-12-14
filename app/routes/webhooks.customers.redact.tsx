@@ -9,23 +9,24 @@ import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "~/shopify.server";
 import { handleCustomersRedact } from "~/webhooks/privacy/customers-redact";
 import type { CustomersRedactPayload } from "~/webhooks/privacy/types";
+import { logger } from "~/lib/logger.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     // Authenticate the webhook request (validates HMAC signature)
     const { shop, payload, topic } = await authenticate.webhook(request);
 
-    console.log(`[Webhook Route] Received ${topic} for ${shop}`);
+    logger.info({ topic, shop }, "[Webhook Route] Received webhook");
 
     if (topic !== "CUSTOMERS_REDACT") {
-      console.error(`[Webhook Route] Unexpected topic: ${topic}`);
+      logger.error({ topic }, "[Webhook Route] Unexpected topic");
       return new Response("Invalid topic", { status: 400 });
     }
 
     // Process the redaction request
     await handleCustomersRedact(shop, payload as CustomersRedactPayload);
 
-    console.log(`[Webhook Route] Successfully processed customers/redact for ${shop}`);
+    logger.info({ shop }, "[Webhook Route] Successfully processed customers/redact");
 
     // Return success response (200 OK)
     return new Response(JSON.stringify({ success: true }), {
@@ -33,7 +34,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("[Webhook Route] Error processing customers/redact:", error);
+    logger.error({ error }, "[Webhook Route] Error processing customers/redact");
 
     // Return 500 to signal Shopify to retry
     return new Response(

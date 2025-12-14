@@ -17,12 +17,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import type { PopupDesignConfig } from "./types";
 import type { CountdownTimerContent } from "~/domains/campaigns/types/campaign";
-import { POPUP_SPACING } from "app/domains/storefront/popups-new/utils/spacing";
+import { POPUP_SPACING } from "./utils/spacing";
 
 // Import custom hooks
 import { useCountdownTimer, useColorScheme } from "./hooks";
 import { buildScopedCss } from "~/domains/storefront/shared/css";
-import { getBackgroundStyles } from "app/domains/storefront/popups-new/utils/utils";
+import { getBackgroundStyles } from "./utils/utils";
 
 // Animation duration for banner enter/exit
 const BANNER_ANIMATION_DURATION = 300;

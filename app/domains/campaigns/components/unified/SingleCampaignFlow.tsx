@@ -18,7 +18,6 @@ import {
   BlockStack,
   InlineStack,
   Button,
-  Box,
   Banner,
   Popover,
   ActionList,
@@ -53,12 +52,7 @@ import {
   toTargetRulesRecord,
   type SectionId,
 } from "./defaults";
-import {
-  applyQuickConfigToState,
-  extractIds,
-  valuesAreEqual,
-  type QuickConfigApplyResult,
-} from "../../utils/quick-config-transformer";
+import { applyQuickConfigToState } from "../../utils/quick-config-transformer";
 
 /** Design tokens from the store's default theme preset (matches DesignTokens shape) */
 export type DefaultThemeTokens = import("~/domains/campaigns/types/design-tokens").DesignTokens;

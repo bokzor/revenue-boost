@@ -17,16 +17,12 @@ import prisma from "~/db.server";
 import { handleApiError } from "~/lib/api-error-handler.server";
 import { PopupEventService } from "~/domains/analytics/popup-events.server";
 import {
-  DiscountConfigSchema,
-  type DiscountConfig,
-  type DiscountStrategy,
-} from "~/domains/campaigns/types/campaign";
-import {
   getCampaignDiscountCode,
   inferStrategy,
   normalizeDiscountConfig,
 } from "~/domains/commerce/services/discount.server";
 import { generatePreviewDiscountCode } from "~/lib/preview-discount.server";
+import { logger } from "~/lib/logger.server";
 
 // Request validation schema
 const IssueDiscountRequestSchema = z.object({
@@ -99,7 +95,7 @@ async function getCachedDiscountCode(sessionId: string, campaignId: string): Pro
       return JSON.parse(cached) as SessionIssue;
     }
   } catch (error) {
-    console.error("[Discount Issue] Redis cache read error:", error);
+    logger.error({ error }, "[Discount Issue] Redis cache read error");
   }
   return null;
 }
@@ -120,7 +116,7 @@ async function cacheDiscountCode(sessionId: string, campaignId: string, code: st
     };
     await redis.setex(cacheKey, SESSION_TTL_SECONDS, JSON.stringify(sessionIssue));
   } catch (error) {
-    console.error("[Discount Issue] Redis cache write error:", error);
+    logger.error({ error }, "[Discount Issue] Redis cache write error");
   }
 }
 
@@ -163,7 +159,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!validation.valid) {
       if (validation.isBotLikely) {
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-        console.warn(`[Discount Issue] 🤖 Bot detected (${validation.reason}) for campaign ${campaignId}, IP: ${ip}`);
+        logger.warn({ reason: validation.reason, campaignId, ip }, "[Discount Issue] Bot detected");
         return data(
           { success: true, code: "THANK-YOU-10", type: "PERCENTAGE", behavior: "SHOW_CODE_ONLY" },
           { status: 200 }
@@ -179,7 +175,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // BYPASS RATE LIMITING for preview mode to allow unlimited testing
     const isPreviewCampaign = campaignId.startsWith("preview-");
     if (isPreviewCampaign) {
-      console.log(`[Discount Issue] ✅ Preview mode - returning mock discount code (BYPASSING RATE LIMITS)`);
+      logger.debug({ campaignId }, "[Discount Issue] Preview mode - returning mock discount code (BYPASSING RATE LIMITS)");
 
       // Try to fetch discount config from Redis preview session
       let previewDiscountCode = "PREVIEW-SAVE";
@@ -203,13 +199,13 @@ export async function action({ request }: ActionFunctionArgs) {
               if (discountConfig) {
                 previewDiscountCode = generatePreviewDiscountCode(discountConfig) || "PREVIEW-SAVE";
                 previewBehavior = discountConfig.behavior || "SHOW_CODE_AND_AUTO_APPLY";
-                console.log(`[Discount Issue] 🎟️ Preview discount code generated: ${previewDiscountCode}`);
+                logger.debug({ previewDiscountCode }, "[Discount Issue] Preview discount code generated");
               }
             }
           }
         }
       } catch (error) {
-        console.warn("[Discount Issue] Failed to fetch preview discount config:", error);
+        logger.warn({ error }, "[Discount Issue] Failed to fetch preview discount config");
       }
 
       return data(
@@ -242,14 +238,14 @@ export async function action({ request }: ActionFunctionArgs) {
       );
 
       if (!rateLimitResult.allowed) {
-        console.warn(`[Discount Issue] Rate limit exceeded for session ${sessionId}`);
+        logger.warn({ sessionId }, "[Discount Issue] Rate limit exceeded");
         return data(
           { success: false, error: "Too many requests. Please try again later." },
           { status: 429 }
         );
       }
     } else {
-      console.log(`[Discount Issue] ⚠️ Rate limiting bypassed (RATE_LIMIT_BYPASS=true)`);
+      logger.debug("[Discount Issue] Rate limiting bypassed (RATE_LIMIT_BYPASS=true)");
     }
 
     // Check idempotency: if this session recently issued a code for this campaign, reuse it
@@ -257,7 +253,7 @@ export async function action({ request }: ActionFunctionArgs) {
       const cached = await getCachedDiscountCode(sessionId, campaignId);
 
       if (cached) {
-        console.log(`[Discount Issue] Reusing cached code for session ${sessionId}`);
+        logger.debug({ sessionId }, "[Discount Issue] Reusing cached code");
         return data({
           success: true,
           code: cached.code,
@@ -308,10 +304,10 @@ export async function action({ request }: ActionFunctionArgs) {
     // This allows dynamic scoping for AI-suggested products at runtime.
     // TODO: Add security validation to ensure productIds are valid for this campaign
     if (selectedProductIds && selectedProductIds.length > 0) {
-      console.log("[Discount Issue] Bundle discount mode - scoping to selected products:", {
+      logger.debug({
         selectedProductIds,
         count: selectedProductIds.length,
-      });
+      }, "[Discount Issue] Bundle discount mode - scoping to selected products");
 
       discountConfigWithStrategy = {
         ...discountConfigWithStrategy,
@@ -330,10 +326,10 @@ export async function action({ request }: ActionFunctionArgs) {
       cartProductIds &&
       cartProductIds.length > 0
     ) {
-      console.log("[Discount Issue] Cart-scoped discount mode:", {
+      logger.debug({
         cartProductIds,
         originalScope: discountConfigWithStrategy.applicability.scope,
-      });
+      }, "[Discount Issue] Cart-scoped discount mode");
 
       // Override applicability to use product IDs from cart
       discountConfigWithStrategy = {
@@ -416,14 +412,13 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     // Log issuance for analytics/debugging
-    console.log(
-      `[Discount Issue] Issued code "${result.discountCode}" for campaign ${campaignId}`,
-      {
-        tierUsed: response.tierUsed,
-        cartSubtotal: cartSubtotalCents ? `$${(cartSubtotalCents / 100).toFixed(2)}` : "N/A",
-        isNew: result.isNewDiscount,
-      }
-    );
+    logger.info({
+      discountCode: result.discountCode,
+      campaignId,
+      tierUsed: response.tierUsed,
+      cartSubtotal: cartSubtotalCents ? `$${(cartSubtotalCents / 100).toFixed(2)}` : "N/A",
+      isNew: result.isNewDiscount,
+    }, "[Discount Issue] Issued code");
 
     // Record analytics event
     try {
@@ -446,13 +441,13 @@ export async function action({ request }: ActionFunctionArgs) {
         },
       });
     } catch (err) {
-      console.error("[Discount Issue] Failed to record analytics event:", err);
+      logger.error({ err }, "[Discount Issue] Failed to record analytics event");
       // Don't fail the request
     }
 
     return data(response);
   } catch (error) {
-    console.error("[Discount Issue] Error:", error);
+    logger.error({ error }, "[Discount Issue] Error");
     return handleApiError(error, "POST /api/discounts/issue");
   }
 }

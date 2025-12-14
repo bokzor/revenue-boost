@@ -19,6 +19,7 @@ import {
   shouldShowDiscountCode,
 } from "~/domains/commerce/services/discount.server";
 import { createDraftOrder } from "~/lib/shopify/order.server";
+import { logger } from "~/lib/logger.server";
 
 const EmailRecoveryRequestSchema = z.object({
   campaignId: z.string().min(1).refine(
@@ -97,7 +98,7 @@ export async function action({ request }: ActionFunctionArgs) {
     if (!validation.valid) {
       if (validation.isBotLikely) {
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
-        console.warn(`[Cart Recovery] 🤖 Bot detected (${validation.reason}) for campaign ${validated.campaignId}, IP: ${ip}`);
+        logger.warn({ reason: validation.reason, campaignId: validated.campaignId, ip }, "[Cart Recovery] Bot detected");
         return data<EmailRecoveryResponse>(
           { success: true, message: "Thank you!" },
           { status: 200 }
@@ -113,7 +114,7 @@ export async function action({ request }: ActionFunctionArgs) {
     // BYPASS RATE LIMITING for preview mode to allow unlimited testing
     const isPreviewCampaign = validated.campaignId.startsWith("preview-");
     if (isPreviewCampaign) {
-      console.log(`[Cart Recovery] ✅ Preview mode - returning mock success (BYPASSING RATE LIMITS)`);
+      logger.debug({ campaignId: validated.campaignId }, "[Cart Recovery] Preview mode - returning mock success (BYPASSING RATE LIMITS)");
       return data<EmailRecoveryResponse>(
         {
           success: true,
@@ -136,7 +137,7 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (!rateLimitResult.allowed) {
-      console.warn(`[Cart Recovery] Rate limit exceeded for ${validated.email}`);
+      logger.warn({ email: validated.email }, "[Cart Recovery] Rate limit exceeded");
       return data<EmailRecoveryResponse>(
         { success: false, error: "You've already recovered your cart today" },
         { status: 429 }
@@ -192,17 +193,12 @@ export async function action({ request }: ActionFunctionArgs) {
         });
 
         if (draftOrderResult.success) {
-          console.log(
-            `[Cart Email Recovery] Created draft order: ${draftOrderResult.draftOrder?.id}`
-          );
+          logger.info({ draftOrderId: draftOrderResult.draftOrder?.id }, "[Cart Email Recovery] Created draft order");
         } else {
-          console.warn(
-            `[Cart Email Recovery] Failed to create draft order:`,
-            draftOrderResult.errors
-          );
+          logger.warn({ errors: draftOrderResult.errors }, "[Cart Email Recovery] Failed to create draft order");
         }
       } catch (err) {
-        console.error("[Cart Email Recovery] Error creating draft order:", err);
+        logger.error({ err }, "[Cart Email Recovery] Error creating draft order");
         // Don't fail the request if draft order creation fails, just log it
       }
     }
@@ -219,7 +215,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return data<EmailRecoveryResponse>(response, { status: 200 });
   } catch (error) {
-    console.error("[Cart Email Recovery] Error:", error);
+    logger.error({ error }, "[Cart Email Recovery] Error");
     return handleApiError(error, "POST /api/cart/email-recovery");
   }
 }
